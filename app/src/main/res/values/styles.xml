@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="TextAppearance.RecapFlow.Headline" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textColor">@color/rf_on_surface</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.RecapFlow.Title" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/rf_on_surface</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.RecapFlow.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/rf_on_surface_variant</item>
+    </style>
+
+    <style name="TextAppearance.RecapFlow.MetadataLabel" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textColor">@color/rf_on_surface_variant</item>
+    </style>
+
+    <style name="TextAppearance.RecapFlow.MetadataValue" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/rf_on_surface</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.RecapFlow.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/rf_surface</item>
+        <item name="cardCornerRadius">@dimen/rf_card_radius</item>
+        <item name="cardElevation">1dp</item>
+    </style>
+
+    <!-- An empty parent prevents AAPT from inferring the nonexistent
+         Widget.RecapFlow parent from this dotted style name. -->
+    <style name="Widget.RecapFlow.MetadataRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+</resources>

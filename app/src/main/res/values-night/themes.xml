@@ -1,0 +1,23 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+  <style name="Base.AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+      <item name="colorPrimary">@color/rf_primary</item>
+      <item name="colorOnPrimary">@color/rf_on_primary</item>
+      <item name="colorPrimaryContainer">@color/rf_primary_container</item>
+      <item name="colorOnPrimaryContainer">@color/rf_on_primary_container</item>
+      <item name="colorSecondary">@color/rf_secondary</item>
+      <item name="colorSurface">@color/rf_surface</item>
+      <item name="colorOnSurface">@color/rf_on_surface</item>
+      <item name="colorSurfaceVariant">@color/rf_surface_variant</item>
+      <item name="colorOnSurfaceVariant">@color/rf_on_surface_variant</item>
+      <item name="colorOutline">@color/rf_outline</item>
+      <item name="colorError">@color/rf_error</item>
+      <item name="android:colorAccent">@color/rf_primary</item>
+      <item name="android:windowBackground">@color/rf_background</item>
+      <item name="android:statusBarColor">@color/rf_background</item>
+      <item name="android:navigationBarColor">@color/rf_background</item>
+      <item name="android:windowLightStatusBar">false</item>
+      <item name="android:windowLightNavigationBar">false</item>
+  </style>
+
+  <style name="AppTheme" parent="Base.AppTheme" />
+</resources>

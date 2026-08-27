@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="rf_screen_padding">20dp</dimen>
+    <dimen name="rf_screen_padding_tablet">28dp</dimen>
+    <dimen name="rf_card_padding">20dp</dimen>
+    <dimen name="rf_card_radius">24dp</dimen>
+    <dimen name="rf_content_max_width">760dp</dimen>
+    <dimen name="rf_state_max_width">560dp</dimen>
+    <dimen name="rf_tablet_details_width">380dp</dimen>
+    <dimen name="rf_editor_preview_width">260dp</dimen>
+    <dimen name="rf_editor_preview_height">292dp</dimen>
+    <dimen name="rf_editor_preview_top_margin">12dp</dimen>
+    <dimen name="rf_editor_preview_clearance">320dp</dimen>
+    <dimen name="rf_editor_preview_horizontal_margin">20dp</dimen>
+    <dimen name="rf_editor_preview_bottom_gap">18dp</dimen>
+    <dimen name="rf_editor_preview_edge_margin">8dp</dimen>
+    <dimen name="rf_editor_sheet_padding">14dp</dimen>
+</resources>

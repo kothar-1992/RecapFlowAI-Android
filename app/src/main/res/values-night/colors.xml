@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="rf_primary">#CBBEFF</color>
+    <color name="rf_on_primary">#34206E</color>
+    <color name="rf_primary_container">#4B3787</color>
+    <color name="rf_on_primary_container">#E8E0FF</color>
+    <color name="rf_secondary">#CCC2DC</color>
+    <color name="rf_background">#121017</color>
+    <color name="rf_surface">#1A171F</color>
+    <color name="rf_surface_variant">#25212C</color>
+    <color name="rf_on_surface">#E7E1EA</color>
+    <color name="rf_on_surface_variant">#CAC4D0</color>
+    <color name="rf_outline">#938F99</color>
+    <color name="rf_success">#8DDBA3</color>
+    <color name="rf_success_container">#163D24</color>
+    <color name="rf_on_success_container">#B6F2C6</color>
+    <color name="rf_warning_container">#4D3B05</color>
+    <color name="rf_on_warning_container">#FFE08A</color>
+    <color name="rf_error">#FFB4AB</color>
+    <color name="rf_error_container">#5B191B</color>
+    <color name="rf_on_error_container">#FFDAD6</color>
+    <color name="rf_preview_background">#07060A</color>
+    <color name="rf_on_preview">#F3EDF7</color>
+    <color name="rf_preview_scrim">#D9121017</color>
+    <color name="rf_preview_control_scrim">#C9000000</color>
+    <color name="rf_preview_control_outline">#99FFFFFF</color>
+</resources>
