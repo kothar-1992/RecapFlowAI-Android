@@ -1,0 +1,25 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore ACS editor directory
+.acside
+
+# Ignore Kotlin directory
+.kotlin
+
+# Ignore Gradle build output directory
+build
+
+# Ignore machine-local Android SDK and IDE state
+local.properties
+.idea/
+*.iml
+
+# Ignore signing material and local credential files
+*.jks
+*.keystore
+keystore.properties
+
+# Generated ARM64 FFmpeg SDK. Recreate with the checked-in build script.
+app/src/main/cpp/ffmpeg/prebuilt/arm64-v8a/include/
+app/src/main/cpp/ffmpeg/prebuilt/arm64-v8a/lib/*.a
