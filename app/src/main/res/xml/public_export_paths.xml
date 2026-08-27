@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- API 28 only: grant temporary Open/Share access to finalized public videos. -->
+    <external-path
+        name="recapflow_public_movies"
+        path="Movies/RecapFlowAI/" />
+</paths>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="rf_screen_padding">28dp</dimen>
+    <dimen name="rf_editor_preview_width">320dp</dimen>
+    <dimen name="rf_editor_preview_height">360dp</dimen>
+    <dimen name="rf_editor_preview_top_margin">12dp</dimen>
+    <dimen name="rf_editor_preview_clearance">388dp</dimen>
+    <dimen name="rf_editor_preview_horizontal_margin">32dp</dimen>
+    <dimen name="rf_editor_preview_bottom_gap">22dp</dimen>
+    <dimen name="rf_editor_preview_edge_margin">10dp</dimen>
+    <dimen name="rf_editor_sheet_padding">18dp</dimen>
+</resources>
