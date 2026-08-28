@@ -7,6 +7,7 @@ data class RenderedOutputMetadata(
     val height: Int,
     /** Track rotation metadata normalized to 0/90/180/270 degrees. */
     val rotationDegrees: Int = 0,
+    val frameRate: Double = 0.0,
     val durationMs: Long,
     val videoMimeType: String?,
     val audioMimeType: String?,
@@ -39,6 +40,7 @@ object RenderedOutputValidationPolicy {
         expectedAudio: Boolean,
         expectedWidth: Int? = null,
         expectedHeight: Int? = null,
+        expectedFrameRate: Int? = null,
         requestedVideoBitrate: Int,
         averageVideoBitrate: Int?,
     ): RenderedOutputValidation {
@@ -83,6 +85,14 @@ object RenderedOutputValidationPolicy {
             if (!metadata.videoMimeType.equals(VIDEO_AVC_MIME, ignoreCase = true)) {
                 add("Expected H.264 video, but received ${metadata.videoMimeType ?: "no video"}")
             }
+            if (expectedFrameRate != null && metadata.frameRate > 0.0 &&
+                kotlin.math.abs(metadata.frameRate - expectedFrameRate.toDouble()) > FRAME_RATE_TOLERANCE
+            ) {
+                add(
+                    "Expected approximately ${expectedFrameRate}fps, but finalized track reports " +
+                        "${"%.3f".format(java.util.Locale.US, metadata.frameRate)}fps",
+                )
+            }
             if (expectedAudio && !metadata.audioMimeType.equals(AUDIO_AAC_MIME, true)) {
                 add("Expected AAC audio, but received ${metadata.audioMimeType ?: "no audio"}")
             }
@@ -101,28 +111,20 @@ object RenderedOutputValidationPolicy {
             }
         }
         val warnings = buildList {
+            if (expectedFrameRate != null && metadata.frameRate <= 0.0) {
+                add("Finalized track did not expose frame-rate metadata; verify FPS on device evidence")
+            }
             if (
-                averageVideoBitrate != null &&
-                averageVideoBitrate > 0 &&
-                averageVideoBitrate < requestedVideoBitrate / 2
+                averageVideoBitrate != null && averageVideoBitrate > 0 &&
+                averageVideoBitrate < requestedVideoBitrate * 35L / 100L
             ) {
                 add(
-                    "Severe quality shortfall: the device encoder delivered less than 50% " +
-                        "of the requested CBR target",
-                )
-            } else if (
-                averageVideoBitrate != null &&
-                averageVideoBitrate > 0 &&
-                averageVideoBitrate < (requestedVideoBitrate * 4L / 5L)
-            ) {
-                add(
-                    "Quality shortfall: the device encoder delivered less than 80% " +
-                        "of the requested CBR target",
+                    "VBR average bitrate is below 35% of the requested target; " +
+                        "review visual quality before publishing",
                 )
             }
             if (
-                expectedDurationMs > 0L &&
-                durationDriftMs > BASE_DURATION_DRIFT_MS &&
+                expectedDurationMs > 0L && durationDriftMs > BASE_DURATION_DRIFT_MS &&
                 durationDriftMs <= allowedDurationDriftMs
             ) {
                 add(
@@ -140,7 +142,7 @@ object RenderedOutputValidationPolicy {
     }
 
     /**
-     * Media3 normalizes output to 30 fps and AAC is packetized separately. Keep the historical
+     * Output FPS may be 24-60 depending on source and AAC is packetized separately. Keep the historical
      * 250 ms floor, allow at most 0.1% duration drift for longer files, and cap the exception at
      * 750 ms so a real clip/timeline mismatch still fails.
      */
@@ -155,4 +157,5 @@ object RenderedOutputValidationPolicy {
     private const val AUDIO_AAC_MIME = "audio/mp4a-latm"
     const val BASE_DURATION_DRIFT_MS = 250L
     const val MAX_DURATION_DRIFT_MS = 750L
+    const val FRAME_RATE_TOLERANCE = 1.0
 }

@@ -1,5 +1,7 @@
 # Phase 6F.2.7 — AndroidIDE / Device Verification
 
+**Owner result: PASS — 2026-08-28.**
+
 ## 1. Source preflight
 
 From the project root:
@@ -86,7 +88,7 @@ Verify:
 - one final render session only; no intermediate render while editing,
 - exact `1080x1920` for portrait or `1920x1080` for landscape output geometry,
 - H.264 and expected AAC/mute policy,
-- requested 1080p bitrate budget remains at least 30 Mbps and output diagnostics report actual bitrate,
+- output diagnostics report requested/actual bitrate for the policy under test. This Phase 6F.2.7 PASS used the then-current high-bitrate policy; Phase 6F.2.8 (#11 / PR #12) separately reduces social-upload bitrate targets and makes frame rate source-aware,
 - Blur/Logo timing remains correct through the late section,
 - Adaptive Cut order and Speed duration are correct,
 - A/V sync is acceptable,
@@ -95,5 +97,4 @@ Verify:
 
 ## 8. Result reporting
 
-Report either `Phase 6F.2.7 PASS` or paste the first compile/runtime error plus the related Logcat
-section. PR #10 must remain draft/unmerged until this matrix passes.
+Recorded result: `Phase 6F.2.7 PASS` on 2026-08-28. PR #10 remains unmerged only until the exact AndroidIDE-tested source is synchronized into the branch and the repository diff is verified.

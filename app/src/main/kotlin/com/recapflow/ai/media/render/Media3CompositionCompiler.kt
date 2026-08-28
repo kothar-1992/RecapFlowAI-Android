@@ -27,7 +27,7 @@ data class CompiledMedia3Composition(
 /** Builds the single authoritative Media3 Composition used by final export. */
 @UnstableApi
 object Media3CompositionCompiler {
-    const val TARGET_FRAME_RATE = 30
+    const val PREVIEW_FRAME_RATE = 30
 
     fun compile(
         mediaInfo: MediaInfo,
@@ -80,6 +80,11 @@ object Media3CompositionCompiler {
         require((plan.freeze == null) == (freezeFrame == null)) {
             "Freeze-frame asset must match the compiled composition plan"
         }
+        val targetFrameRate = if (forCompositionPreview) {
+            PREVIEW_FRAME_RATE
+        } else {
+            ExportFrameRatePolicy.forSource(mediaInfo.frameRate)
+        }
 
         val videoSequence = EditedMediaItemSequence.Builder().apply {
             var compositionOffsetUs = 0L
@@ -89,6 +94,7 @@ object Media3CompositionCompiler {
                         editPlan = editPlan,
                         freezeFrame = checkNotNull(freezeFrame),
                         freeze = plan.freeze,
+                        targetFrameRate = targetFrameRate,
                     ),
                 )
                 compositionOffsetUs += plan.freeze.durationMs * 1_000L
@@ -103,6 +109,7 @@ object Media3CompositionCompiler {
                         plan = plan,
                         compositionOffsetUs = compositionOffsetUs,
                         forCompositionPreview = forCompositionPreview,
+                        targetFrameRate = targetFrameRate,
                     ),
                 )
                 compositionOffsetUs += CompositionOverlayTimelinePolicy.presentationDurationUs(
@@ -142,6 +149,7 @@ object Media3CompositionCompiler {
         plan: Media3CompositionPlan,
         compositionOffsetUs: Long,
         forCompositionPreview: Boolean,
+        targetFrameRate: Int,
     ): EditedMediaItem {
         val speedEffects = if (forCompositionPreview) {
             TransformSpeedEffectsFactory.forCompositionPreview(
@@ -180,7 +188,7 @@ object Media3CompositionCompiler {
             TransformVideoEffects.forCompositionPreview(
                 settings = editPlan.transform,
                 preset = RenderPreset.HD_720P,
-                targetFrameRate = TARGET_FRAME_RATE.toFloat(),
+                targetFrameRate = targetFrameRate.toFloat(),
                 sourceDurationMs = range.durationMs,
                 speedEffect = speedEffects?.videoEffect,
                 overlays = localOverlays,
@@ -191,7 +199,7 @@ object Media3CompositionCompiler {
             TransformVideoEffects.forRender(
                 settings = editPlan.transform,
                 preset = editPlan.exportPreset,
-                targetFrameRate = TARGET_FRAME_RATE.toFloat(),
+                targetFrameRate = targetFrameRate.toFloat(),
                 sourceDurationMs = range.durationMs,
                 speedEffect = speedEffects?.videoEffect,
                 overlays = localOverlays,
@@ -228,6 +236,7 @@ object Media3CompositionCompiler {
         editPlan: EditPlan,
         freezeFrame: File,
         freeze: Media3FreezePlan,
+        targetFrameRate: Int,
     ): EditedMediaItem = EditedMediaItem.Builder(
         MediaItem.Builder()
             .setUri(freezeFrame.toURI().toString())
@@ -235,14 +244,14 @@ object Media3CompositionCompiler {
             .build(),
     )
         .setDurationUs(freeze.durationMs * 1_000L)
-        .setFrameRate(TARGET_FRAME_RATE)
+        .setFrameRate(targetFrameRate)
         .setEffects(
             Effects(
                 emptyList(),
                 TransformVideoEffects.forRender(
                     settings = frozenVisualSettings(editPlan.transform),
                     preset = editPlan.exportPreset,
-                    targetFrameRate = TARGET_FRAME_RATE.toFloat(),
+                    targetFrameRate = targetFrameRate.toFloat(),
                     sourceDurationMs = freeze.durationMs,
                     overlays = editPlan.overlays.takeIf {
                         OverlayCompiler.hasOperationActiveAt(it, freeze.sourceFrameTimeMs)

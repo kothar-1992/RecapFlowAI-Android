@@ -2,42 +2,24 @@ package com.recapflow.ai.media.render
 
 import com.recapflow.ai.media.MediaInfo
 
-/**
- * Chooses a deterministic H.264 bitrate request for the reviewed export.
- *
- * MediaInfo.bitrate is the probed container bitrate, so it is used only as a
- * source-quality floor and is always constrained by the selected preset. The
- * encoder can still apply a device fallback; ExportResult reports the actual
- * average bitrate so that difference remains visible to the user.
- */
+/** Social-upload-oriented H.264 request; source bitrate is diagnostic rather than an output floor. */
 object RenderQualityPolicy {
-
-    fun forSource(
-        mediaInfo: MediaInfo,
-        preset: RenderPreset,
-    ): RenderQualityRequest {
+    fun forSource(mediaInfo: MediaInfo, preset: RenderPreset): RenderQualityRequest {
         val sourceShortSide = minOf(mediaInfo.width, mediaInfo.height).coerceAtLeast(1)
-        val boundedSourceBitrate = mediaInfo.bitrate
-            .coerceAtLeast(0L)
-            .coerceAtMost(preset.maximumVideoBitrate.toLong())
-            .toInt()
+        val targetFrameRate = ExportFrameRatePolicy.forSource(mediaInfo.frameRate)
         return RenderQualityRequest(
-            requestedVideoBitrate = maxOf(
-                preset.minimumVideoBitrate,
-                boundedSourceBitrate,
-            ),
+            requestedVideoBitrate = preset.videoBitrateFor(targetFrameRate),
+            targetFrameRate = targetFrameRate,
             sourceShortSidePixels = sourceShortSide,
             isUpscaling = preset.shortSidePixels > sourceShortSide,
-            isPreviousRecapFlowExport = mediaInfo.displayName.startsWith(
-                prefix = "RecapFlow_",
-                ignoreCase = true,
-            ),
+            isPreviousRecapFlowExport = mediaInfo.displayName.startsWith("RecapFlow_", ignoreCase = true),
         )
     }
 }
 
 data class RenderQualityRequest(
     val requestedVideoBitrate: Int,
+    val targetFrameRate: Int,
     val sourceShortSidePixels: Int,
     val isUpscaling: Boolean,
     val isPreviousRecapFlowExport: Boolean,

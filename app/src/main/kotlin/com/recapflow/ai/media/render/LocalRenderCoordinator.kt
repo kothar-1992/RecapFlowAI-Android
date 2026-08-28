@@ -281,7 +281,7 @@ class LocalRenderCoordinator(
                     VideoEncoderSettings.Builder()
                         .setBitrate(qualityRequest.requestedVideoBitrate)
                         .setBitrateMode(
-                            MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR,
+                            MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR,
                         )
                         .build(),
                 )
@@ -292,7 +292,7 @@ class LocalRenderCoordinator(
                 RENDER_LOG_TAG,
                 "Starting ${editPlan.exportPreset.displayName} H.264 export; " +
                     "requestedVideoBitrate=${qualityRequest.requestedVideoBitrate}; " +
-                    "bitrateMode=CBR; " +
+                    "bitrateMode=VBR; targetFrameRate=${qualityRequest.targetFrameRate}; " +
                     "sourceShortSide=${qualityRequest.sourceShortSidePixels}; " +
                     "upscale=${qualityRequest.isUpscaling}; " +
                     "composition=${compiledComposition.plan.summary}",
@@ -434,6 +434,7 @@ class LocalRenderCoordinator(
                             expectedAudio = expectedAudio,
                             expectedWidth = expectedWidth,
                             expectedHeight = expectedHeight,
+                            expectedFrameRate = qualityRequest?.targetFrameRate,
                             requestedVideoBitrate = qualityRequest?.requestedVideoBitrate
                                 ?: preset.minimumVideoBitrate,
                             averageVideoBitrate = result.averageVideoBitrate.takeIf { it > 0 },
@@ -487,7 +488,7 @@ class LocalRenderCoordinator(
             "Validated ${preset.displayName} H.264 export; " +
                 "displayDimensions=${metadata.displayWidth}x${metadata.displayHeight}; " +
                     "codedDimensions=${metadata.width}x${metadata.height}; " +
-                    "rotation=${metadata.rotationDegrees}; durationMs=${metadata.durationMs}; " +
+                    "rotation=${metadata.rotationDegrees}; frameRate=${metadata.frameRate}; durationMs=${metadata.durationMs}; " +
                 "requestedVideoBitrate=${qualityRequest?.requestedVideoBitrate}; " +
                 "averageVideoBitrate=${result.averageVideoBitrate}; " +
                 "bytes=$actualSize; encoder=${result.videoEncoderName}",

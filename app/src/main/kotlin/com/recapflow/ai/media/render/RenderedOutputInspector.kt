@@ -15,6 +15,7 @@ object RenderedOutputInspector {
             var height = 0
             var durationMs = 0L
             var rotationDegrees = 0
+            var frameRate = 0.0
             var videoMimeType: String? = null
             var audioMimeType: String? = null
             for (trackIndex in 0 until extractor.trackCount) {
@@ -26,6 +27,7 @@ object RenderedOutputInspector {
                         width = format.integerOrZero(MediaFormat.KEY_WIDTH)
                         height = format.integerOrZero(MediaFormat.KEY_HEIGHT)
                         rotationDegrees = format.rotationDegreesOrZero()
+                        frameRate = format.frameRateOrZero()
                         durationMs = maxOf(durationMs, format.durationMsOrZero())
                     }
                     mimeType?.startsWith("audio/") == true && audioMimeType == null -> {
@@ -38,6 +40,7 @@ object RenderedOutputInspector {
                 width = width,
                 height = height,
                 rotationDegrees = rotationDegrees,
+                frameRate = frameRate,
                 durationMs = durationMs,
                 videoMimeType = videoMimeType,
                 audioMimeType = audioMimeType,
@@ -57,6 +60,13 @@ object RenderedOutputInspector {
             0
         }
         return ((raw % 360) + 360) % 360
+    }
+
+    private fun MediaFormat.frameRateOrZero(): Double {
+        if (!containsKey(MediaFormat.KEY_FRAME_RATE)) return 0.0
+        return runCatching { getFloat(MediaFormat.KEY_FRAME_RATE).toDouble() }
+            .recoverCatching { getInteger(MediaFormat.KEY_FRAME_RATE).toDouble() }
+            .getOrDefault(0.0)
     }
 
     private fun MediaFormat.durationMsOrZero(): Long =
