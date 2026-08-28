@@ -153,20 +153,22 @@ class RenderedOutputValidationPolicyTest {
     }
 
     @Test
-    fun severeBitrateShortfallIsVisibleEvenWhenTechnicalOutputPasses() {
+    fun veryLowVbrAverageRemainsVisibleWithoutPretendingCbrFailure() {
         val result = RenderedOutputValidationPolicy.validate(
-            metadata = validMetadata(durationMs = 60_000L),
+            metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 30.0),
             preset = RenderPreset.FULL_HD_1080P,
             expectedDurationMs = 60_000L,
             expectedAudio = true,
             expectedWidth = 1080,
             expectedHeight = 1920,
-            requestedVideoBitrate = 30_000_000,
-            averageVideoBitrate = 3_000_000,
+            expectedFrameRate = 30,
+            requestedVideoBitrate = 8_000_000,
+            averageVideoBitrate = 2_000_000,
         )
 
         assertTrue(result.isValid)
-        assertTrue(result.warnings.any { it.contains("Severe quality shortfall") })
+        assertTrue(result.warnings.any { it.contains("VBR average bitrate") })
+        assertFalse(result.warnings.any { it.contains("CBR") })
     }
 
     @Test
@@ -184,4 +186,39 @@ class RenderedOutputValidationPolicyTest {
         videoMimeType = "video/avc",
         audioMimeType = "audio/mp4a-latm",
     )
+    @Test
+    fun matchingSourceAwareFrameRatePasses() {
+        val result = RenderedOutputValidationPolicy.validate(
+            metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 59.94),
+            preset = RenderPreset.FULL_HD_1080P, expectedDurationMs = 60_000L, expectedAudio = true,
+            expectedWidth = 1080, expectedHeight = 1920, expectedFrameRate = 60,
+            requestedVideoBitrate = 12_000_000, averageVideoBitrate = 8_000_000,
+        )
+        assertTrue(result.isValid)
+    }
+
+    @Test
+    fun materialFrameRateFallbackIsRejectedWhenMetadataIsAvailable() {
+        val result = RenderedOutputValidationPolicy.validate(
+            metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 30.0),
+            preset = RenderPreset.FULL_HD_1080P, expectedDurationMs = 60_000L, expectedAudio = true,
+            expectedWidth = 1080, expectedHeight = 1920, expectedFrameRate = 60,
+            requestedVideoBitrate = 12_000_000, averageVideoBitrate = 8_000_000,
+        )
+        assertFalse(result.isValid)
+        assertTrue(result.errors.any { it.contains("60fps") })
+    }
+
+    @Test
+    fun vbrAverageBelowTargetIsNotTreatedAsCbrFailure() {
+        val result = RenderedOutputValidationPolicy.validate(
+            metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 30.0),
+            preset = RenderPreset.FULL_HD_1080P, expectedDurationMs = 60_000L, expectedAudio = true,
+            expectedWidth = 1080, expectedHeight = 1920, expectedFrameRate = 30,
+            requestedVideoBitrate = 8_000_000, averageVideoBitrate = 4_000_000,
+        )
+        assertTrue(result.isValid)
+        assertFalse(result.warnings.any { it.contains("CBR") })
+    }
+
 }

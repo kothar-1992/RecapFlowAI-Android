@@ -2,18 +2,9 @@ package com.recapflow.ai.media.render
 
 import com.recapflow.ai.media.MediaInfo
 
-/**
- * Chooses deterministic social-upload H.264 settings for the reviewed export.
- *
- * The probed source frame rate controls both the output frame-rate class and the bitrate target.
- * Source container bitrate is diagnostic only; it no longer forces oversized 30-60 Mbps outputs.
- */
+/** Social-upload-oriented H.264 request; source bitrate is diagnostic rather than an output floor. */
 object RenderQualityPolicy {
-
-    fun forSource(
-        mediaInfo: MediaInfo,
-        preset: RenderPreset,
-    ): RenderQualityRequest {
+    fun forSource(mediaInfo: MediaInfo, preset: RenderPreset): RenderQualityRequest {
         val sourceShortSide = minOf(mediaInfo.width, mediaInfo.height).coerceAtLeast(1)
         val targetFrameRate = ExportFrameRatePolicy.forSource(mediaInfo.frameRate)
         return RenderQualityRequest(
@@ -21,10 +12,7 @@ object RenderQualityPolicy {
             targetFrameRate = targetFrameRate,
             sourceShortSidePixels = sourceShortSide,
             isUpscaling = preset.shortSidePixels > sourceShortSide,
-            isPreviousRecapFlowExport = mediaInfo.displayName.startsWith(
-                prefix = "RecapFlow_",
-                ignoreCase = true,
-            ),
+            isPreviousRecapFlowExport = mediaInfo.displayName.startsWith("RecapFlow_", ignoreCase = true),
         )
     }
 }

@@ -24,7 +24,7 @@ data class CompiledMedia3Composition(
     val plan: Media3CompositionPlan,
 )
 
-/** Builds the single authoritative Media3 Composition used by preview/final export topology. */
+/** Builds the single authoritative Media3 Composition used by final export. */
 @UnstableApi
 object Media3CompositionCompiler {
     const val PREVIEW_FRAME_RATE = 30
@@ -45,9 +45,9 @@ object Media3CompositionCompiler {
     )
 
     /**
-     * Builds the same shared composition topology for CompositionPlayer preview. CompositionPlayer
-     * requires every encoded EditedMediaItem to expose the original source duration before clipping.
-     * Preview remains capped at 30 fps for editor efficiency; final export preserves source fps class.
+     * Builds the same shared composition topology for CompositionPlayer preview. Unlike Transformer,
+     * CompositionPlayer requires every encoded [EditedMediaItem] to expose the original source
+     * duration before clipping. Freeze stays on the proven ExoPlayer simulation in Phase 6F.2.7.
      */
     fun compileForPreview(
         mediaInfo: MediaInfo,
@@ -176,6 +176,10 @@ object Media3CompositionCompiler {
                 add(StereoPcmMixAudioProcessor(plan.sourceLinearGain))
             }
         }
+        // Keep EditPlan overlay windows on the absolute source timeline, then project them to this
+        // clipped item. Media3 adds preceding sequence-item duration before GlEffects execute, so
+        // the shader also subtracts this item's composition offset and evaluates 0-based local
+        // time. This prevents blur/logo windows from expiring early in later adaptive-cut items.
         val localOverlays = OverlayCompiler.projectToRange(editPlan.overlays, range)
         val sourceTimeOffsetUs = CompositionOverlayTimelinePolicy.localEffectTimeOffsetUs(
             compositionOffsetUs,
@@ -199,6 +203,8 @@ object Media3CompositionCompiler {
                 sourceDurationMs = range.durationMs,
                 speedEffect = speedEffects?.videoEffect,
                 overlays = localOverlays,
+                // Media3 adds the sequence item offset before GlEffects run. Remove that offset so
+                // the projected overlay windows are evaluated on this clipped item's 0-based time.
                 sourceTimeOffsetUs = sourceTimeOffsetUs,
             )
         }
@@ -214,9 +220,13 @@ object Media3CompositionCompiler {
         return EditedMediaItem.Builder(mediaItem)
             .apply {
                 if (forCompositionPreview) {
+                    // CompositionPlayer 1.10.0 requires explicit durationUs for every item. The
+                    // contract is the original encoded duration before clipping, not range duration.
                     setDurationUs(mediaInfo.durationMs * 1_000L)
                 }
             }
+            // Transformer keeps the owner-verified Phase 6F.2.6.2 behavior: no incorrect clipped
+            // duration override for encoded video.
             .setRemoveAudio(plan.removeSourceAudio)
             .setEffects(Effects(audioProcessors, videoEffects))
             .build()

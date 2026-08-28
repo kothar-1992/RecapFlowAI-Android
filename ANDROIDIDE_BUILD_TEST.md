@@ -21,10 +21,4 @@ device matrix passes.
 
 ## Recorded result
 
-Owner reported **Phase 6F.2.7 PASS — 2026-08-28**.
-
-The exact AndroidIDE-tested source was synchronized to
-`feature/phase-6f2.7-compositionplayer-preview` as commit
-`5042d7012ad309aea511d66661efcc4dd10b5522`.
-
-Repository gate: PR #10 final diff review/merge. After merge, Phase 6F.2.8 becomes the active quality gate.
+Owner reported **Phase 6F.2.7 PASS — 2026-08-28**. Repository merge remains gated on synchronizing this exact tested source into PR #10.
