@@ -1,12 +1,12 @@
-# Phase 6F.2.8 — Owner-device PASS
+# Phase 6F.2.8 — Owner-device verification pending
 
-Date: 2026-08-28
+Date: 2026-08-29
 
-The owner reports that the prepared Phase 6F.2.8 AndroidIDE build/test package passed the AndroidIDE/device verification gate.
+Repository synchronization is complete for the prepared Phase 6F.2.8 AndroidIDE test-package source.
 
-Verified gate reported PASS:
-- Phase 6F.2.8 source verifier
-- Android unit/build gate
-- AndroidIDE/device export validation for the prepared social-export-quality package
+Current verified repository state:
+- exact feature source pushed to `feature/phase-6f2.8-social-export-quality`
+- PR #12 contains the VBR, source-aware FPS, finalized-track FPS inspection/validation, tests, verifier, and documentation changes
+- Phase 6F.2.7 preview/fallback architecture remains preserved
 
-The exact tested working tree must be committed and pushed to `feature/phase-6f2.8-social-export-quality` before PR #12 is merged. This result note does not replace source synchronization.
+Owner-device PASS has **not** been recorded yet for Phase 6F.2.8. Do not merge PR #12 until the AndroidIDE source verifier, unit/build gate, and owner-device export matrix are explicitly reported PASS.
