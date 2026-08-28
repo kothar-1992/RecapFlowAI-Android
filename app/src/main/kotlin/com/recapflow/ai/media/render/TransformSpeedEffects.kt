@@ -38,6 +38,25 @@ object TransformSpeedEffectsFactory {
             videoEffect = pair.second,
         )
     }
+
+    /**
+     * CompositionPlayer only accepts speed-changing video effects created by
+     * [Effects.createExperimentalSpeedChangingEffect]. The paired audio processor is retained only
+     * when source audio is active; the video effect is always the experimental paired variant.
+     */
+    fun forCompositionPreview(
+        settings: TransformSettings,
+        hasAudio: Boolean,
+    ): TransformSpeedEffects? {
+        val compiled = SpeedCompiler.compile(settings) ?: return null
+        val pair = Effects.createExperimentalSpeedChangingEffect(
+            ConstantSpeedProvider(compiled.multiplier),
+        )
+        return TransformSpeedEffects(
+            audioProcessor = pair.first.takeIf { hasAudio },
+            videoEffect = pair.second,
+        )
+    }
 }
 
 @UnstableApi
