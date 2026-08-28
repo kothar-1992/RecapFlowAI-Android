@@ -9,10 +9,9 @@
 - **UI strategy:** Native Kotlin + XML + ViewBinding
 - **Media strategy:** Native FFmpeg through JNI/CMake, with Android MediaCodec capability where appropriate
 - **Server strategy:** No VPS dependency for core video processing
-- **Current gate:** Phase 6F.2.7 OWNER-DEVICE PASS — exact tested source synchronized to PR #10; final diff review/merge pending. Phase 6F.2.8 social export quality is the next active gate after merge.
+- **Current gate:** Phase 6F.2.7 OWNER-DEVICE PASS — repository sync/PR merge pending; Phase 6F.2.8 quality follow-up active in parallel
 - **GitHub repository:** [`kothar-1992/RecapFlowAI-Android`](https://github.com/kothar-1992/RecapFlowAI-Android)
 - **Current GitHub task:** [#2 Phase 6F.2.7 CompositionPlayer live preview with explicit fallback](https://github.com/kothar-1992/RecapFlowAI-Android/issues/2)
-- **Verified Phase 6F.2.7 source commit:** `5042d7012ad309aea511d66661efcc4dd10b5522`
 
 ---
 
@@ -184,190 +183,78 @@ UI work must not hide media-engine state. Every major editor operation needs a v
 
 ---
 
-## 4. Completed Milestones
-
-### Phase 4 — UI/UX Foundation + Local MP4 Import/Probe — DONE
-
-- Native Home / Editor / Settings foundation.
-- Local MP4 import and probe.
-- Runtime permission handling/fallback.
-- Device diagnostics groundwork.
-
-### Phase 5 — Local Render Foundation — DONE
-
-- Local FFmpeg/Media3 render plumbing proven.
-- One-final-render direction established.
-
-### Phase 6A–6E — Editor controls / overlay / subtitle blur foundation — DONE
-
-- Multi-tab native editor.
-- Transform, transitions, manual overlay controls.
-- Subtitle blur and overlay positioning.
-- Crash mitigations and geometry corrections.
+## 4. Current implementation state
 
 ### Phase 6F.2.6.2 — Full EditPlan Combination Regression — DONE
 
-Verified baseline commit on `main`:
-`7411b54ba922c49a28fde4ea7e0250b50d019900`
-
-The baseline proves that Clips, Transform, Audio, Overlay and Export remain independently editable, accumulate into a single `EditPlan`, and do not force an intermediate render for each edit.
+Verified stable baseline on `main`: `7411b54ba922c49a28fde4ea7e0250b50d019900`.
 
 ### Phase 6F.2.7 — CompositionPlayer live preview + fallback — OWNER-DEVICE PASS
 
-Architecture:
+- Owner reported AndroidIDE/device matrix PASS on 2026-08-28.
+- Exact tested source synchronized to `feature/phase-6f2.7-compositionplayer-preview` as commit `5042d7012ad309aea511d66661efcc4dd10b5522`.
+- Final export remains one authoritative Transformer pass.
+- Preview failure falls back CompositionPlayer → ExoPlayer live effects → source-only preview.
+- No intermediate MP4 render during ordinary editing.
+- Repository gate: final PR #10 review/merge, then close Issue #2.
 
-```text
-EditPlan
-   ↓
-Shared Media3 Composition Plan
-   ├── CompositionPlayer live preview
-   └── Transformer final export
-```
+### Phase 6F.2.8 — Social upload quality — PARALLEL DRAFT
 
-Verified behavior/source contract:
+Issue #11 / draft PR #12.
 
-- CompositionPlayer is feature-gated and preferred for supported realtime preview paths.
-- ExoPlayer live-effects fallback remains available.
-- Source-only preview remains the final fallback.
-- Trim / Adaptive Cuts / Speed source↔output timeline mapping preserves semantic playhead position.
-- CompositionPlayer receives explicit original encoded duration before clipping.
-- Intro Freeze and adaptive candidate/sequence inspection keep explicit ExoPlayer fallback behavior in this gate.
-- Audio preview ownership prevents duplicate replacement/mix audio.
-- Blur/logo changes can force in-memory composition refresh without intermediate MP4 output.
-- Final export remains one authoritative `Transformer.start(compiledComposition.composition, ...)`.
-- AndroidIDE build/device matrix reported PASS by the owner on 2026-08-28.
-- Exact tested source synchronized to PR #10 as commit `5042d7012ad309aea511d66661efcc4dd10b5522`.
-
-Merge gate: final PR #10 diff review, then merge and close Issue #2.
+- Source-aware frame-rate policy, normalized/capped at 60 fps.
+- 720p targets: 5 Mbps standard / 7.5 Mbps high fps.
+- 1080p targets: 8 Mbps standard / 12 Mbps high fps.
+- 1440p targets: 16 Mbps standard / 24 Mbps high fps.
+- Remaining: rebase on merged 6F.2.7, CBR→VBR, actual output FPS inspection/validation, AndroidIDE/device matrix.
 
 ---
 
-## 5. Immediate Next Gate — Phase 6F.2.8 Social Export Quality
-
-Issue/PR track: Issue #11 / draft PR #12.
-
-Goal: replace the temporary oversized social-export bitrate policy with source-frame-rate-aware H.264/VBR targets while preserving the one-final-render architecture.
-
-Planned/partially implemented targets:
-
-- 720p: 5 Mbps standard frame rate / 7.5 Mbps high frame rate.
-- 1080p: 8 Mbps standard frame rate / 12 Mbps high frame rate.
-- 1440p: 16 Mbps standard frame rate / 24 Mbps high frame rate.
-- Preserve practical source frame-rate class up to 60 fps; normalize common fractional rates.
-- Do not synthesize 60 fps from a 24/25/30 fps source.
-- Switch final encoder request from CBR to VBR.
-- Inspect/validate actual output frame rate.
-- Reconcile PR #12 on top of merged Phase 6F.2.7 because both touch `Media3CompositionCompiler`.
-- AndroidIDE/unit/device matrix required before merge.
-
----
-
-## 6. Planned Editor / Render Roadmap
+## 5. Roadmap
 
 ### Phase 6G.1 — Timed video overlay
-
-- Multi-video/picture-in-picture overlay sequence.
-- Source-time aware start/end ranges.
+- Multi-video / picture-in-picture overlay sequence.
 - Shared preview/export plan.
-- No per-edit intermediate MP4 render.
 
 ### Phase 6G.2 — Subtitle/Text rendering
-
-- Text/subtitle model and timing.
 - Burmese Unicode/wrapping/safe margins.
-- SRT/ATS integration direction.
-- Font licensing tracked explicitly.
+- SRT/ATS integration and font licensing.
 
 ### Phase 6G.3 — Unified multi-stage edit graph
-
 - Consolidate clips, transform, audio, blur/logo, video overlay and text into one graph contract.
-- Preserve one final render.
-- Expand parity/regression matrix.
 
 ### Phase 7 — Persistent Render Job Engine
+States: `QUEUED`, `PREPARING`, `RENDERING`, `FINALIZING`, `COMPLETED`, `FAILED`, `CANCELLED`.
 
-States:
-
-```text
-QUEUED
-PREPARING
-RENDERING
-FINALIZING
-COMPLETED
-FAILED
-CANCELLED
-```
-
-Required behavior:
-
-- progress reporting;
-- cancellation;
-- meaningful error propagation;
-- partial output cleanup;
-- activity recreation survival;
-- notification state;
-- proper media-processing foreground-service model rather than a generic data-sync service.
+Required: progress, cancel, error propagation, partial-output cleanup, recreation survival, notification state, and a proper media-processing foreground service.
 
 ### Phase 8 — Project Workspace / persistence
+Persist project source, EditPlan, auxiliary assets, preview state and export history.
 
-Persist project source, EditPlan, imported auxiliary assets, preview state and export history.
-
-### Phase 9 — Native RecapFlow workflow UI
-
-```text
-Home
- → New Project
- → Import
- → Setup
- → Analyze
- → Script
- → Narration / Voice
- → Timeline
- → Preview
- → Render
- → Export
-```
+### Phase 9 — Native RecapFlow workflow
+`Home → New Project → Import → Setup → Analyze → Script → Narration/Voice → Timeline → Preview → Render → Export`.
 
 ### Phase 10 — AI layer
+Transcription, script planning/rewrite and TTS; local media rendering remains local.
 
-- Transcription.
-- Script planning/rewrite.
-- TTS/narration orchestration.
-- AI operations may use cloud APIs; media rendering remains local.
-
-### Phase 11 — ATS / timeline intelligence
-
-- Preserve story order and ending.
-- Automated segment/timeline suggestions.
-- Manual confirmation/edit boundary.
+### Phase 11 — ATS/timeline intelligence
+Preserve story order/ending and keep a manual confirmation/edit boundary.
 
 ### Phase 12 — Subtitle + Burmese production hardening
-
-- Burmese Unicode correctness.
-- Wrapping and safe margins.
-- SRT/ATS flows.
-- Font licensing/packaging.
+Unicode correctness, wrapping, safe margins, SRT/ATS and font licensing.
 
 ### Phase 13 — Performance optimization
-
-- Codec/device capability tuning.
-- Memory and thermal behavior.
-- MediaCodec/FFmpeg runtime profiling.
+Codec/device, memory, thermal and runtime profiling.
 
 ### Phase 14 — Reliability
-
-- Recovery, invalid media, low storage, cancellation and lifecycle cases.
+Recovery, invalid media, low storage, cancellation and lifecycle cases.
 
 ### Phase 15 — Release hardening
-
-- 16 KB page-size compatibility.
-- ABI/release packaging.
-- Third-party notices/licensing.
-- Signing/release checks.
+16 KB page-size compatibility, ABI/release packaging, notices, signing and release checks.
 
 ---
 
-## 7. Engineering Rules
+## 6. Engineering rules
 
 1. `EditPlan` is the authoritative typed immutable edit state.
 2. Clips, Transform, Audio, Overlay and Export remain independently editable.
@@ -379,18 +266,18 @@ Home
 8. Feature gates and fallbacks must be explicit.
 9. `PLAN.md` must be updated with every phase/PR status change.
 10. Device verification is required before a media-pipeline PR is marked DONE.
-11. Do not claim a build/device PASS unless it was actually observed or explicitly reported by the owner.
+11. Do not claim a build/device PASS unless actually observed or explicitly reported by the owner.
 12. Third-party code/license provenance must be tracked before shipping.
 
 ---
 
-## 8. Current Action Order
+## 7. Current action order
 
-1. Final-review PR #10 against the synchronized AndroidIDE-tested Phase 6F.2.7 source.
+1. Final-review PR #10 against synchronized AndroidIDE-tested source.
 2. Merge PR #10 and close Issue #2.
-3. Rebase/reconcile Phase 6F.2.8 PR #12 on merged `main`.
-4. Finish VBR request + output-FPS inspection/validation + UI/telemetry wording.
+3. Rebase/reconcile PR #12 on merged `main`.
+4. Finish VBR + output-FPS inspection/validation.
 5. Prepare Phase 6F.2.8 AndroidIDE test package.
-6. Run 30 fps and 60 fps device export matrix.
+6. Run 30 fps and 60 fps export matrix.
 7. Merge Phase 6F.2.8 only after device PASS.
-8. Continue Phase 6G.1 / Phase 7 roadmap as scheduled.
+8. Continue Phase 6G.1 / Phase 7 roadmap.
