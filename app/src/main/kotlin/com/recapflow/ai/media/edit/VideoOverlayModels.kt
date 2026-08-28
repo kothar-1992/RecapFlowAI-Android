@@ -44,7 +44,8 @@ data class VideoOverlaySettings(
     val configuredDurationMs: Long
         get() = (endMs - startMs).coerceAtLeast(0L)
 
-    fun isValid(sourceDurationMs: Long): Boolean =
+    /** Checks the overlay itself without assuming the currently selected Trim/Adaptive ranges. */
+    fun isStructurallyValid(): Boolean =
         !enabled || (
             asset?.isValid() == true &&
                 centerX in 0f..1f &&
@@ -52,9 +53,13 @@ data class VideoOverlaySettings(
                 widthFraction in MIN_WIDTH_FRACTION..MAX_WIDTH_FRACTION &&
                 opacity in 0f..1f &&
                 startMs >= 0L &&
-                endMs > startMs &&
-                endMs <= sourceDurationMs.coerceAtLeast(0L)
+                endMs > startMs
             )
+
+    /** Full project validation also constrains the absolute overlay window to the source duration. */
+    fun isValid(sourceDurationMs: Long): Boolean =
+        isStructurallyValid() &&
+            (!enabled || endMs <= sourceDurationMs.coerceAtLeast(0L))
 
     companion object {
         const val DEFAULT_CENTER_X = 0.82f
