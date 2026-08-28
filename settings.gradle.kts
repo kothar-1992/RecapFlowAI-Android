@@ -14,6 +14,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "RecapFlowAI_Phase6F2_6_2"
+rootProject.name = "RecapFlowAI_Phase6F2_7"
 
 include(":app")

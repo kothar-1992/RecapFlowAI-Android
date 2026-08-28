@@ -1,7 +1,7 @@
 # Recap Flow AI Android — Implementation Plan
 
 - **Project:** RecapFlowAI Android
-- **Current source:** `RecapFlowAI_Phase6F2_6_2` (Full EditPlan Combination Regression hardening on the Phase 6F.2.6.1D quality baseline)
+- **Current source:** `RecapFlowAI_Phase6F2_7` (CompositionPlayer live-preview feature gate on the verified Phase 6F.2.6.2 baseline)
 - **Planning date:** 2026-08-18
 - **Last updated:** 2026-08-28
 - **Primary target:** Modern ARM64 Android tablets/phones, beginning with Mi Pad
@@ -9,9 +9,9 @@
 - **UI strategy:** Native Kotlin + XML + ViewBinding
 - **Media strategy:** Native FFmpeg through JNI/CMake, with Android MediaCodec capability where appropriate
 - **Server strategy:** No VPS dependency for core video processing
-- **Current gate:** Phase 6F.2.6.2 DONE — freeze/push the verified baseline to `kothar-1992/RecapFlowAI-Android` before Phase 6F.2.7
+- **Current gate:** Phase 6F.2.7 SOURCE IMPLEMENTED — AndroidIDE/device verification pending before merge
 - **GitHub repository:** [`kothar-1992/RecapFlowAI-Android`](https://github.com/kothar-1992/RecapFlowAI-Android)
-- **Current GitHub task:** [#1 Freeze verified Phase 6F.2.6.2 baseline](https://github.com/kothar-1992/RecapFlowAI-Android/issues/1)
+- **Current GitHub task:** [#2 Phase 6F.2.7 CompositionPlayer live preview with explicit fallback](https://github.com/kothar-1992/RecapFlowAI-Android/issues/2)
 
 ---
 
@@ -800,6 +800,50 @@ checks are in
 [`docs/tasks/PHASE6F2_6_1_FINAL_RENDER_PREVIEW_HOTFIX.md`](docs/tasks/PHASE6F2_6_1_FINAL_RENDER_PREVIEW_HOTFIX.md)
 and
 [`docs/PHASE6F2_6_1_ANDROIDIDE_VERIFICATION.md`](docs/PHASE6F2_6_1_ANDROIDIDE_VERIFICATION.md).
+
+### Phase 6F.2.7 — CompositionPlayer live preview with explicit fallback (source implemented; AndroidIDE/device verification pending)
+
+Connect the verified shared `EditPlan -> Media3CompositionPlan` topology to Media3
+`CompositionPlayer` without changing the one-pass final Transformer export:
+
+- [x] Add build-time feature flag `recapflow.composition.preview.enabled` /
+  `BuildConfig.ENABLE_COMPOSITION_PLAYER_PREVIEW`, defaulting to enabled for this device gate.
+- [x] Add `Media3CompositionCompiler.compileForPreview(...)` so CompositionPlayer receives explicit
+  pre-clipping source duration on every encoded source item while the verified Transformer export
+  duration path remains unchanged.
+- [x] Reuse the same Trim/Adaptive, Transform, Audio, Blur/Logo and planned-duration decisions from
+  `Media3CompositionPlanCompiler`; preview does not reinterpret EditPlan topology independently.
+- [x] Preserve semantic playhead position across Composition rebuilds with source/output timeline
+  mapping that accounts for Adaptive ranges and Speed.
+- [x] Keep aspect/Fit/Fill geometry changes behind the existing preview-surface settle boundary before
+  rebuilding the CompositionPlayer graph.
+- [x] Compile Replace/Mix audio into CompositionPlayer preview and disable the separate replacement
+  ExoPlayer simulator while CompositionPlayer owns preview audio, preventing doubled audio.
+- [x] Keep Intro Freeze on the proven ExoPlayer preview simulation for this gate; the immutable
+  EditPlan still includes Freeze and final export still renders it.
+- [x] Keep Adaptive candidate/sequence inspection on ExoPlayer source-time preview and safely return
+  to CompositionPlayer afterward.
+- [x] On CompositionPlayer setup/playback/readiness failure, block it only for the current source
+  session and restore ExoPlayer live effects first; source-only preview remains the second fallback.
+- [x] Reset the CompositionPlayer session block when the user explicitly retries live effects or
+  imports a different source.
+- [x] Add pure routing/timeline policy coverage, source preflight, implementation contract, and
+  AndroidIDE verification instructions.
+- [x] Preserve exactly one final `Transformer.start(Composition, ...)` path and prohibit preview
+  actions from starting Transformer or creating intermediate MP4 files.
+- [ ] Build/install `1.0-phase6f2.7` with FFmpeg enabled in AndroidIDE.
+- [ ] Verify Trim/Adaptive + Transform + Audio + Blur + Logo realtime preview on the target device.
+- [ ] Verify Intro Freeze and `-Precapflow.composition.preview.enabled=false` both use ExoPlayer
+  fallback without losing the EditPlan.
+- [ ] Force/capture a CompositionPlayer device failure if reproducible and confirm Exo live-effects
+  recovery precedes source-only fallback.
+- [ ] Perform exactly one final 1080p export after the preview matrix and confirm output parity,
+  A/V sync, duration tolerance, bitrate diagnostics, and no intermediate renders.
+
+Scope and device checks are documented in
+[`docs/tasks/PHASE6F2_7_COMPOSITIONPLAYER_PREVIEW.md`](docs/tasks/PHASE6F2_7_COMPOSITIONPLAYER_PREVIEW.md)
+and
+[`docs/PHASE6F2_7_COMPOSITIONPLAYER_ANDROIDIDE_VERIFICATION.md`](docs/PHASE6F2_7_COMPOSITIONPLAYER_ANDROIDIDE_VERIFICATION.md).
 
 ### Phase 6F.2.6 — Shared Media3 Composition workflow (source implemented; AndroidIDE/device verification pending)
 
@@ -2144,8 +2188,9 @@ Owner-device acceptance gate — **PASS / owner confirmed 2026-08-28**:
 5. [x] confirm preset changes do not clear the edit;
 6. [x] confirm cancellation/failure leaves the imported source and reviewed EditPlan intact.
 
-Next gate: freeze/tag this exact source as the first stable baseline in the new GitHub repository.
-External FFmpegAndroid reference work remains after the baseline freeze, not before it.
+The Phase 6F.2.6.2 baseline is now frozen on GitHub. The active gate is Phase 6F.2.7 AndroidIDE/device
+verification for the feature-flagged CompositionPlayer preview. External FFmpegAndroid reference work
+remains queued until the planned preview/overlay milestones are complete.
 
 
 
@@ -2164,7 +2209,7 @@ Repository workflow rules:
 
 Queued GitHub work:
 
-- [ ] [#1 Baseline: freeze verified Phase 6F.2.6.2 source](https://github.com/kothar-1992/RecapFlowAI-Android/issues/1)
+- [x] [#1 Baseline: freeze verified Phase 6F.2.6.2 source](https://github.com/kothar-1992/RecapFlowAI-Android/issues/1) — merged to `main` as `7411b54ba922c49a28fde4ea7e0250b50d019900`; stable branch `stable/phase-6f2.6.2` created
 - [ ] [#2 Phase 6F.2.7: CompositionPlayer live preview with explicit fallback](https://github.com/kothar-1992/RecapFlowAI-Android/issues/2)
 - [ ] [#3 Phase 6G.1: Timed video overlay support](https://github.com/kothar-1992/RecapFlowAI-Android/issues/3)
 - [ ] [#4 Phase 6G.2: Subtitle and text rendering pipeline](https://github.com/kothar-1992/RecapFlowAI-Android/issues/4)
@@ -2177,7 +2222,9 @@ Baseline preflight evidence in the prepared Phase 6F.2.6.2 source:
 - `scripts/verify_phase6f2_6_2_source.sh`: PASS on 2026-08-28.
 - Secret-like source scan: no embedded API key, bot token, private key, or bearer credential detected.
 - `.gitignore` already excludes Gradle/IDE state, `local.properties`, signing material, generated FFmpeg headers/static archives, and build outputs.
-- Baseline commit SHA remains pending until the repository write-authorized account pushes the verified source.
+- Baseline merge SHA: `7411b54ba922c49a28fde4ea7e0250b50d019900`.
+- Stable freeze branch: `stable/phase-6f2.6.2`.
+- Git tag `phase-6f2.6.2-stable` remains a repository-maintenance follow-up; the stable branch already preserves the exact merged baseline.
 
 ### Phase 6F.2.6.1D — High-bitrate social-export quality hotfix
 
@@ -2939,10 +2986,11 @@ AI providers may remain online services.
 - **Phase 6F.2.6.1B:** ASPECT-RATIO LIVE-PREVIEW HOTFIX SOURCE IMPLEMENTED; COMBINED DEVICE REGRESSION INCLUDED IN CURRENT GATE
 - **Phase 6F.2.6.1C:** FULL-DURATION BLUR/LOGO TIMELINE HOTFIX SOURCE IMPLEMENTED; COMBINED DEVICE REGRESSION INCLUDED IN CURRENT GATE
 - **Phase 6F.2.6.1D:** HIGH-BITRATE 720P/1080P/2K EXPORT POLICY SOURCE IMPLEMENTED; ACTUAL DEVICE BITRATE EVIDENCE PENDING
-- **Phase 6F.2.6.2:** FULL EDITPLAN COMBINATION REGRESSION SOURCE IMPLEMENTED; ANDROIDIDE/OWNER-DEVICE MATRIX PENDING
-- **Current gate:** PHASE 6F.2.6.2 FULL EDITPLAN COMBINATION REGRESSION
-- **Next app gate after PASS:** FREEZE/TAG VERIFIED GITHUB BASELINE, THEN PHASE 6F.2.7 COMPOSITIONPLAYER FEATURE-FLAG PREVIEW
-- **Queued preview gate:** PHASE 6F.2.7 COMPOSITIONPLAYER FEATURE-FLAG PREVIEW WITH EXOPLAYER FALLBACK
+- **Phase 6F.2.6.2:** OWNER-CONFIRMED DONE; VERIFIED BASELINE MERGED TO GITHUB `main`
+- **Phase 6F.2.7:** COMPOSITIONPLAYER FEATURE-FLAG PREVIEW SOURCE IMPLEMENTED; ANDROIDIDE/DEVICE MATRIX PENDING
+- **Current gate:** PHASE 6F.2.7 COMPOSITIONPLAYER PREVIEW DEVICE VERIFICATION
+- **Next app gate after PASS:** MERGE PHASE 6F.2.7 PR, THEN PHASE 6G.1 TIMED VIDEO OVERLAY
+- **Queued preview gate:** EXOPLAYER LIVE-EFFECTS/SOURCE-ONLY FALLBACK REGRESSION UNDER PHASE 6F.2.7
 - **Queued quality gate:** PHASE 6F.1.1.1 ANDROIDIDE + ORIGINAL-SOURCE 720P/1080P COMPARISON
 - **Queued export gate:** PHASE 6F.1 EXTENDED API 28/API 29+ DEVICE VERIFICATION
 - **Queued persistence gate:** PHASE 6F.2 ANDROIDIDE + DEVICE VERIFICATION

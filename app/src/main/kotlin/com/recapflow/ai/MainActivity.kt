@@ -27,8 +27,10 @@ import androidx.core.widget.NestedScrollView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.ExperimentalApi
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.transformer.CompositionPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -84,6 +86,10 @@ import com.recapflow.ai.media.importer.ImageOverlayImportState
 import com.recapflow.ai.media.importer.MediaImportCoordinator
 import com.recapflow.ai.media.importer.ReplacementAudioImportCoordinator
 import com.recapflow.ai.media.importer.ReplacementAudioImportState
+import com.recapflow.ai.media.render.CompositionPreviewTimelinePolicy
+import com.recapflow.ai.media.render.Media3CompositionCompiler
+import com.recapflow.ai.media.render.Media3CompositionPlan
+import com.recapflow.ai.media.render.Media3CompositionPlanCompiler
 import com.recapflow.ai.media.render.LocalRenderCoordinator
 import com.recapflow.ai.media.render.PausedPreviewRefreshPolicy
 import com.recapflow.ai.media.render.PreviewGraphKey
@@ -112,6 +118,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
+@OptIn(ExperimentalApi::class)
 @UnstableApi
 class MainActivity : AppCompatActivity() {
 
@@ -128,6 +135,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var publicExportCoordinator: PublicExportCoordinator
     private lateinit var editorPreferencesStore: EditorPreferencesStore
     private lateinit var previewPlayer: ExoPlayer
+    private var compositionPreviewPlayer: CompositionPlayer? = null
+    private var compositionPreviewPlan: Media3CompositionPlan? = null
+    private var compositionPreviewEditPlan: EditPlan? = null
+    private var compositionPreviewSourcePath: String? = null
+    private var compositionPreviewBlockedPath: String? = null
     private lateinit var replacementAudioPlayer: ExoPlayer
     private val freezePreviewHandler = Handler(Looper.getMainLooper())
     private val adaptivePreviewHandler = Handler(Looper.getMainLooper())
@@ -231,6 +243,7 @@ class MainActivity : AppCompatActivity() {
         val info = activeMediaInfo ?: return@Runnable
         if (
             previewFallbackActive ||
+            compositionPreviewActive ||
             previewPath != info.workingFilePath ||
             previewPlayer.isPlaying ||
             previewPlayer.playbackState == Player.STATE_IDLE
@@ -289,18 +302,22 @@ class MainActivity : AppCompatActivity() {
         val failedPath = previewReadyTimeoutPath ?: return@Runnable
         val expectedGeneration = previewReadyTimeoutGeneration
         if (!realtimePreviewSession.isCurrent(failedPath, expectedGeneration)) return@Runnable
-        if (previewPlayer.playbackState == Player.STATE_READY) return@Runnable
+        if (activePreviewPlaybackState() == Player.STATE_READY) return@Runnable
         Log.w(
             TAG_PREVIEW,
             "Preview readiness timeout path=$failedPath generation=$expectedGeneration " +
-                "state=${previewPlayer.playbackState}",
+                "state=${activePreviewPlaybackState()} composition=$compositionPreviewActive",
         )
         if (activeMediaInfo?.workingFilePath == failedPath) {
-            recoverPreviewSession(
-                failedPath = failedPath,
-                expectedGeneration = expectedGeneration,
-                reason = "readiness timeout",
-            )
+            if (compositionPreviewActive) {
+                fallbackFromCompositionPreview("readiness timeout")
+            } else {
+                recoverPreviewSession(
+                    failedPath = failedPath,
+                    expectedGeneration = expectedGeneration,
+                    reason = "readiness timeout",
+                )
+            }
         } else {
             showNonSourcePreviewUnavailable("readiness timeout")
         }
@@ -473,6 +490,66 @@ class MainActivity : AppCompatActivity() {
                 previewLastValidPositionMs = newPosition.positionMs.coerceAtLeast(0L)
             }
             syncReplacementAudioPreview(forceSeek = true)
+        }
+    }
+
+    private val compositionPreviewListener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            when (playbackState) {
+                Player.STATE_BUFFERING -> schedulePreviewReadyTimeout()
+                Player.STATE_READY -> {
+                    cancelPreviewReadyTimeout()
+                    activeMediaInfo?.let { info ->
+                        previewLastValidPositionMs = activePreviewSourcePositionMs(info)
+                    }
+                    previewLastPlayWhenReady = activePreviewPlayWhenReady()
+                    renderPreviewUiState()
+                }
+                Player.STATE_IDLE -> cancelPreviewReadyTimeout()
+            }
+        }
+
+        override fun onRenderedFirstFrame() {
+            if (previewUiState is PreviewUiState.LiveEffects) {
+                realtimePreviewSession.confirmApplied()
+            }
+            renderPreviewUiState()
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            Log.e(
+                TAG_PREVIEW,
+                "CompositionPlayer error code=${error.errorCodeName}(${error.errorCode}) " +
+                    "graph=${realtimePreviewSession.currentGraphSummary()}",
+                error,
+            )
+            cancelSourceBlurPreviewUpdate(clearDirty = true)
+            cancelPreviewReadyTimeout()
+            fallbackFromCompositionPreview(
+                reason = "player error ${error.errorCodeName}(${error.errorCode})",
+                error = error,
+            )
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            previewLastPlayWhenReady = activePreviewPlayWhenReady()
+            if (activePreviewPlaybackState() == Player.STATE_READY) {
+                activeMediaInfo?.let { info ->
+                    previewLastValidPositionMs = activePreviewSourcePositionMs(info)
+                }
+            }
+        }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int,
+        ) {
+            if (activePreviewPlaybackState() == Player.STATE_READY) {
+                activeMediaInfo?.let { info ->
+                    previewLastValidPositionMs = activePreviewSourcePositionMs(info)
+                }
+            }
         }
     }
 
@@ -786,6 +863,177 @@ class MainActivity : AppCompatActivity() {
         previewEffectSignature = emptyList()
     }
 
+    private val compositionPreviewActive: Boolean
+        get() = compositionPreviewPlayer != null &&
+            compositionPreviewSourcePath == activeMediaInfo?.workingFilePath
+
+    private fun activePreviewPlaybackState(): Int =
+        compositionPreviewPlayer?.takeIf { compositionPreviewActive }?.playbackState
+            ?: previewPlayer.playbackState
+
+    private fun activePreviewIsPlaying(): Boolean =
+        compositionPreviewPlayer?.takeIf { compositionPreviewActive }?.isPlaying
+            ?: previewPlayer.isPlaying
+
+    private fun activePreviewPlayWhenReady(): Boolean =
+        compositionPreviewPlayer?.takeIf { compositionPreviewActive }?.playWhenReady
+            ?: previewPlayer.playWhenReady
+
+    private fun activePreviewPause() {
+        compositionPreviewPlayer?.takeIf { compositionPreviewActive }?.pause() ?: previewPlayer.pause()
+    }
+
+    private fun activePreviewPlay() {
+        compositionPreviewPlayer?.takeIf { compositionPreviewActive }?.play() ?: previewPlayer.play()
+    }
+
+    private fun activePreviewSourcePositionMs(info: MediaInfo = checkNotNull(activeMediaInfo)): Long {
+        val compositionPlayer = compositionPreviewPlayer
+        val plan = compositionPreviewPlan
+        val editPlan = compositionPreviewEditPlan
+        if (compositionPreviewActive && compositionPlayer != null && plan != null && editPlan != null) {
+            return CompositionPreviewTimelinePolicy.outputToSourceMs(
+                outputPositionMs = compositionPlayer.currentPosition.coerceAtLeast(0L),
+                ranges = plan.selectedRanges,
+                settings = editPlan.transform,
+            ).coerceIn(0L, info.durationMs)
+        }
+        return previewPlayer.currentPosition.coerceAtLeast(0L)
+    }
+
+    private fun activePreviewSeekToSourcePosition(info: MediaInfo, sourcePositionMs: Long) {
+        val compositionPlayer = compositionPreviewPlayer
+        val plan = compositionPreviewPlan
+        val editPlan = compositionPreviewEditPlan
+        if (compositionPreviewActive && compositionPlayer != null && plan != null && editPlan != null) {
+            val selectedSourceMs = CompositionPreviewTimelinePolicy.nearestSelectedSourcePosition(
+                sourcePositionMs,
+                plan.selectedRanges,
+            )
+            val outputPositionMs = CompositionPreviewTimelinePolicy.sourceToOutputMs(
+                sourcePositionMs = selectedSourceMs,
+                ranges = plan.selectedRanges,
+                settings = editPlan.transform,
+            )
+            compositionPlayer.seekTo(outputPositionMs.coerceAtLeast(0L))
+        } else {
+            previewPlayer.seekTo(sourcePositionMs.coerceIn(0L, info.durationMs))
+        }
+    }
+
+    private fun releaseCompositionPreview(attachExoPlayer: Boolean = true, reason: String) {
+        val player = compositionPreviewPlayer ?: return
+        compositionPreviewPlayer = null
+        compositionPreviewPlan = null
+        compositionPreviewEditPlan = null
+        compositionPreviewSourcePath = null
+        runCatching {
+            player.removeListener(compositionPreviewListener)
+            player.release()
+        }.onFailure { Log.w(TAG_PREVIEW, "CompositionPlayer release failed reason=$reason", it) }
+        if (attachExoPlayer && _binding != null && ::previewPlayer.isInitialized) {
+            editor.videoPreview.player = previewPlayer
+        }
+        Log.d(TAG_PREVIEW, "CompositionPlayer released reason=$reason")
+    }
+
+    private fun compositionPreviewEligible(info: MediaInfo): Boolean {
+        if (!BuildConfig.ENABLE_COMPOSITION_PLAYER_PREVIEW) return false
+        if (previewFallbackActive) return false
+        if (compositionPreviewBlockedPath == info.workingFilePath) return false
+        if (adaptivePreviewActive || adaptiveSequencePreviewActive || freezePreviewActive) return false
+        if (FreezeCompiler.compile(currentTransformSettings()) != null) return false
+        return File(info.workingFilePath).isFile
+    }
+
+    private fun prepareCompositionPreview(
+        info: MediaInfo,
+        autoPlay: Boolean,
+        sourcePositionMs: Long,
+        reason: String,
+    ): Boolean {
+        if (!compositionPreviewEligible(info)) return false
+        val editPlan = currentEditPlan(RenderPreset.HD_720P)
+        val plan = Media3CompositionPlanCompiler.compile(info, editPlan)
+        if (plan.freeze != null) return false
+        val compiled = Media3CompositionCompiler.compileForPreview(
+            mediaInfo = info,
+            editPlan = editPlan,
+            input = File(info.workingFilePath),
+            plan = plan,
+        )
+        val selectedSourceMs = CompositionPreviewTimelinePolicy.nearestSelectedSourcePosition(
+            sourcePositionMs,
+            plan.selectedRanges,
+        )
+        val outputPositionMs = CompositionPreviewTimelinePolicy.sourceToOutputMs(
+            sourcePositionMs = selectedSourceMs,
+            ranges = plan.selectedRanges,
+            settings = editPlan.transform,
+        )
+
+        releaseCompositionPreview(attachExoPlayer = false, reason = "replace composition: $reason")
+        runCatching {
+            previewPlayer.playWhenReady = false
+            previewPlayer.stop()
+            previewPlayer.clearMediaItems()
+        }
+        val player = CompositionPlayer.Builder(this).build()
+        compositionPreviewPlayer = player
+        compositionPreviewPlan = plan
+        compositionPreviewEditPlan = editPlan
+        compositionPreviewSourcePath = info.workingFilePath
+        player.addListener(compositionPreviewListener)
+        editor.videoPreview.player = player
+        realtimePreviewSession.markApplying(currentPreviewGraphKey(info))
+        player.setComposition(compiled.composition, outputPositionMs.coerceAtLeast(0L))
+        player.playWhenReady = autoPlay
+        player.prepare()
+        schedulePreviewReadyTimeout(
+            path = info.workingFilePath,
+            generation = realtimePreviewSession.currentGeneration(),
+        )
+        stopReplacementAudioPreview(clearMedia = false)
+        Log.i(
+            TAG_PREVIEW,
+            "CompositionPlayer preview prepared reason=$reason sourceMs=$selectedSourceMs " +
+                "outputMs=$outputPositionMs ${plan.summary}",
+        )
+        return true
+    }
+
+    private fun fallbackFromCompositionPreview(reason: String, error: Throwable? = null) {
+        val info = activeMediaInfo ?: return
+        if (!compositionPreviewActive) return
+        val sourcePositionMs = runCatching { activePreviewSourcePositionMs(info) }
+            .getOrDefault(previewLastValidPositionMs)
+        val resumePlayback = runCatching { activePreviewPlayWhenReady() }
+            .getOrDefault(previewLastPlayWhenReady)
+        compositionPreviewBlockedPath = info.workingFilePath
+        Log.w(
+            TAG_PREVIEW,
+            "CompositionPlayer fallback to ExoPlayer reason=$reason sourceMs=$sourcePositionMs",
+            error,
+        )
+        releaseCompositionPreview(attachExoPlayer = true, reason = "fallback: $reason")
+        runCatching {
+            replacePreviewPlayer()
+            prepareExoPreview(
+                workingFilePath = info.workingFilePath,
+                autoPlay = resumePlayback,
+                startPositionMs = sourcePositionMs,
+            )
+        }.onFailure { exoError ->
+            Log.e(TAG_PREVIEW, "ExoPlayer fallback after CompositionPlayer failed", exoError)
+            recoverPreviewSession(
+                failedPath = info.workingFilePath,
+                expectedGeneration = realtimePreviewSession.currentGeneration(),
+                reason = "composition fallback: ${exoError.javaClass.simpleName}",
+                preferredPositionMs = sourcePositionMs,
+            )
+        }
+    }
+
     private fun bindActions() {
         bindPreviewOverlayControls()
         editor.retryLivePreviewButton.setOnClickListener { retryLivePreviewEffects() }
@@ -1095,8 +1343,15 @@ class MainActivity : AppCompatActivity() {
         if (renderCoordinator.currentState.isActiveRender()) return
         cancelFreezePreview()
         cancelAdaptivePreview()
-        if (previewPath != info.workingFilePath) {
-            preparePreview(
+        if (compositionPreviewActive) {
+            releaseCompositionPreview(attachExoPlayer = true, reason = "adaptive candidate inspection")
+            prepareExoPreview(
+                info.workingFilePath,
+                autoPlay = true,
+                startPositionMs = range.startMs,
+            )
+        } else if (previewPath != info.workingFilePath) {
+            prepareExoPreview(
                 info.workingFilePath,
                 autoPlay = true,
                 startPositionMs = range.startMs,
@@ -1146,7 +1401,11 @@ class MainActivity : AppCompatActivity() {
         if (adaptiveDraftRanges.isEmpty() || renderCoordinator.currentState.isActiveRender()) return
         cancelFreezePreview()
         cancelAdaptivePreview()
+        if (compositionPreviewActive) {
+            releaseCompositionPreview(attachExoPlayer = true, reason = "adaptive sequence inspection")
+        }
         previewPath = info.workingFilePath
+        editor.videoPreview.player = previewPlayer
         configureSourcePreviewLayout(info)
 
         val sourceUri = File(info.workingFilePath).toURI().toString()
@@ -1261,6 +1520,11 @@ class MainActivity : AppCompatActivity() {
             renderCoordinator.reset(mediaHasAudio = renderNeedsAudioCapability(info))
             restoreSourcePreviewAfterStoppedRender()
         }
+        requestSourceBlurPreviewUpdate(
+            reason = "adaptive cuts",
+            immediate = false,
+            force = true,
+        )
         renderAdaptiveCutControls()
         renderTransformControls()
         updateTrimSummary()
@@ -1672,6 +1936,11 @@ class MainActivity : AppCompatActivity() {
             renderCoordinator.reset(mediaHasAudio = renderNeedsAudioCapability(info))
             if (restorePreview) restoreSourcePreviewAfterStoppedRender()
         }
+        requestSourceBlurPreviewUpdate(
+            reason = "audio controls",
+            immediate = false,
+            force = true,
+        )
         refreshAudioPreview()
         updateTrimSummary()
     }
@@ -2455,9 +2724,16 @@ class MainActivity : AppCompatActivity() {
         updateTrimSummary()
     }
 
-    private fun scheduleSourceBlurPreviewUpdate(reason: String) {
+    private fun scheduleSourceBlurPreviewUpdate(
+        reason: String,
+        force: Boolean = compositionPreviewActive,
+    ) {
         val info = activeMediaInfo ?: return
-        val graphChanged = realtimePreviewSession.request(currentPreviewGraphKey(info), reason)
+        val graphChanged = realtimePreviewSession.request(
+            currentPreviewGraphKey(info),
+            reason,
+            force = force,
+        )
         sourceBlurPreviewDirty = graphChanged
         sourceBlurPreviewReason = reason
         if (!graphChanged) {
@@ -2472,9 +2748,17 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun requestSourceBlurPreviewUpdate(reason: String, immediate: Boolean) {
+    private fun requestSourceBlurPreviewUpdate(
+        reason: String,
+        immediate: Boolean,
+        force: Boolean = compositionPreviewActive,
+    ) {
         val info = activeMediaInfo ?: return
-        val graphChanged = realtimePreviewSession.request(currentPreviewGraphKey(info), reason)
+        val graphChanged = realtimePreviewSession.request(
+            currentPreviewGraphKey(info),
+            reason,
+            force = force,
+        )
         sourceBlurPreviewDirty = graphChanged
         sourceBlurPreviewReason = reason
         if (!graphChanged) {
@@ -2483,8 +2767,12 @@ class MainActivity : AppCompatActivity() {
         }
         if (immediate) {
             commitSourceBlurPreviewUpdate(reason)
-        } else {
-            scheduleSourceBlurPreviewUpdate(reason)
+        } else if (!previewFallbackActive && !sourceBlurPreviewUpdatePosted) {
+            sourceBlurPreviewUpdatePosted = true
+            sourceBlurPreviewHandler.postDelayed(
+                sourceBlurPreviewUpdate,
+                SOURCE_BLUR_PREVIEW_UPDATE_MS,
+            )
         }
     }
 
@@ -2881,7 +3169,7 @@ class MainActivity : AppCompatActivity() {
         if (destination != MainDestination.EDITOR) {
             cancelFreezePreview()
             cancelAdaptivePreview()
-            previewPlayer.pause()
+            activePreviewPause()
         }
 
         binding.topAppBar.setTitle(destination.titleRes)
@@ -2930,7 +3218,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun openVideoPicker() {
         navigateTo(MainDestination.EDITOR)
-        previewPlayer.pause()
+        activePreviewPause()
         importCoordinator.beginPicking()
         videoPicker.launch(
             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
@@ -3149,12 +3437,55 @@ class MainActivity : AppCompatActivity() {
     ) {
         val previousPath = previewPath
         previewPath = workingFilePath
+        if (previousPath != workingFilePath) {
+            compositionPreviewBlockedPath = null
+            releaseCompositionPreview(attachExoPlayer = true, reason = "source changed")
+        }
         val sessionGeneration = realtimePreviewSession.begin(
             path = workingFilePath,
             restart = previousPath != workingFilePath,
         )
         editor.previewHint.isVisible = false
 
+        val sourceInfo = activeMediaInfo
+        val sourceSelected = sourceInfo?.workingFilePath == workingFilePath
+        if (sourceSelected && sourceInfo != null && compositionPreviewEligible(sourceInfo)) {
+            configureSourcePreviewLayout(sourceInfo)
+            val prepared = runCatching {
+                prepareCompositionPreview(
+                    info = sourceInfo,
+                    autoPlay = autoPlay,
+                    sourcePositionMs = startPositionMs,
+                    reason = "prepare source preview",
+                )
+            }.onFailure { error ->
+                compositionPreviewBlockedPath = sourceInfo.workingFilePath
+                Log.w(TAG_PREVIEW, "CompositionPlayer setup rejected; using ExoPlayer", error)
+                releaseCompositionPreview(attachExoPlayer = true, reason = "setup failure")
+            }.getOrDefault(false)
+            if (prepared) {
+                renderSourceBlurGuide()
+                return
+            }
+        }
+
+        prepareExoPreview(
+            workingFilePath = workingFilePath,
+            autoPlay = autoPlay,
+            startPositionMs = startPositionMs,
+            sessionGeneration = sessionGeneration,
+        )
+    }
+
+    private fun prepareExoPreview(
+        workingFilePath: String,
+        autoPlay: Boolean,
+        startPositionMs: Long,
+        sessionGeneration: Long = realtimePreviewSession.currentGeneration(),
+    ) {
+        releaseCompositionPreview(attachExoPlayer = true, reason = "ExoPlayer preview selected")
+        previewPath = workingFilePath
+        editor.previewHint.isVisible = false
         val sourceInfo = activeMediaInfo
         val isSourcePreview = sourceInfo
             ?.let { it.workingFilePath == workingFilePath && !previewFallbackActive }
@@ -3184,6 +3515,7 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             .orEmpty()
+        editor.videoPreview.player = previewPlayer
         previewPlayer.setVideoEffects(effects)
         previewEffectSignature = effects.previewEffectSignature()
         if (graphKey != null) {
@@ -3834,6 +4166,7 @@ class MainActivity : AppCompatActivity() {
         // decoder/encoder pair; lower-end devices expose very limited codecs.
         cancelFreezePreview()
         cancelAdaptivePreview(restoreSource = false)
+        releaseCompositionPreview(attachExoPlayer = true, reason = "final render codec handoff")
         previewPath = null
         stopReplacementAudioPreview(clearMedia = true)
         previewPlayer.stop()
@@ -4282,7 +4615,7 @@ class MainActivity : AppCompatActivity() {
                 updateRealtimeOverlayStates()
                 requestSourceBlurPreviewUpdate("trim range", immediate = false)
             }
-            previewPlayer.seekTo(trim.startMs)
+            activePreviewSeekToSourcePosition(info, trim.startMs)
         }
         renderTransformControls()
         updateTrimSummary()
@@ -4312,8 +4645,16 @@ class MainActivity : AppCompatActivity() {
         }
         cancelAdaptivePreview()
         cancelFreezePreview()
-        if (previewPath != info.workingFilePath) {
-            preparePreview(info.workingFilePath, autoPlay = false)
+        if (compositionPreviewActive) {
+            val sourcePositionMs = activePreviewSourcePositionMs(info)
+            releaseCompositionPreview(attachExoPlayer = true, reason = "intro freeze simulation")
+            prepareExoPreview(
+                info.workingFilePath,
+                autoPlay = false,
+                startPositionMs = sourcePositionMs,
+            )
+        } else if (previewPath != info.workingFilePath) {
+            prepareExoPreview(info.workingFilePath, autoPlay = false, startPositionMs = currentTrimRange(info).startMs)
         }
         previewPlayer.pause()
         previewPlayer.seekTo(currentTrimRange(info).startMs)
@@ -4364,12 +4705,68 @@ class MainActivity : AppCompatActivity() {
         ) {
             return false
         }
-        val positionMs = previewPlayer.currentPosition.coerceAtLeast(0L)
-        val resumePlayback = previewPlayer.playWhenReady
+        val positionMs = activePreviewSourcePositionMs(info)
+        val resumePlayback = activePreviewPlayWhenReady()
         val geometryRebindRequired = PreviewGeometryChangePolicy.requiresSurfaceRebind(
             previous = realtimePreviewSession.currentTransform(),
             requested = requestedKey.transform,
         )
+
+        if (compositionPreviewEligible(info)) {
+            val rebuildComposition = {
+                runCatching {
+                    prepareCompositionPreview(
+                        info = info,
+                        autoPlay = resumePlayback,
+                        sourcePositionMs = positionMs,
+                        reason = reason,
+                    )
+                }.onFailure { error ->
+                    Log.e(TAG_PREVIEW, "CompositionPlayer preview rebuild failed: $reason", error)
+                    if (compositionPreviewActive) {
+                        fallbackFromCompositionPreview("graph rebuild: $reason", error)
+                    } else {
+                        compositionPreviewBlockedPath = info.workingFilePath
+                        prepareExoPreview(
+                            workingFilePath = info.workingFilePath,
+                            autoPlay = resumePlayback,
+                            startPositionMs = positionMs,
+                        )
+                    }
+                }.getOrDefault(false)
+            }
+            if (geometryRebindRequired) {
+                activePreviewPause()
+                configureSourcePreviewLayout(info) {
+                    if (_binding == null || previewFallbackActive || previewPath != info.workingFilePath) {
+                        return@configureSourcePreviewLayout
+                    }
+                    if (currentPreviewGraphKey(info) != requestedKey) {
+                        requestSourceBlurPreviewUpdate(
+                            reason = "superseded composition geometry",
+                            immediate = false,
+                            force = true,
+                        )
+                        return@configureSourcePreviewLayout
+                    }
+                    rebuildComposition()
+                }
+                return true
+            }
+            configureSourcePreviewLayout(info)
+            return rebuildComposition()
+        }
+
+        if (compositionPreviewActive) {
+            releaseCompositionPreview(attachExoPlayer = true, reason = "capability fallback: $reason")
+            prepareExoPreview(
+                workingFilePath = info.workingFilePath,
+                autoPlay = resumePlayback,
+                startPositionMs = positionMs,
+            )
+            return true
+        }
+
         if (geometryRebindRequired) {
             // PREVIEW_GEOMETRY_REBIND: changing 9:16/16:9/1:1 or FIT/FILL changes Media3
             // Presentation geometry. Rebinding that graph before the movable TextureView has its
@@ -4577,6 +4974,7 @@ class MainActivity : AppCompatActivity() {
         val info = activeMediaInfo ?: return
         if (
             previewFallbackActive ||
+            compositionPreviewActive ||
             previewPath != info.workingFilePath ||
             previewPlayer.isPlaying ||
             previewPlayer.playbackState == Player.STATE_IDLE
@@ -4691,10 +5089,10 @@ class MainActivity : AppCompatActivity() {
     private fun retryLivePreviewEffects() {
         val info = activeMediaInfo ?: return
         if (renderCoordinator.currentState.isActiveRender()) return
-        val resumePositionMs = runCatching { previewPlayer.currentPosition }
+        val resumePositionMs = runCatching { activePreviewSourcePositionMs(info) }
             .getOrDefault(previewLastValidPositionMs)
             .coerceAtLeast(0L)
-        val resumePlayback = runCatching { previewPlayer.playWhenReady }
+        val resumePlayback = runCatching { activePreviewPlayWhenReady() }
             .getOrDefault(previewLastPlayWhenReady)
         cancelPreviewReadyTimeout()
         cancelSourceBlurPreviewUpdate(clearDirty = true)
@@ -4706,8 +5104,9 @@ class MainActivity : AppCompatActivity() {
             "User requested live-effect retry generation=$retryGeneration " +
                 "source=${info.width}x${info.height} codec=${info.videoCodec}",
         )
+        compositionPreviewBlockedPath = null
+        releaseCompositionPreview(attachExoPlayer = true, reason = "explicit live preview retry")
         runCatching {
-            replacePreviewPlayer()
             preparePreview(
                 workingFilePath = info.workingFilePath,
                 autoPlay = resumePlayback,
@@ -4745,6 +5144,7 @@ class MainActivity : AppCompatActivity() {
         cancelPreviewReadyTimeout()
         realtimePreviewSession.clearPending()
         pauseReplacementAudioPreview()
+        releaseCompositionPreview(attachExoPlayer = true, reason = "preview unavailable")
         runCatching {
             previewPlayer.playWhenReady = false
             previewPlayer.stop()
@@ -4757,6 +5157,7 @@ class MainActivity : AppCompatActivity() {
     private fun showNonSourcePreviewUnavailable(reason: String) {
         cancelPreviewReadyTimeout()
         pauseReplacementAudioPreview()
+        releaseCompositionPreview(attachExoPlayer = true, reason = "non-source preview unavailable")
         runCatching {
             previewPlayer.playWhenReady = false
             previewPlayer.stop()
@@ -5159,7 +5560,8 @@ class MainActivity : AppCompatActivity() {
     private fun isReplacementPreviewActive(): Boolean {
         val info = activeMediaInfo ?: return false
         val asset = replacementAudioAsset ?: return false
-        return audioEnabled &&
+        return !compositionPreviewActive &&
+            audioEnabled &&
             audioPolicy in setOf(AudioPolicy.REPLACE, AudioPolicy.MIX) &&
             previewPath == info.workingFilePath &&
             File(asset.workingFilePath).isFile &&
@@ -5657,7 +6059,7 @@ class MainActivity : AppCompatActivity() {
         if (sourceBlurPreviewDirty && !previewFallbackActive) {
             scheduleSourceBlurPreviewUpdate("resume pending source blur")
         }
-        if (previewPlayer.playbackState == Player.STATE_BUFFERING) {
+        if (activePreviewPlaybackState() == Player.STATE_BUFFERING) {
             schedulePreviewReadyTimeout()
         }
     }
@@ -5673,7 +6075,7 @@ class MainActivity : AppCompatActivity() {
         cancelPreviewReadyTimeout()
         cancelFreezePreview()
         cancelAdaptivePreview()
-        previewPlayer.pause()
+        activePreviewPause()
         pauseReplacementAudioPreview()
         super.onStop()
     }
@@ -5690,6 +6092,7 @@ class MainActivity : AppCompatActivity() {
         editorPreferencesHandler.removeCallbacksAndMessages(null)
         sourceBlurPreviewUpdatePosted = false
         cancelSourceBlurGestureCommit(resetGuide = true)
+        releaseCompositionPreview(attachExoPlayer = false, reason = "activity destroy")
         editor.videoPreview.player = null
         previewPlayer.removeListener(previewListener)
         previewPlayer.release()

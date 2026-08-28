@@ -35,6 +35,46 @@ object Media3CompositionCompiler {
         input: File,
         freezeFrame: File?,
         plan: Media3CompositionPlan = Media3CompositionPlanCompiler.compile(mediaInfo, editPlan),
+    ): CompiledMedia3Composition = compileInternal(
+        mediaInfo = mediaInfo,
+        editPlan = editPlan,
+        input = input,
+        freezeFrame = freezeFrame,
+        plan = plan,
+        forCompositionPreview = false,
+    )
+
+    /**
+     * Builds the same shared composition topology for CompositionPlayer preview. Unlike Transformer,
+     * CompositionPlayer requires every encoded [EditedMediaItem] to expose the original source
+     * duration before clipping. Freeze stays on the proven ExoPlayer simulation in Phase 6F.2.7.
+     */
+    fun compileForPreview(
+        mediaInfo: MediaInfo,
+        editPlan: EditPlan,
+        input: File,
+        plan: Media3CompositionPlan = Media3CompositionPlanCompiler.compile(mediaInfo, editPlan),
+    ): CompiledMedia3Composition {
+        require(plan.freeze == null) {
+            "Phase 6F.2.7 CompositionPlayer preview delegates Intro Freeze to ExoPlayer"
+        }
+        return compileInternal(
+            mediaInfo = mediaInfo,
+            editPlan = editPlan,
+            input = input,
+            freezeFrame = null,
+            plan = plan,
+            forCompositionPreview = true,
+        )
+    }
+
+    private fun compileInternal(
+        mediaInfo: MediaInfo,
+        editPlan: EditPlan,
+        input: File,
+        freezeFrame: File?,
+        plan: Media3CompositionPlan,
+        forCompositionPreview: Boolean,
     ): CompiledMedia3Composition {
         require(input.isFile) { "Composition source is unavailable: ${input.absolutePath}" }
         require((plan.freeze == null) == (freezeFrame == null)) {
@@ -62,6 +102,7 @@ object Media3CompositionCompiler {
                         range = range,
                         plan = plan,
                         compositionOffsetUs = compositionOffsetUs,
+                        forCompositionPreview = forCompositionPreview,
                     ),
                 )
                 compositionOffsetUs += CompositionOverlayTimelinePolicy.presentationDurationUs(
@@ -100,11 +141,19 @@ object Media3CompositionCompiler {
         range: TrimRange,
         plan: Media3CompositionPlan,
         compositionOffsetUs: Long,
+        forCompositionPreview: Boolean,
     ): EditedMediaItem {
-        val speedEffects = TransformSpeedEffectsFactory.forRender(
-            settings = editPlan.transform,
-            hasAudio = mediaInfo.hasAudio && !plan.removeSourceAudio,
-        )
+        val speedEffects = if (forCompositionPreview) {
+            TransformSpeedEffectsFactory.forCompositionPreview(
+                settings = editPlan.transform,
+                hasAudio = mediaInfo.hasAudio && !plan.removeSourceAudio,
+            )
+        } else {
+            TransformSpeedEffectsFactory.forRender(
+                settings = editPlan.transform,
+                hasAudio = mediaInfo.hasAudio && !plan.removeSourceAudio,
+            )
+        }
         val audioProcessors = buildList<AudioProcessor> {
             speedEffects?.audioProcessor?.let(::add)
             if (!plan.removeSourceAudio && plan.sourceLinearGain != AudioCompiler.UNITY_LINEAR_GAIN) {
@@ -124,19 +173,33 @@ object Media3CompositionCompiler {
         // the shader also subtracts this item's composition offset and evaluates 0-based local
         // time. This prevents blur/logo windows from expiring early in later adaptive-cut items.
         val localOverlays = OverlayCompiler.projectToRange(editPlan.overlays, range)
-        val videoEffects = TransformVideoEffects.forRender(
-            settings = editPlan.transform,
-            preset = editPlan.exportPreset,
-            targetFrameRate = TARGET_FRAME_RATE.toFloat(),
-            sourceDurationMs = range.durationMs,
-            speedEffect = speedEffects?.videoEffect,
-            overlays = localOverlays,
-            // Media3 adds the sequence item offset before GlEffects run. Remove that offset so
-            // the projected overlay windows are evaluated on this clipped item's 0-based time.
-            sourceTimeOffsetUs = CompositionOverlayTimelinePolicy.localEffectTimeOffsetUs(
-                compositionOffsetUs,
-            ),
+        val sourceTimeOffsetUs = CompositionOverlayTimelinePolicy.localEffectTimeOffsetUs(
+            compositionOffsetUs,
         )
+        val videoEffects = if (forCompositionPreview) {
+            TransformVideoEffects.forCompositionPreview(
+                settings = editPlan.transform,
+                preset = RenderPreset.HD_720P,
+                targetFrameRate = TARGET_FRAME_RATE.toFloat(),
+                sourceDurationMs = range.durationMs,
+                speedEffect = speedEffects?.videoEffect,
+                overlays = localOverlays,
+                timelineOffsetUs = compositionOffsetUs,
+                sourceTimeOffsetUs = sourceTimeOffsetUs,
+            )
+        } else {
+            TransformVideoEffects.forRender(
+                settings = editPlan.transform,
+                preset = editPlan.exportPreset,
+                targetFrameRate = TARGET_FRAME_RATE.toFloat(),
+                sourceDurationMs = range.durationMs,
+                speedEffect = speedEffects?.videoEffect,
+                overlays = localOverlays,
+                // Media3 adds the sequence item offset before GlEffects run. Remove that offset so
+                // the projected overlay windows are evaluated on this clipped item's 0-based time.
+                sourceTimeOffsetUs = sourceTimeOffsetUs,
+            )
+        }
         val mediaItem = MediaItem.Builder()
             .setUri(input.toURI().toString())
             .setClippingConfiguration(
@@ -147,9 +210,15 @@ object Media3CompositionCompiler {
             )
             .build()
         return EditedMediaItem.Builder(mediaItem)
-            // Encoded video has an intrinsic duration. Media3's setDurationUs contract expects the
-            // original pre-clipping source duration, not the clipped range duration, so leave it
-            // unset for Transformer and let the asset loader report the clipped duration.
+            .apply {
+                if (forCompositionPreview) {
+                    // CompositionPlayer 1.10.0 requires explicit durationUs for every item. The
+                    // contract is the original encoded duration before clipping, not range duration.
+                    setDurationUs(mediaInfo.durationMs * 1_000L)
+                }
+            }
+            // Transformer keeps the owner-verified Phase 6F.2.6.2 behavior: no incorrect clipped
+            // duration override for encoded video.
             .setRemoveAudio(plan.removeSourceAudio)
             .setEffects(Effects(audioProcessors, videoEffects))
             .build()

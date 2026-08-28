@@ -60,6 +60,19 @@ class RealtimePreviewSessionTest {
         assertFalse(session.request(key, "duplicate after first frame"))
     }
 
+
+    @Test
+    fun forcedRequestRebuildsImmutableCompositionEvenWhenGraphKeyMatches() {
+        val session = RealtimePreviewSession()
+        session.begin(SOURCE)
+        val key = key(timelineOffsetUs = 0L)
+        session.markApplying(key)
+        session.confirmApplied()
+
+        assertTrue(session.request(key, "composition parameter update", force = true))
+        assertEquals("composition parameter update", session.takePending()?.reason)
+    }
+
     private fun key(timelineOffsetUs: Long) = PreviewGraphKey(
         sourcePath = SOURCE,
         transform = TransformSettings(),

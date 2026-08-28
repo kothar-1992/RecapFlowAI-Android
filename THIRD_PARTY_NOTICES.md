@@ -15,7 +15,7 @@ shared-library layout before public distribution.
 
 ## AndroidX Media3
 
-RecapFlowAI Phase 6E.3A uses AndroidX Media3 `1.10.0` (`media3-common`,
+RecapFlowAI Phase 6F.2.7 uses AndroidX Media3 `1.10.0` (`media3-common`,
 `media3-effect`, `media3-exoplayer`, `media3-ui`, and `media3-transformer`)
 under the Apache License 2.0. The application baseline is Android 9 / API 28
 and newer.

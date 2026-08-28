@@ -8,6 +8,10 @@ val ffmpegEnabled = providers.gradleProperty("recapflow.ffmpeg.enabled")
     .map(String::toBoolean)
     .orElse(false)
 
+val compositionPreviewEnabled = providers.gradleProperty("recapflow.composition.preview.enabled")
+    .map(String::toBoolean)
+    .orElse(true)
+
 val nativeBuildStagingDirectory = file(
     "${System.getProperty("user.home")}/.recapflow/cxx/${rootProject.name}/${project.name}",
 )
@@ -22,11 +26,17 @@ android {
         minSdk = 28
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0-phase6f2.6.2"
+        versionName = "1.0-phase6f2.7"
 
         ndk {
             abiFilters += "arm64-v8a"
         }
+
+        buildConfigField(
+            "boolean",
+            "ENABLE_COMPOSITION_PLAYER_PREVIEW",
+            compositionPreviewEnabled.get().toString(),
+        )
 
         externalNativeBuild {
             cmake {
@@ -37,6 +47,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     externalNativeBuild {

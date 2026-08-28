@@ -49,9 +49,9 @@ class RealtimePreviewSession {
         return generation
     }
 
-    fun request(key: PreviewGraphKey, reason: String): Boolean {
+    fun request(key: PreviewGraphKey, reason: String, force: Boolean = false): Boolean {
         if (sourcePath != key.sourcePath) begin(key.sourcePath)
-        if (appliedKey == key || applyingKey == key) {
+        if (!force && (appliedKey == key || applyingKey == key)) {
             pendingUpdate = null
             return false
         }

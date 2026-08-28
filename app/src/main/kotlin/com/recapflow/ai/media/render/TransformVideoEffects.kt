@@ -16,6 +16,7 @@ import com.recapflow.ai.media.edit.MirrorCompiler
 import com.recapflow.ai.media.edit.OverlayCompiler
 import com.recapflow.ai.media.edit.OverlaySettings
 import com.recapflow.ai.media.edit.ScaleMode
+import com.recapflow.ai.media.edit.SpeedCompiler
 import com.recapflow.ai.media.edit.TransformCompiler
 import com.recapflow.ai.media.edit.TransformSettings
 import com.recapflow.ai.media.edit.TransitionCompiler
@@ -77,6 +78,47 @@ object TransformVideoEffects {
                 ),
             )
         }
+    }
+
+    /**
+     * Immutable video-effect chain used by CompositionPlayer. Speed must be the first effect for
+     * Media3 CompositionPlayer, so range-local time based effects are converted to presentation
+     * time before they are appended.
+     */
+    fun forCompositionPreview(
+        settings: TransformSettings,
+        preset: RenderPreset = RenderPreset.HD_720P,
+        targetFrameRate: Float,
+        sourceDurationMs: Long,
+        speedEffect: Effect? = null,
+        overlays: OverlaySettings = OverlaySettings(),
+        timelineOffsetUs: Long = 0L,
+        sourceTimeOffsetUs: Long = 0L,
+    ): List<Effect> = buildList {
+        speedEffect?.let(::add)
+        val presentationDurationMs = SpeedCompiler.compile(settings)
+            ?.outputDurationMs(sourceDurationMs)
+            ?: sourceDurationMs
+        addAll(
+            buildVisualEffects(
+                settings = settings,
+                shortSidePixels = preset.shortSidePixels,
+                timelineOffsetUs = timelineOffsetUs,
+                sourceDurationMs = presentationDurationMs,
+            ),
+        )
+        if (TransformCompiler.compile(settings, preset) == null) {
+            add(Presentation.createForShortSide(preset.shortSidePixels))
+        }
+        val presentationOverlays = CompositionPreviewTimelinePolicy
+            .projectOverlayWindowsToPresentationTime(overlays, settings)
+        OverlayCompiler.compile(presentationOverlays)?.let { blur ->
+            add(SourceSubtitleBlurEffect(blur, sourceTimeOffsetUs, null))
+        }
+        OverlayCompiler.compileImage(presentationOverlays)?.let { image ->
+            add(StaticImageOverlayEffect(image, sourceTimeOffsetUs, null))
+        }
+        add(FrameDropEffect.createDefaultFrameDropEffect(targetFrameRate))
     }
 
     fun forRender(
