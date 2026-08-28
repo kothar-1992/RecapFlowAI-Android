@@ -42,10 +42,9 @@ object VideoOverlayTimelinePolicy {
         transform: TransformSettings,
     ): List<ProjectedVideoOverlaySegment> {
         val asset = settings.asset ?: return emptyList()
-        if (!settings.enabled || !settings.isValid(sourceDurationMs = inferredSourceEnd(selectedRanges))) {
+        if (!settings.enabled || !settings.isStructurallyValid() || selectedRanges.isEmpty()) {
             return emptyList()
         }
-        if (selectedRanges.isEmpty()) return emptyList()
 
         // A short overlay ends naturally. A longer overlay is clipped by the configured window.
         val effectiveWindowEndMs = minOf(settings.endMs, settings.startMs + asset.durationMs)
@@ -79,9 +78,6 @@ object VideoOverlayTimelinePolicy {
 
         return result
     }
-
-    private fun inferredSourceEnd(ranges: List<TrimRange>): Long =
-        ranges.maxOfOrNull { it.endMs }?.coerceAtLeast(0L) ?: 0L
 
     private fun outputDurationMs(speed: CompiledSpeed?, inputDurationMs: Long): Long =
         speed?.outputDurationMs(inputDurationMs) ?: inputDurationMs.coerceAtLeast(0L)
