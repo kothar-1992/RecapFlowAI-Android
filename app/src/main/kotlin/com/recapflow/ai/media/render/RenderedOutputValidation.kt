@@ -109,22 +109,39 @@ object RenderedOutputValidationPolicy {
                         "${allowedDurationDriftMs}ms",
                 )
             }
+            if (
+                averageVideoBitrate != null && averageVideoBitrate > 0 &&
+                requestedVideoBitrate > 0 &&
+                averageVideoBitrate.toLong() * 100L <
+                    requestedVideoBitrate.toLong() * MIN_CBR_ACCEPTANCE_PERCENT
+            ) {
+                add(
+                    "CBR average bitrate ${averageVideoBitrate}bps is below " +
+                        "$MIN_CBR_ACCEPTANCE_PERCENT% of the requested " +
+                        "${requestedVideoBitrate}bps quality target",
+                )
+            }
         }
         val warnings = buildList {
             if (expectedFrameRate != null && metadata.frameRate <= 0.0) {
                 add("Finalized track did not expose frame-rate metadata; verify FPS on device evidence")
             }
-            if (
-                averageVideoBitrate != null && averageVideoBitrate > 0 &&
-                averageVideoBitrate < requestedVideoBitrate * 35L / 100L
+            if (averageVideoBitrate == null || averageVideoBitrate <= 0) {
+                add("Encoder did not report average video bitrate; verify visual quality on device evidence")
+            } else if (
+                requestedVideoBitrate > 0 &&
+                averageVideoBitrate.toLong() * 100L <
+                    requestedVideoBitrate.toLong() * CBR_WARNING_PERCENT &&
+                averageVideoBitrate.toLong() * 100L >=
+                    requestedVideoBitrate.toLong() * MIN_CBR_ACCEPTANCE_PERCENT
             ) {
                 add(
-                    "VBR average bitrate is below 35% of the requested target; " +
+                    "CBR average bitrate is below $CBR_WARNING_PERCENT% of the requested target; " +
                         "review visual quality before publishing",
                 )
             }
             if (
-                expectedDurationMs > 0L && durationDriftMs > BASE_DURATION_DRIFT_MS &&
+                expectedDurationMs > 0L && durationDriftMs > DURATION_DRIFT_WARNING_MS &&
                 durationDriftMs <= allowedDurationDriftMs
             ) {
                 add(
@@ -142,9 +159,10 @@ object RenderedOutputValidationPolicy {
     }
 
     /**
-     * Output FPS may be 24-60 depending on source and AAC is packetized separately. Keep the historical
-     * 250 ms floor, allow at most 0.1% duration drift for longer files, and cap the exception at
-     * 750 ms so a real clip/timeline mismatch still fails.
+     * Output FPS may be 24-60 depending on source and AAC is packetized separately. Keep a
+     * 350 ms floor for observed MediaCodec/AAC/container finalization variance, allow at most
+     * 0.1% duration drift for longer files, and cap the exception at 750 ms so a real
+     * clip/timeline mismatch still fails. Drifts above 250 ms remain visible as diagnostics.
      */
     fun allowedDurationDriftMs(expectedDurationMs: Long): Long {
         if (expectedDurationMs <= 0L) return BASE_DURATION_DRIFT_MS
@@ -155,7 +173,10 @@ object RenderedOutputValidationPolicy {
 
     private const val VIDEO_AVC_MIME = "video/avc"
     private const val AUDIO_AAC_MIME = "audio/mp4a-latm"
-    const val BASE_DURATION_DRIFT_MS = 250L
+    const val DURATION_DRIFT_WARNING_MS = 250L
+    const val BASE_DURATION_DRIFT_MS = 350L
     const val MAX_DURATION_DRIFT_MS = 750L
     const val FRAME_RATE_TOLERANCE = 1.0
+    const val MIN_CBR_ACCEPTANCE_PERCENT = 80L
+    const val CBR_WARNING_PERCENT = 90L
 }
