@@ -28,14 +28,18 @@ class Media3CrossfadeVideoCompositorSettings(
         return output
     }
 
-    override fun getOverlaySettings(inputId: Int, presentationTimeUs: Long): OverlaySettings {
-        val alpha = when (inputId) {
-            0 -> 1f
-            1 -> topology.overlayLaneAlpha(presentationTimeUs)
-            else -> error("Crossfade compositor supports exactly two video lanes; inputId=$inputId")
-        }
-        return StaticOverlaySettings.Builder()
-            .setAlphaScale(alpha)
-            .build()
+    /**
+     * Pure semantic alpha lookup kept separate from Media3's Android-backed OverlaySettings object.
+     * Local JVM tests exercise this method; assemble/device tests exercise getOverlaySettings().
+     */
+    internal fun alphaForInput(inputId: Int, presentationTimeUs: Long): Float = when (inputId) {
+        0 -> 1f
+        1 -> topology.overlayLaneAlpha(presentationTimeUs)
+        else -> error("Crossfade compositor supports exactly two video lanes; inputId=$inputId")
     }
+
+    override fun getOverlaySettings(inputId: Int, presentationTimeUs: Long): OverlaySettings =
+        StaticOverlaySettings.Builder()
+            .setAlphaScale(alphaForInput(inputId, presentationTimeUs))
+            .build()
 }
