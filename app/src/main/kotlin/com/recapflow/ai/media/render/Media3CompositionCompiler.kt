@@ -1,5 +1,6 @@
 package com.recapflow.ai.media.render
 
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.util.UnstableApi
@@ -7,6 +8,7 @@ import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
+import com.recapflow.ai.BuildConfig
 import com.recapflow.ai.media.MediaInfo
 import com.recapflow.ai.media.edit.AudioCompiler
 import com.recapflow.ai.media.edit.EditPlan
@@ -22,9 +24,10 @@ import java.io.File
 data class CompiledMedia3Composition(
     val composition: Composition,
     val plan: Media3CompositionPlan,
+    val requiresMultipleInputVideoGraph: Boolean = false,
 )
 
-/** Builds the single authoritative Media3 Composition used by final export. */
+/** Builds the single authoritative Media3 Composition used by preview and final export. */
 @UnstableApi
 object Media3CompositionCompiler {
     const val PREVIEW_FRAME_RATE = 30
@@ -80,10 +83,12 @@ object Media3CompositionCompiler {
         require((plan.freeze == null) == (freezeFrame == null)) {
             "Freeze-frame asset must match the compiled composition plan"
         }
-        // Phase 6H.1 stores Crossfade semantically before enabling a runtime. Never let the shared
-        // compiler silently ignore that reviewed edit, because doing so would also make planned
-        // duration diverge from the actual sequential Media3 Composition.
-        Media3ClipTransitionRuntimePolicy.requireSupported(plan)
+
+        val crossfadeActive = plan.clipTransitions.isNotEmpty()
+        Media3ClipTransitionRuntimePolicy.requireSupported(
+            plan = plan,
+            runtimeSpikeEnabled = BuildConfig.ENABLE_CROSSFADE_RUNTIME_SPIKE,
+        )
 
         val targetFrameRate = if (forCompositionPreview) {
             PREVIEW_FRAME_RATE
@@ -91,6 +96,38 @@ object Media3CompositionCompiler {
             ExportFrameRatePolicy.forSource(mediaInfo.frameRate)
         }
 
+        return if (crossfadeActive) {
+            compileCrossfadeComposition(
+                mediaInfo = mediaInfo,
+                editPlan = editPlan,
+                input = input,
+                freezeFrame = freezeFrame,
+                plan = plan,
+                forCompositionPreview = forCompositionPreview,
+                targetFrameRate = targetFrameRate,
+            )
+        } else {
+            compileSequentialComposition(
+                mediaInfo = mediaInfo,
+                editPlan = editPlan,
+                input = input,
+                freezeFrame = freezeFrame,
+                plan = plan,
+                forCompositionPreview = forCompositionPreview,
+                targetFrameRate = targetFrameRate,
+            )
+        }
+    }
+
+    private fun compileSequentialComposition(
+        mediaInfo: MediaInfo,
+        editPlan: EditPlan,
+        input: File,
+        freezeFrame: File?,
+        plan: Media3CompositionPlan,
+        forCompositionPreview: Boolean,
+        targetFrameRate: Int,
+    ): CompiledMedia3Composition {
         val videoSequence = EditedMediaItemSequence.Builder().apply {
             var compositionOffsetUs = 0L
             if (plan.freeze != null) {
@@ -115,6 +152,7 @@ object Media3CompositionCompiler {
                         compositionOffsetUs = compositionOffsetUs,
                         forCompositionPreview = forCompositionPreview,
                         targetFrameRate = targetFrameRate,
+                        crossfadeSlot = null,
                     ),
                 )
                 compositionOffsetUs += CompositionOverlayTimelinePolicy.presentationDurationUs(
@@ -143,7 +181,129 @@ object Media3CompositionCompiler {
         return CompiledMedia3Composition(
             composition = Composition.Builder(sequences).build(),
             plan = plan,
+            requiresMultipleInputVideoGraph = false,
         )
+    }
+
+    private fun compileCrossfadeComposition(
+        mediaInfo: MediaInfo,
+        editPlan: EditPlan,
+        input: File,
+        freezeFrame: File?,
+        plan: Media3CompositionPlan,
+        forCompositionPreview: Boolean,
+        targetFrameRate: Int,
+    ): CompiledMedia3Composition {
+        check(BuildConfig.ENABLE_CROSSFADE_RUNTIME_SPIKE) {
+            "Crossfade runtime spike must be explicitly enabled"
+        }
+        val topology = Media3CrossfadeTopologyCompiler.compile(plan, editPlan)
+        require(topology.laneCount == 2) {
+            "Reviewed Crossfade topology must expose exactly two video lanes"
+        }
+
+        val sequences = buildList {
+            add(
+                buildCrossfadeLaneSequence(
+                    lane = 0,
+                    topology = topology,
+                    mediaInfo = mediaInfo,
+                    editPlan = editPlan,
+                    input = input,
+                    freezeFrame = freezeFrame,
+                    plan = plan,
+                    forCompositionPreview = forCompositionPreview,
+                    targetFrameRate = targetFrameRate,
+                ),
+            )
+            add(
+                buildCrossfadeLaneSequence(
+                    lane = 1,
+                    topology = topology,
+                    mediaInfo = mediaInfo,
+                    editPlan = editPlan,
+                    input = input,
+                    freezeFrame = null,
+                    plan = plan,
+                    forCompositionPreview = forCompositionPreview,
+                    targetFrameRate = targetFrameRate,
+                ),
+            )
+            plan.replacementAudio?.let { replacement ->
+                add(
+                    buildReplacementAudioSequence(
+                        replacement = replacement,
+                        linearGain = plan.replacementLinearGain,
+                        normalizeForMix = plan.mixesSourceAudio,
+                    ),
+                )
+            }
+        }
+
+        val composition = Composition.Builder(sequences)
+            .setVideoCompositorSettings(Media3CrossfadeVideoCompositorSettings(topology))
+            .build()
+
+        return CompiledMedia3Composition(
+            composition = composition,
+            plan = plan,
+            requiresMultipleInputVideoGraph = true,
+        )
+    }
+
+    private fun buildCrossfadeLaneSequence(
+        lane: Int,
+        topology: Media3CrossfadeTopology,
+        mediaInfo: MediaInfo,
+        editPlan: EditPlan,
+        input: File,
+        freezeFrame: File?,
+        plan: Media3CompositionPlan,
+        forCompositionPreview: Boolean,
+        targetFrameRate: Int,
+    ): EditedMediaItemSequence {
+        val trackTypes = buildSet {
+            add(C.TRACK_TYPE_VIDEO)
+            if (mediaInfo.hasAudio && !plan.removeSourceAudio) add(C.TRACK_TYPE_AUDIO)
+        }
+        val builder = EditedMediaItemSequence.Builder(trackTypes)
+        var cursorUs = 0L
+
+        if (lane == 0 && plan.freeze != null) {
+            builder.addItem(
+                buildFreezeItem(
+                    editPlan = editPlan,
+                    freezeFrame = checkNotNull(freezeFrame),
+                    freeze = plan.freeze,
+                    targetFrameRate = targetFrameRate,
+                ),
+            )
+            cursorUs = plan.freeze.durationMs * 1_000L
+        }
+
+        topology.slotsForLane(lane).forEach { slot ->
+            val gapUs = slot.presentationStartUs - cursorUs
+            require(gapUs >= 0L) {
+                "Crossfade lane $lane has negative gap before clip ${slot.rangeIndex}"
+            }
+            if (gapUs > 0L) builder.addGap(gapUs)
+            builder.addItem(
+                buildEditedVideoItem(
+                    mediaInfo = mediaInfo,
+                    editPlan = editPlan,
+                    input = input,
+                    range = slot.sourceRange,
+                    plan = plan,
+                    compositionOffsetUs = slot.presentationStartUs,
+                    forCompositionPreview = forCompositionPreview,
+                    targetFrameRate = targetFrameRate,
+                    crossfadeSlot = slot,
+                ),
+            )
+            cursorUs = slot.presentationEndUs
+        }
+
+        return builder.build()
     }
 
     private fun buildEditedVideoItem(
@@ -155,6 +315,7 @@ object Media3CompositionCompiler {
         compositionOffsetUs: Long,
         forCompositionPreview: Boolean,
         targetFrameRate: Int,
+        crossfadeSlot: Media3CrossfadeClipSlot?,
     ): EditedMediaItem {
         val speedEffects = if (forCompositionPreview) {
             TransformSpeedEffectsFactory.forCompositionPreview(
@@ -180,11 +341,11 @@ object Media3CompositionCompiler {
             } else if (!plan.removeSourceAudio && plan.mixesSourceAudio) {
                 add(StereoPcmMixAudioProcessor(plan.sourceLinearGain))
             }
+            if (!plan.removeSourceAudio && mediaInfo.hasAudio && crossfadeSlot != null) {
+                add(CrossfadePcmAudioProcessor(crossfadeSlot))
+            }
         }
-        // Keep EditPlan overlay windows on the absolute source timeline, then project them to this
-        // clipped item. Media3 adds preceding sequence-item duration before GlEffects execute, so
-        // the shader also subtracts this item's composition offset and evaluates 0-based local
-        // time. This prevents blur/logo windows from expiring early in later adaptive-cut items.
+
         val localOverlays = OverlayCompiler.projectToRange(editPlan.overlays, range)
         val sourceTimeOffsetUs = CompositionOverlayTimelinePolicy.localEffectTimeOffsetUs(
             compositionOffsetUs,
@@ -208,8 +369,6 @@ object Media3CompositionCompiler {
                 sourceDurationMs = range.durationMs,
                 speedEffect = speedEffects?.videoEffect,
                 overlays = localOverlays,
-                // Media3 adds the sequence item offset before GlEffects run. Remove that offset so
-                // the projected overlay windows are evaluated on this clipped item's 0-based time.
                 sourceTimeOffsetUs = sourceTimeOffsetUs,
             )
         }
@@ -225,13 +384,9 @@ object Media3CompositionCompiler {
         return EditedMediaItem.Builder(mediaItem)
             .apply {
                 if (forCompositionPreview) {
-                    // CompositionPlayer 1.10.0 requires explicit durationUs for every item. The
-                    // contract is the original encoded duration before clipping, not range duration.
                     setDurationUs(mediaInfo.durationMs * 1_000L)
                 }
             }
-            // Transformer keeps the owner-verified Phase 6F.2.6.2 behavior: no incorrect clipped
-            // duration override for encoded video.
             .setRemoveAudio(plan.removeSourceAudio)
             .setEffects(Effects(audioProcessors, videoEffects))
             .build()
