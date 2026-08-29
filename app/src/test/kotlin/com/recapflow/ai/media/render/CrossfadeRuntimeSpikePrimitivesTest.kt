@@ -88,11 +88,11 @@ class CrossfadeRuntimeSpikePrimitivesTest {
         assertEquals(size, compositor.getOutputSize(listOf(size, size)))
         assertEquals(
             0.5f,
-            compositor.getOverlaySettings(1, 3_850_000L).alphaScale,
+            compositor.alphaForInput(1, 3_850_000L),
             0.0001f,
         )
         assertFailsWith<IllegalStateException> {
-            compositor.getOverlaySettings(2, 3_850_000L)
+            compositor.alphaForInput(2, 3_850_000L)
         }
     }
 }
