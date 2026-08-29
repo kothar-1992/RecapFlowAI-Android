@@ -8,6 +8,7 @@ data class EditPlan(
     val profile: EditProfile = EditProfile.NORMAL,
     val trimRange: TrimRange = TrimRange(0L, sourceDurationMs),
     val adaptiveCuts: AdaptiveCutSettings = AdaptiveCutSettings(),
+    val clipTransitions: ClipTransitionSettings = ClipTransitionSettings(),
     val transform: TransformSettings = TransformSettings(),
     val audio: AudioSettings = AudioSettings(),
     val overlays: OverlaySettings = OverlaySettings(),
@@ -16,13 +17,19 @@ data class EditPlan(
 ) {
     val plannedDurationMs: Long
         get() {
-            val selectedDurationMs = AdaptiveCutCompiler.compile(adaptiveCuts, trimRange)
-                ?.sumOf { it.durationMs }
-                ?: trimRange.durationMs
-            return (SpeedCompiler.compile(transform)
+            val selectedRanges = AdaptiveCutCompiler.compile(adaptiveCuts, trimRange)
+                ?: listOf(trimRange)
+            val selectedDurationMs = selectedRanges.sumOf { it.durationMs }
+            val presentationDurationMs = SpeedCompiler.compile(transform)
                 ?.outputDurationMs(selectedDurationMs)
-                ?: selectedDurationMs) +
-            (FreezeCompiler.compile(transform)?.durationMs ?: 0L)
+                ?: selectedDurationMs
+            val transitionOverlapMs = ClipTransitionPolicy.plannedOverlapDurationMs(
+                settings = clipTransitions,
+                selectedRanges = selectedRanges,
+                transform = transform,
+            )
+            return presentationDurationMs - transitionOverlapMs +
+                (FreezeCompiler.compile(transform)?.durationMs ?: 0L)
         }
 }
 
