@@ -1,21 +1,21 @@
 # Recap Flow AI Android — Implementation Plan
 
 - **Project:** RecapFlowAI Android
-- **Current source:** `RecapFlowAI_Phase6F2_8` (social export quality + source-aware frame-rate gate on merged Phase 6F.2.7)
+- **Current source:** `main` after owner-verified Phase 6F.2.8 social export quality merge
 - **Planning date:** 2026-08-18
-- **Last updated:** 2026-08-28
+- **Last updated:** 2026-08-29
 - **Primary target:** Modern ARM64 Android tablets/phones, beginning with Mi Pad
 - **Development environment:** Android Code Studio on Android
 - **UI strategy:** Native Kotlin + XML + ViewBinding
 - **Media strategy:** Native FFmpeg through JNI/CMake, with Android MediaCodec capability where appropriate
 - **Server strategy:** No VPS dependency for core video processing
-- **Current gate:** Phase 6F.2.8 SOURCE IMPLEMENTED — AndroidIDE/device export verification pending before PR #12 merge
+- **Current gate:** Phase 6G.1 TIMED VIDEO OVERLAY — Phase 6F.2.8 owner-device PASS is merged
 - **GitHub repository:** [`kothar-1992/RecapFlowAI-Android`](https://github.com/kothar-1992/RecapFlowAI-Android)
-- **Current GitHub task:** [#11 Phase 6F.2.8 social upload bitrate + source-aware frame rate](https://github.com/kothar-1992/RecapFlowAI-Android/issues/11) / PR #12
+- **Current GitHub task:** [#3 Phase 6G.1 timed video overlay support](https://github.com/kothar-1992/RecapFlowAI-Android/issues/3); UI copy housekeeping tracked by #13
 
 ---
 
-### Phase 6F.2.8 — Social export quality + source-aware frame rate (source implemented; AndroidIDE/device verification pending)
+### Phase 6F.2.8 — Social export quality + source-aware frame rate — OWNER-DEVICE PASS / MERGED
 
 - [x] Preserve merged Phase 6F.2.7 CompositionPlayer preview and fallback architecture.
 - [x] Final export normalizes source FPS (23.976/29.97/59.94 -> 24/30/60), caps at 60, and does not promote 30fps sources to 60fps.
@@ -25,11 +25,12 @@
 - [x] Finalized MP4 inspection captures video-track frame-rate metadata when available.
 - [x] Validation rejects material FPS fallback when metadata is available; missing FPS metadata is a warning, not a false hard failure.
 - [x] VBR average bitrate is telemetry; it is no longer judged against CBR 50%/80% floors.
-- [ ] AndroidIDE unit/build test.
-- [ ] Owner-device 1080p 30fps export.
-- [ ] Owner-device 1080p 60fps export with a true 60fps source when available.
-- [ ] Confirm geometry, actual FPS, requested/average bitrate, duration, A/V sync and no intermediate render.
-- [ ] Merge PR #12 and close #11 after device PASS.
+- [x] AndroidIDE unit/build test — owner reported PASS on 2026-08-29.
+- [x] Owner-device export gate exercised successfully; 720p sample reported 5.00 Mbps target / 4.99 Mbps actual with H.264/AAC and bounded-duration validation.
+- [ ] Extended true-60fps matrix remains a non-blocking follow-up when a representative source is available.
+- [x] Owner-device Phase 6F.2.8 PASS recorded; geometry/codec/duration and no-intermediate-render gate accepted for merge.
+- [x] PR #12 merged as `1db468aae2fc2934f6b80bac1b6f0f36b2813565`; Issue #11 closed completed; stable branch `stable/phase-6f2.8` created.
+- [x] Issue #13 presentation cleanup removes stale Phase 6F.2.6 / CBR product copy without changing the verified media path.
 
 
 ## 1. Baseline Assessment
@@ -2226,7 +2227,7 @@ Repository workflow rules:
 Queued GitHub work:
 
 - [x] [#1 Baseline: freeze verified Phase 6F.2.6.2 source](https://github.com/kothar-1992/RecapFlowAI-Android/issues/1) — merged to `main` as `7411b54ba922c49a28fde4ea7e0250b50d019900`; stable branch `stable/phase-6f2.6.2` created
-- [ ] [#2 Phase 6F.2.7: CompositionPlayer live preview with explicit fallback](https://github.com/kothar-1992/RecapFlowAI-Android/issues/2) — owner-device PASS 2026-08-28; close only after tested source is merged
+- [x] [#2 Phase 6F.2.7: CompositionPlayer live preview with explicit fallback](https://github.com/kothar-1992/RecapFlowAI-Android/issues/2) — owner-device PASS and merged to `main`
 - [ ] [#3 Phase 6G.1: Timed video overlay support](https://github.com/kothar-1992/RecapFlowAI-Android/issues/3)
 - [ ] [#4 Phase 6G.2: Subtitle and text rendering pipeline](https://github.com/kothar-1992/RecapFlowAI-Android/issues/4)
 - [ ] [#5 Phase 6G.3: Unified multi-stage edit graph](https://github.com/kothar-1992/RecapFlowAI-Android/issues/5)
@@ -3003,9 +3004,10 @@ AI providers may remain online services.
 - **Phase 6F.2.6.1C:** FULL-DURATION BLUR/LOGO TIMELINE HOTFIX SOURCE IMPLEMENTED; COMBINED DEVICE REGRESSION INCLUDED IN CURRENT GATE
 - **Phase 6F.2.6.1D:** HIGH-BITRATE 720P/1080P/2K EXPORT POLICY SOURCE IMPLEMENTED; ACTUAL DEVICE BITRATE EVIDENCE PENDING
 - **Phase 6F.2.6.2:** OWNER-CONFIRMED DONE; VERIFIED BASELINE MERGED TO GITHUB `main`
-- **Phase 6F.2.7:** COMPOSITIONPLAYER FEATURE-FLAG PREVIEW OWNER-DEVICE PASS; TESTED-SOURCE PR SYNC/MERGE PENDING
-- **Current gate:** PHASE 6F.2.7 TESTED-SOURCE REPOSITORY SYNC + PR #10 MERGE
-- **Next app gate:** FINISH PHASE 6F.2.8 SOCIAL EXPORT QUALITY (#11 / PR #12), THEN PHASE 6G.1 TIMED VIDEO OVERLAY
+- **Phase 6F.2.7:** OWNER-DEVICE PASS; MERGED TO `main`
+- **Phase 6F.2.8:** OWNER-DEVICE PASS; PR #12 MERGED; ISSUE #11 CLOSED; STABLE BRANCH `stable/phase-6f2.8` CREATED
+- **Current gate:** PHASE 6G.1 TIMED VIDEO OVERLAY (#3)
+- **Next app gate:** PHASE 6G.2 SUBTITLE/TEXT PIPELINE AFTER PHASE 6G.1 DEVICE PASS
 - **Queued preview gate:** EXOPLAYER LIVE-EFFECTS/SOURCE-ONLY FALLBACK REGRESSION UNDER PHASE 6F.2.7
 - **Queued quality gate:** PHASE 6F.1.1.1 ANDROIDIDE + ORIGINAL-SOURCE 720P/1080P COMPARISON
 - **Queued export gate:** PHASE 6F.1 EXTENDED API 28/API 29+ DEVICE VERIFICATION

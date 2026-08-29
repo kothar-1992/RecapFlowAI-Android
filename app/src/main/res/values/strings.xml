@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">RecapFlowAI</string>
     <string name="local_media_workspace">Local media workspace</string>
-    <string name="home_toolbar_subtitle">Local media workspace • Phase 6F.2.6</string>
+    <string name="home_toolbar_subtitle">Local media workspace</string>
     <string name="nav_home">Home</string>
     <string name="nav_editor">Editor</string>
     <string name="nav_settings">Settings</string>
@@ -9,7 +9,7 @@
     <string name="editor_workspace_title">Local video editor</string>
     <string name="editor_workspace_subtitle">Preview the source, review cuts, transform video, control audio and blur source captions before local export.</string>
     <string name="editor_sheet_hint">Swipe up for tools and video details</string>
-    <string name="settings_toolbar_subtitle">On-device profile • Phase 6F.2.6</string>
+    <string name="settings_toolbar_subtitle">On-device profile</string>
     <string name="video_preview">Video preview</string>
     <string name="preview_overlay_move">Move</string>
     <string name="preview_overlay_resize">↘</string>
@@ -360,17 +360,17 @@
     <string name="next_gate_title">Render and save selected quality</string>
     <string name="render_selected_title">Render and save %1$s</string>
     <string name="next_gate_subtitle">Create one final H.264 MP4 at the selected quality. Playback is optional and never unlocks another render.</string>
-    <string name="phase_6_ready">PHASE 6F.2.6 • READY</string>
-    <string name="phase_6_rendering">PHASE 6F.2.6 • RENDERING</string>
-    <string name="phase_6_complete">PHASE 6F.2.6 • VALIDATED</string>
-    <string name="phase_6_attention">PHASE 6F.2.6 • ATTENTION</string>
+    <string name="phase_6_ready">EXPORT • READY</string>
+    <string name="phase_6_rendering">EXPORT • RENDERING</string>
+    <string name="phase_6_complete">EXPORT • VALIDATED</string>
+    <string name="phase_6_attention">EXPORT • ATTENTION</string>
     <string name="render_preparing">Preparing local render</string>
     <string name="render_rendering">Rendering %1$s</string>
     <string name="render_finalizing">Finalizing MP4</string>
     <string name="render_complete_title">%1$s render ready</string>
     <string name="render_complete_summary">%1$s • %2$s</string>
-    <string name="render_quality_target">H.264 CBR quality target: %1$s</string>
-    <string name="render_quality_result">H.264 CBR target %1$s • actual %2$s</string>
+    <string name="render_quality_target">H.264 VBR quality target: %1$s</string>
+    <string name="render_quality_result">H.264 VBR target %1$s • actual %2$s</string>
     <string name="render_quality_not_reported">not reported</string>
     <string name="render_quality_verified">Verified output: %1$d × %2$d • %3$s • %4$s</string>
     <string name="render_quality_audio_aac">AAC audio</string>
@@ -410,9 +410,9 @@
     <string name="export_quality_720p">720p</string>
     <string name="export_quality_1080p">1080p</string>
     <string name="export_quality_2k">2K</string>
-    <string name="export_quality_720p_detail">HD • exact 720 px short side • 25–30 Mbps H.264 CBR target</string>
-    <string name="export_quality_1080p_detail">Full HD • exact 1080 px short side • 30–45 Mbps H.264 CBR target</string>
-    <string name="export_quality_2k_detail">2K QHD (1440p) • exact 1440 px short side • 45–60 Mbps H.264 CBR target</string>
+    <string name="export_quality_720p_detail">HD • exact 720 px short side • 5 Mbps (≤30fps) / 7.5 Mbps (48–60fps) H.264 VBR target</string>
+    <string name="export_quality_1080p_detail">Full HD • exact 1080 px short side • 8 Mbps (≤30fps) / 12 Mbps (48–60fps) H.264 VBR target</string>
+    <string name="export_quality_2k_detail">2K QHD (1440p) • exact 1440 px short side • 16 Mbps (≤30fps) / 24 Mbps (48–60fps) H.264 VBR target</string>
     <string name="export_duration_advisor_title">Final duration advisor</string>
     <string name="export_duration_advisor_waiting">Import a video to calculate the reviewed clip duration.</string>
     <string name="export_duration_aligned">Reviewed plan: %1$s. It already lands on a whole second. Allowed frame/codec drift: ±%2$d ms.</string>
