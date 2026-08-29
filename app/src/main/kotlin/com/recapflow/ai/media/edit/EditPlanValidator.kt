@@ -87,6 +87,8 @@ object EditPlanValidator {
                         EditPlanIssue.CLIP_TRANSITION_DURATION_INVALID
                     ClipTransitionIssue.TRANSITION_LONGER_THAN_CLIP ->
                         EditPlanIssue.CLIP_TRANSITION_TOO_LONG
+                    ClipTransitionIssue.ADJACENT_TRANSITIONS_OVERLAP ->
+                        EditPlanIssue.CLIP_TRANSITION_ADJACENT_OVERLAP
                 },
             )
         }
@@ -223,6 +225,7 @@ enum class EditPlanIssue(val description: String) {
     CLIP_TRANSITION_BOUNDARY_NOT_FOUND("The selected transition boundary no longer matches adjacent clips"),
     CLIP_TRANSITION_DURATION_INVALID("Clip transition duration must be between 0.15 and 1 second"),
     CLIP_TRANSITION_TOO_LONG("Both clips must be longer than the transition after Speed is applied"),
+    CLIP_TRANSITION_ADJACENT_OVERLAP("Adjacent crossfades cannot overlap inside the same middle clip"),
     CROP_RECTANGLE_INVALID("Crop edges must leave at least ten percent of the frame"),
     COLOR_SETTINGS_INVALID("Color adjustments are outside the supported range"),
     AUDIO_VOLUME_INVALID("Audio volume must be between 0% and 100%"),
