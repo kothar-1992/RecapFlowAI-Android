@@ -8,12 +8,12 @@ data class EditPlan(
     val profile: EditProfile = EditProfile.NORMAL,
     val trimRange: TrimRange = TrimRange(0L, sourceDurationMs),
     val adaptiveCuts: AdaptiveCutSettings = AdaptiveCutSettings(),
-    val clipTransitions: ClipTransitionSettings = ClipTransitionSettings(),
     val transform: TransformSettings = TransformSettings(),
     val audio: AudioSettings = AudioSettings(),
     val overlays: OverlaySettings = OverlaySettings(),
     val subtitles: SubtitleSettings = SubtitleSettings(),
     val exportPreset: RenderPreset,
+    val clipTransitions: ClipTransitionSettings = ClipTransitionSettings(),
 ) {
     val plannedDurationMs: Long
         get() {
