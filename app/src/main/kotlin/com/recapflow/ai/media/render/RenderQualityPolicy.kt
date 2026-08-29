@@ -2,7 +2,7 @@ package com.recapflow.ai.media.render
 
 import com.recapflow.ai.media.MediaInfo
 
-/** Social-upload-oriented H.264 request; source bitrate is diagnostic rather than an output floor. */
+/** Quality-master H.264 request; source bitrate is diagnostic rather than an output floor. */
 object RenderQualityPolicy {
     fun forSource(mediaInfo: MediaInfo, preset: RenderPreset): RenderQualityRequest {
         val sourceShortSide = minOf(mediaInfo.width, mediaInfo.height).coerceAtLeast(1)

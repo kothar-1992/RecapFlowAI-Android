@@ -16,7 +16,7 @@ object PublicExportNamePolicy {
         val safeStem = rawStem
             .map { character ->
                 when {
-                    character.isLetterOrDigit() -> character
+                    character.isLetterOrDigit() || character.isUnicodeMark() -> character
                     character == '-' || character == '_' -> character
                     else -> '_'
                 }
@@ -37,4 +37,17 @@ object PublicExportNamePolicy {
 
     fun pendingName(requestedName: String, generation: Long): String =
         ".${displayName(requestedName)}.$generation.pending"
+
+    /**
+     * Burmese and many other scripts use combining Unicode marks as part of a visible grapheme.
+     * Treat those marks as filename-safe alongside letters/digits so a valid localized title is
+     * not corrupted merely because some glyph components are category Mn/Mc/Me rather than L*.
+     */
+    private fun Char.isUnicodeMark(): Boolean = when (Character.getType(this)) {
+        Character.NON_SPACING_MARK.toInt(),
+        Character.COMBINING_SPACING_MARK.toInt(),
+        Character.ENCLOSING_MARK.toInt(),
+        -> true
+        else -> false
+    }
 }

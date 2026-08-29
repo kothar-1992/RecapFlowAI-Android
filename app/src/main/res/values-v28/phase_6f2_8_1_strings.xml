@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Phase 6F.2.8.1 test-source overrides. minSdk is 28, so these replace the stale
+         unqualified Phase 6F.2.6 / VBR-era presentation copy on every supported device. -->
+    <string name="home_toolbar_subtitle">Local media workspace • Phase 6F.2.8.1</string>
+    <string name="settings_toolbar_subtitle">On-device profile • Phase 6F.2.8.1</string>
+    <string name="phase_6_ready">PHASE 6F.2.8.1 • READY</string>
+    <string name="phase_6_rendering">PHASE 6F.2.8.1 • RENDERING</string>
+    <string name="phase_6_complete">PHASE 6F.2.8.1 • VALIDATED</string>
+    <string name="phase_6_attention">PHASE 6F.2.8.1 • ATTENTION</string>
+    <string name="export_badge">PHASE 6F.2.8.1 • FINAL EXPORT</string>
+    <string name="render_quality_target">H.264 CBR quality target: %1$s</string>
+    <string name="render_quality_result">H.264 CBR target %1$s • actual %2$s</string>
+</resources>

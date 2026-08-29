@@ -15,6 +15,8 @@ class PublicExportNamePolicyTest {
 
     @Test
     fun keepsUnicodeLettersAndProvidesFallback() {
+        // Burmese visible graphemes include combining marks, so localized names must preserve
+        // both the base letters and their marks instead of replacing the marks with underscores.
         assertEquals("မြန်မာ.mp4", PublicExportNamePolicy.displayName("မြန်မာ.mp4"))
         assertEquals("RecapFlow_video.mp4", PublicExportNamePolicy.displayName("..."))
     }

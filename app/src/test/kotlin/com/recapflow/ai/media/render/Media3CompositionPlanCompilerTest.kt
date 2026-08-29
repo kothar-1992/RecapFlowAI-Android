@@ -45,7 +45,8 @@ class Media3CompositionPlanCompilerTest {
             ),
             transform = TransformSettings(
                 enabled = true,
-                freeze = FreezeSettings(enabled = true, durationMs = 1_500L),
+                // FreezeCompiler accepts the editor's supported 1/2/3-second choices.
+                freeze = FreezeSettings(enabled = true, durationMs = 2_000L),
                 speedEnabled = true,
                 speed = 1.25f,
             ),
@@ -64,7 +65,7 @@ class Media3CompositionPlanCompilerTest {
         assertEquals(3, result.videoItemCount)
         assertEquals(2, result.sequenceCount)
         assertEquals(1_000L, assertNotNull(result.freeze).sourceFrameTimeMs)
-        assertEquals(1_500L, result.freeze?.durationMs)
+        assertEquals(2_000L, result.freeze?.durationMs)
         assertTrue(result.forceSourceAudioTrack)
         assertTrue(result.mixesSourceAudio)
         assertEquals(replacement, result.replacementAudio)

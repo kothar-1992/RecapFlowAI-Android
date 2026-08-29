@@ -180,9 +180,9 @@ class FullEditPlanCombinationRegressionTest {
         assertEquals(1080, assertNotNull(TransformCompiler.compile(p1080.transform, p1080.exportPreset)).targetWidth)
         assertEquals(1440, assertNotNull(TransformCompiler.compile(p2k.transform, p2k.exportPreset)).targetWidth)
 
-        assertEquals(25_000_000, RenderQualityPolicy.forSource(source, p720.exportPreset).requestedVideoBitrate)
-        assertEquals(30_000_000, RenderQualityPolicy.forSource(source, p1080.exportPreset).requestedVideoBitrate)
-        assertEquals(45_000_000, RenderQualityPolicy.forSource(source, p2k.exportPreset).requestedVideoBitrate)
+        assertEquals(7_500_000, RenderQualityPolicy.forSource(source, p720.exportPreset).requestedVideoBitrate)
+        assertEquals(10_000_000, RenderQualityPolicy.forSource(source, p1080.exportPreset).requestedVideoBitrate)
+        assertEquals(18_000_000, RenderQualityPolicy.forSource(source, p2k.exportPreset).requestedVideoBitrate)
     }
 
     private fun combinedPlan(preset: RenderPreset): EditPlan = EditPlan(
