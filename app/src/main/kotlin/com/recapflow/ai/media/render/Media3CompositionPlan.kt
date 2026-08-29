@@ -34,14 +34,17 @@ data class Media3CompositionPlan(
     val videoItemCount: Int
         get() = selectedRanges.size + if (freeze == null) 0 else 1
 
+    val videoSequenceCount: Int
+        get() = if (clipTransitions.isEmpty()) 1 else 2
+
     val sequenceCount: Int
-        get() = 1 + if (replacementAudio == null) 0 else 1
+        get() = videoSequenceCount + if (replacementAudio == null) 0 else 1
 
     val summary: String
         get() = "ranges=${selectedRanges.size}; clipTransitions=${clipTransitions.size}; " +
-            "freeze=${freeze != null}; sequences=$sequenceCount; videoItems=$videoItemCount; " +
-            "sourceAudio=${!removeSourceAudio}; replacementAudio=${replacementAudio != null}; " +
-            "plannedDurationMs=$plannedDurationMs"
+            "freeze=${freeze != null}; videoSequences=$videoSequenceCount; sequences=$sequenceCount; " +
+            "videoItems=$videoItemCount; sourceAudio=${!removeSourceAudio}; " +
+            "replacementAudio=${replacementAudio != null}; plannedDurationMs=$plannedDurationMs"
 }
 
 data class Media3FreezePlan(
