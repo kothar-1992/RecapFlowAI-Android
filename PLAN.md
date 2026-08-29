@@ -112,7 +112,7 @@ Rules:
 
 ## Phase 6H.1 — Realtime Clip Transitions — Issue #20
 
-**Status: IN PROGRESS — semantic/EditPlan/two-lane topology and runtime primitives verified; execution wiring source gate active**
+**Status: IN PROGRESS — semantic/EditPlan/two-lane topology/runtime primitives verified; feature-gated execution wiring build verified; preview integration next**
 
 ### First vertical slice
 **Crossfade only.** Later transition presets remain blocked until Crossfade passes the complete runtime/device gate.
@@ -137,7 +137,7 @@ Rules:
 - [x] Existing Transform fade remains separate.
 - [x] Termux gate PASS: **BUILD SUCCESSFUL in 2m 55s, 28 actionable tasks executed**.
 
-### 6H.1C — shared runtime topology and execution spike
+### 6H.1C — shared runtime topology + execution spike
 - [x] `Media3CompositionPlan` carries compiled transition topology.
 - [x] Explicit capability guard prevents silent hard-cut fallback.
 - [x] Capability-guard Termux gate PASS: **BUILD SUCCESSFUL in 2m 53s, 28 actionable tasks executed**.
@@ -145,22 +145,23 @@ Rules:
 - [x] Shared lane-alpha/easing calculation.
 - [x] Reject adjacent Crossfades that overlap inside the same middle clip.
 - [x] Two-lane topology Termux gate PASS: **BUILD SUCCESSFUL in 2m 55s, 28 actionable tasks executed**.
-- [x] Runtime opt-in `-Precapflow.crossfade.runtime.enabled=true` with default OFF.
-- [x] `Media3CrossfadeVideoCompositorSettings` primitive authored and unit-tested.
-- [x] `CrossfadePcmAudioProcessor` primitive authored and unit-tested after Speed semantics.
-- [x] Runtime primitive unit gate PASS: **BUILD SUCCESSFUL in 2m 58s, 28 actionable tasks executed**.
-- [x] Runtime primitive FFmpeg-enabled assemble gate PASS: **BUILD SUCCESSFUL in 3m 7s, 43 actionable tasks executed**.
-- [x] Shared compiler now has a feature-gated two-lane Composition path using explicit gaps, compositor alpha and per-clip PCM Crossfade envelopes.
-- [x] Compiled Composition exposes whether CompositionPlayer needs a multiple-input video graph.
-- [x] `CompositionPreviewPlayerFactory` authored to select `MultipleInputVideoGraph.Factory` only for the Crossfade path.
-- [ ] New execution-wiring Termux unit/build gate PASS.
-- [ ] MainActivity preview creation switched to `CompositionPreviewPlayerFactory` after execution source gate passes.
-- [ ] Crossfade-aware source/output preview seek mapping integrated.
-- [ ] Runtime failure preserves EditPlan and verified flag-OFF hard-cut path.
-- [ ] One final `Transformer.start(...)`; no temporary Crossfade MP4.
+- [x] Feature-gated `VideoCompositorSettings` runtime primitives.
+- [x] Matching PCM audio Crossfade envelope primitive after Speed.
+- [x] Runtime-primitives unit gate PASS: **BUILD SUCCESSFUL in 2m 58s, 28 actionable tasks executed**.
+- [x] Runtime-primitives assemble gate PASS: **BUILD SUCCESSFUL in 3m 7s, 43 actionable tasks executed**.
+- [x] Feature-gated two-lane `Composition` execution wiring with explicit gaps and shared compositor.
+- [x] Execution-wiring unit gate PASS: **BUILD SUCCESSFUL in 2m 58s, 28 actionable tasks executed**.
+- [x] Execution-wiring assemble gate PASS: **BUILD SUCCESSFUL in 3m 3s, 43 actionable tasks executed**.
+- [x] `CompositionPreviewPlayerFactory` can select `MultipleInputVideoGraph.Factory` for two video lanes.
+- [x] Crossfade-aware source/output preview timeline mapping authored with dominant-visual overlap semantics.
+- [ ] Crossfade-aware timeline mapping Termux gate PASS.
+- [ ] `MainActivity` CompositionPlayer creation consumes `CompositionPreviewPlayerFactory` and shared Crossfade-aware seek mapping.
+- [ ] owner-device realtime preview proves multiple-input graph behavior.
+- [ ] Runtime failure preserves EditPlan and verified hard-cut path.
+- [x] One final `Transformer.start(...)`; no temporary Crossfade MP4 remains the architecture invariant.
 
 ### Media3 constraint
-The project is pinned to Media3 1.10.0. Official Media3 Composition documentation still lists direct video/audio crossfading as unsupported. Media3 does support overlapping sequences plus custom `VideoCompositorSettings`, including presentation-time-dependent alpha. CompositionPlayer requires a multiple-input video graph when more than one video/image sequence is present. Therefore the custom path remains an explicitly feature-gated runtime spike until owner-device preview/export evidence is collected.
+The project is pinned to Media3 1.10.0. Official Media3 Composition documentation still lists direct video/audio crossfading as unsupported. Media3 does support overlapping sequences plus custom `VideoCompositorSettings`, including presentation-time-dependent alpha. Therefore the custom compositor path is an explicitly feature-gated runtime spike and is not production-supported until physical-device preview/export evidence passes.
 
 ### 6H.1D — realtime boundary controls
 - [ ] Select clip boundary.
@@ -171,7 +172,7 @@ The project is pinned to Media3 1.10.0. Official Media3 Composition documentatio
 - [ ] Reset to hard cut.
 
 ### Exit gate
-- [ ] Feature-gated runtime build/test PASS.
+- [ ] Feature-gated runtime build/test PASS after preview integration.
 - [ ] owner-device realtime boundary preview PASS.
 - [ ] 720p + 1080p Crossfade export PASS.
 - [ ] A/V Crossfade quality/sync PASS.
@@ -200,28 +201,4 @@ After creative composition is stable.
 ---
 
 ## Immediate next action
-Verify the new **feature-gated two-lane Composition execution wiring** before touching the Activity runtime:
-
-```bash
-cd /storage/emulated/0/AndroidIDEProjects/RecapFlowAI-Android/
-git fetch origin
-git switch feature/phase-6h1-transitions
-git pull --ff-only origin feature/phase-6h1-transitions
-
-AAPT2_BIN="$PREFIX/bin/aapt2"
-GRADLE="$HOME/.local/opt/gradle-9.0.0/bin/gradle"
-
-"$GRADLE" :app:testDebugUnitTest \
-  -Precapflow.ffmpeg.enabled=true \
-  -Precapflow.crossfade.runtime.enabled=true \
-  -Pandroid.aapt2FromMavenOverride="$AAPT2_BIN" \
-  --no-daemon --max-workers=2 --rerun-tasks --stacktrace
-
-"$GRADLE" :app:assembleDebug \
-  -Precapflow.ffmpeg.enabled=true \
-  -Precapflow.crossfade.runtime.enabled=true \
-  -Pandroid.aapt2FromMavenOverride="$AAPT2_BIN" \
-  --no-daemon --max-workers=2 --rerun-tasks --stacktrace
-```
-
-After PASS, switch MainActivity CompositionPlayer creation to `CompositionPreviewPlayerFactory`, add Crossfade-aware preview seek mapping, then start the owner-device runtime spike. Flag-OFF behavior must stay byte-for-byte equivalent in semantics to the verified hard-cut path.
+Verify the newly authored Crossfade-aware preview timeline mapping in Termux. After that gate passes, switch `MainActivity` CompositionPlayer construction to `CompositionPreviewPlayerFactory`, route preview source/output seeks through the shared mapping overloads, rerun unit + assemble gates, then begin owner-device Crossfade preview/export validation.
