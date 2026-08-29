@@ -53,6 +53,7 @@ enum class ClipTransitionIssue {
     BOUNDARY_NOT_FOUND,
     DURATION_OUT_OF_RANGE,
     TRANSITION_LONGER_THAN_CLIP,
+    ADJACENT_TRANSITIONS_OVERLAP,
 }
 
 /**
@@ -75,11 +76,13 @@ object ClipTransitionPolicy {
         if (!settings.enabled) return emptySet()
 
         val active = settings.boundaries.filter { it.enabled }
+        val activeByBoundary = active.groupBy { it.leftSourceEndMs to it.rightSourceStartMs }
         val issues = linkedSetOf<ClipTransitionIssue>()
-        if (active.groupBy { it.leftSourceEndMs to it.rightSourceStartMs }.any { it.value.size > 1 }) {
+        if (activeByBoundary.any { it.value.size > 1 }) {
             issues += ClipTransitionIssue.DUPLICATE_BOUNDARY
         }
 
+        val validDurationsByBoundaryIndex = mutableMapOf<Int, Long>()
         active.forEach { boundary ->
             val adjacentIndex = findAdjacentBoundaryIndex(boundary, selectedRanges)
             if (adjacentIndex == null) {
@@ -95,6 +98,26 @@ object ClipTransitionPolicy {
             val rightDurationMs = presentationDurationMs(selectedRanges[adjacentIndex + 1], transform)
             if (boundary.durationMs >= leftDurationMs || boundary.durationMs >= rightDurationMs) {
                 issues += ClipTransitionIssue.TRANSITION_LONGER_THAN_CLIP
+                return@forEach
+            }
+
+            val key = boundary.leftSourceEndMs to boundary.rightSourceStartMs
+            if (activeByBoundary[key].orEmpty().size == 1) {
+                validDurationsByBoundaryIndex[adjacentIndex] = boundary.durationMs
+            }
+        }
+
+        // A two-lane compositor cannot represent two boundary overlaps that consume the same
+        // middle clip at the same presentation time. Reject that topology before runtime so a
+        // future preview/export backend never has to silently shorten or reorder transitions.
+        for (rangeIndex in 1 until selectedRanges.lastIndex) {
+            val incomingDurationMs = validDurationsByBoundaryIndex[rangeIndex - 1] ?: 0L
+            val outgoingDurationMs = validDurationsByBoundaryIndex[rangeIndex] ?: 0L
+            if (incomingDurationMs == 0L || outgoingDurationMs == 0L) continue
+
+            val middleDurationMs = presentationDurationMs(selectedRanges[rangeIndex], transform)
+            if (incomingDurationMs + outgoingDurationMs > middleDurationMs) {
+                issues += ClipTransitionIssue.ADJACENT_TRANSITIONS_OVERLAP
             }
         }
         return issues
@@ -156,6 +179,15 @@ object ClipTransitionPolicy {
         transform: TransformSettings,
     ): Long = compile(settings, selectedRanges, transform).sumOf {
         it.presentationDurationUs / 1_000L
+    }
+
+    /** Shared easing definition for preview/export compositor and audio-envelope implementations. */
+    fun easedProgress(easing: ClipTransitionEasing, linearProgress: Float): Float {
+        val t = linearProgress.coerceIn(0f, 1f)
+        return when (easing) {
+            ClipTransitionEasing.LINEAR -> t
+            ClipTransitionEasing.EASE_IN_OUT -> t * t * (3f - 2f * t)
+        }
     }
 
     private fun findAdjacentBoundaryIndex(
