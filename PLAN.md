@@ -41,9 +41,7 @@ Do not regress this baseline while adding creative features.
 
 ## 2. Development workflow — Termux primary
 
-The project originally used AndroidIDE as the primary Android-hosted development environment. The active workflow has now moved to **Termux** because branch inspection, Git operations, PR review, source verification, unit tests and Gradle builds are faster and easier to repeat there.
-
-### Standard development loop
+The active workflow uses **Termux** for Git, source verification, unit tests and Gradle builds.
 
 ```text
 GitHub issue / plan
@@ -61,33 +59,13 @@ owner-device preview/media acceptance
 PR merge
 ```
 
-### Responsibilities
-- **Termux:** primary Git branch management, diffs, rebases/cherry-picks, PR preparation, shell verification scripts, Gradle unit tests and debug builds.
-- **Physical Android device:** installation, UI interaction, realtime preview, encoder behavior, visual quality, A/V sync and 720p/1080p media acceptance.
-- **AndroidIDE:** optional fallback only when an IDE-specific inspection or debugging workflow is useful.
-
-Do not describe an ordinary future verification gate as an “AndroidIDE build gate” unless AndroidIDE itself is specifically required. The normal wording is now **Termux build/test PASS → owner-device runtime PASS**.
+Normal wording: **Termux build/test PASS → owner-device runtime PASS**.
 
 ---
 
-## 3. Product objective for the next implementation track
+## 3. Product objective
 
-The local editor now exports usable final-quality video. The next goal is to remove creative-workflow round trips and make editing decisions previewable before export.
-
-Current external round trip:
-
-```text
-RecapFlowAI
-  -> Clips / Transform / Blur / Logo
-  -> Export
-  -> CapCut
-  -> add SRT
-  -> add Narrator voice
-  -> re-align video/audio
-  -> publish
-```
-
-Target workflow:
+Target creator workflow:
 
 ```text
 Import
@@ -102,11 +80,9 @@ Import
   -> publish
 ```
 
-Recent publishing evidence shows the strongest audience loss around the opening 0:02 region, so rapid first-seconds preview remains a product requirement.
-
 ---
 
-## 4. Architecture contract for all next phases
+## 4. Architecture contract
 
 ```text
 User controls
@@ -121,15 +97,14 @@ Shared Media3 composition/effect semantics
 ```
 
 Rules:
-
-1. **No feature toggle may start an intermediate MP4 render.**
-2. **Preview and export must interpret the same timing, geometry, easing, opacity and audio semantics.** Preview may reduce quality for performance, but may not change meaning.
-3. **Off means true no-op.** Disabled optional features must not alter output.
-4. **Source media is never overwritten.** Failure/cancel/unsupported preview must preserve source and reviewed `EditPlan`.
-5. **One final encode remains authoritative.** Combined edits must still end in one final `Transformer.start(...)`.
-6. **FFmpeg remains bounded.** Use JNI/FFmpeg for probe/native utilities/specialist media tasks; do not introduce a second independent preview/export semantics path.
-7. **Device capability fallback must be explicit.** Never silently clear an effect because realtime preview is unsupported.
-8. **Every implementation PR updates this PLAN and adds regression coverage.**
+1. No feature toggle may start an intermediate MP4 render.
+2. Preview and export interpret the same timing/geometry/easing/audio semantics.
+3. Off means true no-op.
+4. Source media is never overwritten.
+5. One final encode remains authoritative.
+6. FFmpeg remains bounded.
+7. Unsupported realtime paths fail explicitly; effects are never silently cleared.
+8. Every implementation PR updates PLAN and regression coverage.
 
 ---
 
@@ -137,253 +112,91 @@ Rules:
 
 ## Phase 6H.1 — Realtime Clip Transitions — Issue #20
 
-**Status: IN PROGRESS — 6H.1A/B verified in Termux; 6H.1C capability guard verified; deterministic two-lane Crossfade topology authored and awaiting the next Termux gate**
+**Status: IN PROGRESS — semantic/EditPlan/two-lane topology verified; feature-gated runtime spike next**
 
-### Goal
-Add clip-boundary transitions that can be tested in realtime before export.
-
-### Initial transition set
-The first vertical slice implements **Crossfade only**. Additional presets remain blocked until the crossfade contract proves stable.
-
-Later presets:
-- Fade through black
-- Slide left/right
-- Zoom
-- Blur dissolve
+### First vertical slice
+**Crossfade only.** Later transition presets remain blocked until Crossfade passes the complete runtime/device gate.
 
 ### 6H.1A — semantic model + timeline projection
-- [x] Add backend-independent `ClipTransitionSettings` / `ClipTransitionBoundary` model.
-- [x] Identify a transition by adjacent surviving source-range boundary rather than backend filter syntax.
-- [x] Add `CROSSFADE` as the only first-slice transition type.
-- [x] Add Linear / Ease-in-out semantic easing values.
-- [x] Enforce 150–1000 ms user-facing transition duration policy.
-- [x] Project transition timing after Trim/reviewed Adaptive Cuts and Speed.
-- [x] Keep transition duration in presentation time while scaling required source overlap under Speed.
-- [x] Accumulate overlap deterministically across multiple boundaries.
-- [x] Add unit coverage for disabled no-op, adjacent boundary projection, Speed, multiple boundaries, duplicate/missing/too-long boundaries.
+- [x] Backend-independent `ClipTransitionSettings` / `ClipTransitionBoundary`.
+- [x] Adjacent source-range boundary identity.
+- [x] CROSSFADE only.
+- [x] Linear / Ease-in-out semantic easing.
+- [x] 150–1000 ms presentation-duration policy.
+- [x] Trim/reviewed Adaptive Cuts/Speed projection.
+- [x] Presentation duration remains stable under Speed.
+- [x] Deterministic accumulated overlap.
+- [x] Unit regression coverage.
 - [x] Termux `:app:testDebugUnitTest` PASS.
 - [x] Termux FFmpeg-enabled `:app:assembleDebug` PASS.
 
 ### 6H.1B — EditPlan + validation integration
-- [x] Attach clip-transition settings to the immutable reviewed `EditPlan`.
-- [x] Subtract compiled crossfade overlap from planned output duration.
-- [x] Surface transition validation through `EditPlanValidator`.
-- [x] Preserve the existing Transform fade operation as a separate legacy/global visual effect until intentionally migrated.
-- [x] Termux unit/build gate PASS in 2m 55s; 28 actionable tasks executed.
+- [x] `EditPlan.clipTransitions` added as immutable reviewed metadata.
+- [x] Planned output duration subtracts valid Crossfade overlap.
+- [x] `EditPlanValidator` maps semantic boundary failures.
+- [x] Existing Transform fade remains separate.
+- [x] Termux gate PASS: **BUILD SUCCESSFUL in 2m 55s, 28 actionable tasks executed**.
 
-### 6H.1C — shared runtime topology and capability-safe execution
-- [x] Carry compiled clip-boundary transitions into `Media3CompositionPlan`.
-- [x] Add an explicit runtime capability guard so an enabled Crossfade cannot silently degrade to a hard cut.
-- [x] Capability-guard Termux unit/build gate PASS in 2m 53s; 28 actionable tasks executed.
-- [x] Define a deterministic two-lane overlap schedule for future Media3 sequence/compositor execution.
-- [x] Define one shared easing function for visual/audio Crossfade envelopes.
-- [x] Reject adjacent Crossfades that overlap inside the same middle clip; a two-lane runtime must never create triple-overlap ambiguity.
-- [x] Add unit coverage for lane alternation, Freeze/Speed offsets, easing alpha and overlapping-boundary rejection.
-- [ ] Termux unit/build gate PASS for the new two-lane topology commits.
-- [ ] Wire the verified topology to a reviewed Media3/custom compositor execution path for both preview and export.
-- [ ] Define and verify matching audio Crossfade envelopes; do not accept a video-only blend with doubled audio during overlap.
-- [ ] Keep exactly one final `Transformer.start(...)`.
-- [ ] No temporary crossfade MP4 or per-feature render.
+### 6H.1C — shared runtime topology
+- [x] `Media3CompositionPlan` carries compiled transition topology.
+- [x] Explicit capability guard prevents silent hard-cut fallback.
+- [x] Capability-guard Termux gate PASS: **BUILD SUCCESSFUL in 2m 53s, 28 actionable tasks executed**.
+- [x] Deterministic two-lane clip schedule for overlapping adjacent clips.
+- [x] Shared lane-alpha/easing calculation.
+- [x] Reject adjacent Crossfades that overlap inside the same middle clip.
+- [x] Two-lane topology Termux gate PASS: **BUILD SUCCESSFUL in 2m 55s, 28 actionable tasks executed**.
+- [ ] Feature-gated `VideoCompositorSettings` execution spike using the same topology.
+- [ ] Matching audio Crossfade envelopes after Speed; video-only blending is not acceptable.
+- [ ] CompositionPlayer and Transformer must consume the same runtime topology.
+- [ ] Runtime failure must preserve EditPlan and verified hard-cut path.
+- [ ] One final `Transformer.start(...)`; no temporary Crossfade MP4.
 
-### Media3 limitation decision
-The project remains pinned to Media3 1.10.0. Multiple `EditedMediaItemSequence` tracks can overlap and a custom `VideoCompositorSettings` can vary overlay alpha by presentation time, but Android's current Composition documentation still lists direct video/audio crossfading as unsupported. Therefore the branch treats the two-lane/compositor route as a capability-gated implementation spike, not as a proven runtime contract. Until owner-device preview/export validates a shared path, reviewed Crossfade state must fail explicitly rather than silently render as a hard cut.
+### Media3 constraint
+The project is pinned to Media3 1.10.0. Official Media3 Composition documentation still lists direct video/audio crossfading as unsupported. Media3 does support overlapping sequences plus custom `VideoCompositorSettings`, including presentation-time-dependent alpha. Therefore the custom compositor path is being treated as an explicitly feature-gated runtime spike, not assumed production support.
 
 ### 6H.1D — realtime boundary controls
-- [ ] Select a clip boundary.
+- [ ] Select clip boundary.
 - [ ] Crossfade ON/OFF.
 - [ ] Duration 150–1000 ms.
 - [ ] Easing selection.
-- [ ] One-tap boundary preview around the transition.
-- [ ] Reset to None / hard cut.
+- [ ] Boundary preview.
+- [ ] Reset to hard cut.
 
-### Phase 6H.1 exit gate
-- [ ] Termux unit tests + FFmpeg-enabled debug build PASS for final runtime implementation.
+### Exit gate
+- [ ] Feature-gated runtime build/test PASS.
 - [ ] owner-device realtime boundary preview PASS.
-- [ ] 720p + 1080p crossfade export PASS.
-- [ ] combined current features + crossfade still show exactly one final Transformer start.
-- [ ] merge scoped PR and mark #20 completed.
+- [ ] 720p + 1080p Crossfade export PASS.
+- [ ] A/V Crossfade quality/sync PASS.
+- [ ] combined features still use exactly one final Transformer start.
+- [ ] PR #25 merged and Issue #20 completed.
 
-Implementation branch: `feature/phase-6h1-transitions` from current verified `main`, not the old Phase 6G.1 draft branch.
+Implementation branch: `feature/phase-6h1-transitions`.
 
 ---
 
 ## Phase 6H.2 — Animated Logo Overlay + Loop — Issue #21
-
-Starts only after Phase 6H.1 semantics are stable.
-
-### Goal
-Upgrade the existing static image/logo overlay into a motion overlay while preserving current geometry and timing behavior.
-
-### Initial presets
-- Static / None
-- Fade
-- Fade + scale
-- Pop
-- Slide
-- Pulse
-- Float
-- Rotate
-- Bounce
-
-### Rules
-- no temporary animated-logo video;
-- animation phase is deterministic from timeline time;
-- loop is bounded by configured overlay start/end;
-- aspect conversion may not move the overlay outside the output frame;
-- preview/export must share animation phase/easing;
-- transition + animated logo must still finish in one final render.
-
----
+Starts after Phase 6H.1 semantics/runtime are stable.
 
 ## Phase 6G.2 + Phase 6H.3 — SRT and Narrator Timeline Integration — Issues #4 + #22
-
-These two issues form one product milestone: remove the mandatory CapCut round trip for subtitles and narration.
-
-### Subtitle/SRT — #4
-- import SRT;
-- Unicode Burmese shaping/wrapping;
-- position/alignment/safe margins;
-- outline/shadow;
-- source/EditPlan timing projection;
-- preview/final burn-in parity;
-- source-subtitle Blur remains independent.
-
-### Narrator audio — #22
-- import one narrator audio asset;
-- enable/disable;
-- start offset + trim;
-- gain/mute/fade;
-- waveform/timeline visualization where practical;
-- explicit source-audio policy;
-- deterministic duration/A-V reconciliation.
-
-### Shared timing rule
-SRT and narrator must use the same authoritative source/presentation mapping used by the reviewed `EditPlan`. Do not create a second independent timeline model.
-
----
+One authoritative source/presentation timeline; no second timeline model.
 
 ## Phase 6H.4 — Hook 0–3 Second Preview — Issue #23
-
-Required behavior:
-- one action enters `Preview Hook 0–3s`;
-- loop the hook window;
-- immediately reflect first clip, transition, logo, subtitles and narrator changes;
-- quick seek to zero;
-- restore normal preview position/play intent predictably;
-- use current `EditPlan`, not a separate project state;
-- create no intermediate media file.
-
----
-
-# CONSOLIDATION
+One action loops the opening window using the reviewed EditPlan.
 
 ## Phase 6G.3 — Unified Multi-Stage Edit Graph — Issue #5
+Semantic order remains deterministic and tested.
 
-Target semantic order:
-
-```text
-Source
- -> Trim / Adaptive Cuts
- -> Clip Boundary Transitions
- -> Aspect / Crop / Mirror / Color
- -> Speed / Freeze
- -> Source Subtitle Blur
- -> Static + Animated Logo / Image Overlay
- -> Subtitle / Text
- -> Narrator + Source Audio Mix
- -> Output Presentation
- -> Final Encode
-```
-
-The implementation may fuse GPU stages, but semantic ordering must remain deterministic and tested.
+## Phase 7 — Persistent Render Job Engine — Issue #6
+After creative composition is stable.
 
 ---
 
-# PHASE 7 — Persistent Render Job Engine — Issue #6
+## Immediate next action
+Implement a **feature-gated Crossfade runtime spike** from the verified two-lane topology:
 
-After creative composition is stable, separate render lifetime from Activity/UI lifetime.
-
-```text
-QUEUED
- -> PREPARING
- -> RENDERING
- -> FINALIZING
- -> COMPLETED / FAILED / CANCELLED
-```
-
-Required later: stable RenderJob ID, monotonic progress, safe cancellation, partial-output cleanup, Activity recreation survival, foreground media-processing service where required, notifications and persisted job/error metadata.
-
----
-
-# DEFERRED / BACKLOG
-
-## Timed Video Overlay — Issue #3
-
-Old draft PR #16 remains closed without merge. Useful foundation is preserved at:
-
-```text
-6e097fc47d0c1098ea436d08e794765b540eb631
-```
-
-When resumed, reconstruct from current verified main and selectively reuse only reviewed isolated pieces.
-
-## FFmpegAndroid Reference Research — Issue #7
-
-Research/backlog only. It must not replace the proven Media3 preview/export architecture wholesale.
-
----
-
-## 5. Development / PR discipline
-
-For each implementation gate:
-
-1. branch from current verified `main`;
-2. one scoped issue -> one scoped implementation PR;
-3. update `PLAN.md` in the same PR;
-4. add source verifier/regression tests where the one-render invariant can regress;
-5. **run verification in Termux first**;
-6. normal source gate: `:app:testDebugUnitTest` + FFmpeg-enabled `:app:assembleDebug`;
-7. do not mark device behavior PASS from static/source/build inspection alone;
-8. owner-device preview/export evidence is required before merge for media-runtime changes;
-9. use AndroidIDE only as an optional fallback, not the default build/branch gate;
-10. after a stable media milestone, create/update a rollback branch/tag before the next risky gate.
-
-Recommended branch names:
-
-```text
-feature/phase-6h1-transitions
-feature/phase-6h2-logo-motion
-feature/phase-6g2-srt
-feature/phase-6h3-narrator-audio
-feature/phase-6h4-hook-preview
-feature/phase-6g3-unified-edit-graph
-feature/phase-7-render-jobs
-```
-
----
-
-## 6. Immediate next action
-
-Verify the new 6H.1C two-lane topology and adjacent-overlap validation in **Termux**:
-
-```bash
-cd /storage/emulated/0/AndroidIDEProjects/RecapFlowAI-Android/
-git fetch origin
-git switch feature/phase-6h1-transitions
-git pull --ff-only origin feature/phase-6h1-transitions
-
-AAPT2_BIN="$PREFIX/bin/aapt2"
-GRADLE="$HOME/.local/opt/gradle-9.0.0/bin/gradle"
-
-"$GRADLE" :app:testDebugUnitTest \
-  -Precapflow.ffmpeg.enabled=true \
-  -Pandroid.aapt2FromMavenOverride="$AAPT2_BIN" \
-  --no-daemon --max-workers=2 --rerun-tasks --stacktrace
-
-"$GRADLE" :app:assembleDebug \
-  -Precapflow.ffmpeg.enabled=true \
-  -Pandroid.aapt2FromMavenOverride="$AAPT2_BIN" \
-  --no-daemon --max-workers=2 --rerun-tasks --stacktrace
-```
-
-If both pass, continue to the capability-gated Media3/custom compositor spike. Do not add more transition presets before Crossfade passes shared preview/export and owner-device validation.
+1. build two overlapping Media3 sequences with explicit gaps from the topology;
+2. apply a custom `VideoCompositorSettings` alpha envelope from the same easing math;
+3. apply matching per-item PCM audio fade envelopes after Speed so overlapping source audio does not double;
+4. route both CompositionPlayer and Transformer through that same generated Composition when the spike flag is enabled;
+5. keep default/hard-cut behavior unchanged and refuse silent fallback;
+6. run Termux unit tests + FFmpeg-enabled debug build before any owner-device runtime test.
