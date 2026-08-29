@@ -80,6 +80,11 @@ object Media3CompositionCompiler {
         require((plan.freeze == null) == (freezeFrame == null)) {
             "Freeze-frame asset must match the compiled composition plan"
         }
+        // Phase 6H.1 stores Crossfade semantically before enabling a runtime. Never let the shared
+        // compiler silently ignore that reviewed edit, because doing so would also make planned
+        // duration diverge from the actual sequential Media3 Composition.
+        Media3ClipTransitionRuntimePolicy.requireSupported(plan)
+
         val targetFrameRate = if (forCompositionPreview) {
             PREVIEW_FRAME_RATE
         } else {
