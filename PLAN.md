@@ -112,7 +112,7 @@ Rules:
 
 ## Phase 6H.1 — Realtime Clip Transitions — Issue #20
 
-**Status: IN PROGRESS — semantic/EditPlan/two-lane topology/runtime primitives verified; feature-gated execution wiring build verified; preview integration next**
+**Status: IN PROGRESS — semantic/EditPlan/two-lane runtime and preview timeline mapping build-verified; Activity integration gate active**
 
 ### First vertical slice
 **Crossfade only.** Later transition presets remain blocked until Crossfade passes the complete runtime/device gate.
@@ -154,8 +154,11 @@ Rules:
 - [x] Execution-wiring assemble gate PASS: **BUILD SUCCESSFUL in 3m 3s, 43 actionable tasks executed**.
 - [x] `CompositionPreviewPlayerFactory` can select `MultipleInputVideoGraph.Factory` for two video lanes.
 - [x] Crossfade-aware source/output preview timeline mapping authored with dominant-visual overlap semantics.
-- [ ] Crossfade-aware timeline mapping Termux gate PASS.
-- [ ] `MainActivity` CompositionPlayer creation consumes `CompositionPreviewPlayerFactory` and shared Crossfade-aware seek mapping.
+- [x] Crossfade-aware timeline mapping unit gate PASS: **BUILD SUCCESSFUL in 2m 52s, 28 actionable tasks executed**.
+- [x] Crossfade-aware timeline mapping assemble gate PASS: **BUILD SUCCESSFUL in 2m 59s, 43 actionable tasks executed**.
+- [x] Auditable MainActivity integration patch staged at `scripts/phase6h1_mainactivity_preview_integration.patch`.
+- [ ] `MainActivity` CompositionPlayer creation consumes `CompositionPreviewPlayerFactory` and shared Crossfade-aware seek mapping in committed source.
+- [ ] Preview-integration unit + assemble gate PASS.
 - [ ] owner-device realtime preview proves multiple-input graph behavior.
 - [ ] Runtime failure preserves EditPlan and verified hard-cut path.
 - [x] One final `Transformer.start(...)`; no temporary Crossfade MP4 remains the architecture invariant.
@@ -201,4 +204,4 @@ After creative composition is stable.
 ---
 
 ## Immediate next action
-Verify the newly authored Crossfade-aware preview timeline mapping in Termux. After that gate passes, switch `MainActivity` CompositionPlayer construction to `CompositionPreviewPlayerFactory`, route preview source/output seeks through the shared mapping overloads, rerun unit + assemble gates, then begin owner-device Crossfade preview/export validation.
+Apply the staged MainActivity integration patch to the active branch so CompositionPlayer creation uses `CompositionPreviewPlayerFactory` and all Composition preview source/output seeks use the plan-aware Crossfade mapping. Then rerun `:app:testDebugUnitTest` and FFmpeg-enabled `:app:assembleDebug` before owner-device validation.
