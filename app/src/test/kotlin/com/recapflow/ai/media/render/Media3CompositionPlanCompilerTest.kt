@@ -4,6 +4,8 @@ import com.recapflow.ai.media.MediaInfo
 import com.recapflow.ai.media.edit.AdaptiveCutSettings
 import com.recapflow.ai.media.edit.AudioPolicy
 import com.recapflow.ai.media.edit.AudioSettings
+import com.recapflow.ai.media.edit.ClipTransitionBoundary
+import com.recapflow.ai.media.edit.ClipTransitionSettings
 import com.recapflow.ai.media.edit.EditPlan
 import com.recapflow.ai.media.edit.FreezeSettings
 import com.recapflow.ai.media.edit.ReplacementAudioAsset
@@ -26,10 +28,40 @@ class Media3CompositionPlanCompilerTest {
         assertEquals(listOf(TrimRange(1_000L, 9_000L)), result.selectedRanges)
         assertNull(result.freeze)
         assertEquals(1, result.videoItemCount)
+        assertEquals(1, result.videoSequenceCount)
         assertEquals(1, result.sequenceCount)
         assertFalse(result.removeSourceAudio)
         assertTrue(result.outputHasAudio)
         assertEquals(editPlan.plannedDurationMs, result.plannedDurationMs)
+    }
+
+    @Test
+    fun reviewedCrossfadeReportsTwoVideoSequences() {
+        val editPlan = editPlan(
+            adaptiveCuts = AdaptiveCutSettings(
+                enabled = true,
+                reviewedRanges = listOf(
+                    TrimRange(0L, 4_000L),
+                    TrimRange(5_000L, 9_000L),
+                ),
+            ),
+            clipTransitions = ClipTransitionSettings(
+                enabled = true,
+                boundaries = listOf(
+                    ClipTransitionBoundary(
+                        leftSourceEndMs = 4_000L,
+                        rightSourceStartMs = 5_000L,
+                        durationMs = 300L,
+                    ),
+                ),
+            ),
+        )
+
+        val result = Media3CompositionPlanCompiler.compile(mediaInfo(), editPlan)
+
+        assertEquals(1, result.clipTransitions.size)
+        assertEquals(2, result.videoSequenceCount)
+        assertEquals(2, result.sequenceCount)
     }
 
     @Test
@@ -63,6 +95,7 @@ class Media3CompositionPlanCompilerTest {
 
         assertEquals(2, result.selectedRanges.size)
         assertEquals(3, result.videoItemCount)
+        assertEquals(1, result.videoSequenceCount)
         assertEquals(2, result.sequenceCount)
         assertEquals(1_000L, assertNotNull(result.freeze).sourceFrameTimeMs)
         assertEquals(2_000L, result.freeze?.durationMs)
@@ -87,6 +120,7 @@ class Media3CompositionPlanCompilerTest {
 
         assertTrue(result.removeSourceAudio)
         assertNotNull(result.replacementAudio)
+        assertEquals(1, result.videoSequenceCount)
         assertEquals(2, result.sequenceCount)
         assertTrue(result.outputHasAudio)
         assertFalse(result.forceSourceAudioTrack)
@@ -105,6 +139,7 @@ class Media3CompositionPlanCompilerTest {
 
         assertTrue(result.removeSourceAudio)
         assertFalse(result.outputHasAudio)
+        assertEquals(1, result.videoSequenceCount)
         assertEquals(1, result.sequenceCount)
         assertNull(result.replacementAudio)
     }
@@ -114,6 +149,7 @@ class Media3CompositionPlanCompilerTest {
         adaptiveCuts: AdaptiveCutSettings = AdaptiveCutSettings(),
         transform: TransformSettings = TransformSettings(),
         audio: AudioSettings = AudioSettings(),
+        clipTransitions: ClipTransitionSettings = ClipTransitionSettings(),
     ) = EditPlan(
         sourcePath = SOURCE_PATH,
         sourceDurationMs = 10_000L,
@@ -122,6 +158,7 @@ class Media3CompositionPlanCompilerTest {
         transform = transform,
         audio = audio,
         exportPreset = RenderPreset.FULL_HD_1080P,
+        clipTransitions = clipTransitions,
     )
 
     private fun mediaInfo(
