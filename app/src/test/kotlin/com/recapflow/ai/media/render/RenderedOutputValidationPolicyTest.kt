@@ -1,8 +1,8 @@
 package com.recapflow.ai.media.render
 
 import kotlin.test.Test
-import kotlin.test.assertFalse
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RenderedOutputValidationPolicyTest {
@@ -21,8 +21,8 @@ class RenderedOutputValidationPolicyTest {
             expectedAudio = true,
             expectedWidth = 1440,
             expectedHeight = 2560,
-            requestedVideoBitrate = 20_000_000,
-            averageVideoBitrate = 19_000_000,
+            requestedVideoBitrate = 18_000_000,
+            averageVideoBitrate = 18_000_000,
         )
 
         assertTrue(result.isValid)
@@ -44,8 +44,8 @@ class RenderedOutputValidationPolicyTest {
             expectedAudio = true,
             expectedWidth = 1080,
             expectedHeight = 1920,
-            requestedVideoBitrate = 12_000_000,
-            averageVideoBitrate = 12_000_000,
+            requestedVideoBitrate = 10_000_000,
+            averageVideoBitrate = 10_000_000,
         )
 
         assertTrue(result.isValid)
@@ -65,8 +65,8 @@ class RenderedOutputValidationPolicyTest {
             preset = RenderPreset.HD_720P,
             expectedDurationMs = 46_000L,
             expectedAudio = true,
-            requestedVideoBitrate = 6_000_000,
-            averageVideoBitrate = 6_000_000,
+            requestedVideoBitrate = 7_500_000,
+            averageVideoBitrate = 7_500_000,
         )
 
         assertTrue(result.isValid)
@@ -87,8 +87,8 @@ class RenderedOutputValidationPolicyTest {
             expectedAudio = true,
             expectedWidth = 1440,
             expectedHeight = 2560,
-            requestedVideoBitrate = 20_000_000,
-            averageVideoBitrate = 20_000_000,
+            requestedVideoBitrate = 18_000_000,
+            averageVideoBitrate = 18_000_000,
         )
 
         assertFalse(result.isValid)
@@ -108,11 +108,49 @@ class RenderedOutputValidationPolicyTest {
             preset = RenderPreset.HD_720P,
             expectedDurationMs = 30_000L,
             expectedAudio = false,
-            requestedVideoBitrate = 6_000_000,
-            averageVideoBitrate = 6_000_000,
+            requestedVideoBitrate = 7_500_000,
+            averageVideoBitrate = 7_500_000,
         )
 
         assertFalse(result.isValid)
+    }
+
+    @Test
+    fun reportedOwnerDrift277000To277315Passes() {
+        val result = RenderedOutputValidationPolicy.validate(
+            metadata = validMetadata(durationMs = 277_315L),
+            preset = RenderPreset.FULL_HD_1080P,
+            expectedDurationMs = 277_000L,
+            expectedAudio = true,
+            expectedWidth = 1080,
+            expectedHeight = 1920,
+            requestedVideoBitrate = 10_000_000,
+            averageVideoBitrate = 10_000_000,
+        )
+
+        assertTrue(result.isValid)
+        assertEquals(315L, result.durationDriftMs)
+        assertEquals(350L, result.allowedDurationDriftMs)
+        assertTrue(result.warnings.any { it.contains("315ms") })
+    }
+
+    @Test
+    fun eightHundredMsDurationMismatchStillFails() {
+        val result = RenderedOutputValidationPolicy.validate(
+            metadata = validMetadata(durationMs = 277_800L),
+            preset = RenderPreset.FULL_HD_1080P,
+            expectedDurationMs = 277_000L,
+            expectedAudio = true,
+            expectedWidth = 1080,
+            expectedHeight = 1920,
+            requestedVideoBitrate = 10_000_000,
+            averageVideoBitrate = 10_000_000,
+        )
+
+        assertFalse(result.isValid)
+        assertEquals(800L, result.durationDriftMs)
+        assertEquals(350L, result.allowedDurationDriftMs)
+        assertTrue(result.errors.any { it.contains("allowed drift is 350ms") })
     }
 
     @Test
@@ -124,36 +162,18 @@ class RenderedOutputValidationPolicyTest {
             expectedAudio = true,
             expectedWidth = 1080,
             expectedHeight = 1920,
-            requestedVideoBitrate = 12_000_000,
-            averageVideoBitrate = 12_000_000,
+            requestedVideoBitrate = 10_000_000,
+            averageVideoBitrate = 10_000_000,
         )
 
         assertTrue(result.isValid)
         assertEquals(276L, result.durationDriftMs)
-        assertEquals(294L, result.allowedDurationDriftMs)
+        assertEquals(350L, result.allowedDurationDriftMs)
         assertTrue(result.warnings.any { it.contains("276ms") })
     }
 
     @Test
-    fun durationOutsideBoundedToleranceStillFails() {
-        val result = RenderedOutputValidationPolicy.validate(
-            metadata = validMetadata(durationMs = 293_449L),
-            preset = RenderPreset.FULL_HD_1080P,
-            expectedDurationMs = 293_154L,
-            expectedAudio = true,
-            expectedWidth = 1080,
-            expectedHeight = 1920,
-            requestedVideoBitrate = 12_000_000,
-            averageVideoBitrate = 12_000_000,
-        )
-
-        assertFalse(result.isValid)
-        assertEquals(295L, result.durationDriftMs)
-        assertTrue(result.errors.any { it.contains("allowed drift is 294ms") })
-    }
-
-    @Test
-    fun veryLowVbrAverageRemainsVisibleWithoutPretendingCbrFailure() {
+    fun veryLowCbrAverageFailsQualityGate() {
         val result = RenderedOutputValidationPolicy.validate(
             metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 30.0),
             preset = RenderPreset.FULL_HD_1080P,
@@ -162,13 +182,49 @@ class RenderedOutputValidationPolicyTest {
             expectedWidth = 1080,
             expectedHeight = 1920,
             expectedFrameRate = 30,
-            requestedVideoBitrate = 8_000_000,
-            averageVideoBitrate = 2_000_000,
+            requestedVideoBitrate = 10_000_000,
+            averageVideoBitrate = 2_780_000,
+        )
+
+        assertFalse(result.isValid)
+        assertTrue(result.errors.any { it.contains("CBR average bitrate") })
+        assertTrue(result.errors.any { it.contains("80%") })
+    }
+
+    @Test
+    fun cbrAverageAtEightyPercentPassesWithWarning() {
+        val result = RenderedOutputValidationPolicy.validate(
+            metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 30.0),
+            preset = RenderPreset.FULL_HD_1080P,
+            expectedDurationMs = 60_000L,
+            expectedAudio = true,
+            expectedWidth = 1080,
+            expectedHeight = 1920,
+            expectedFrameRate = 30,
+            requestedVideoBitrate = 10_000_000,
+            averageVideoBitrate = 8_000_000,
         )
 
         assertTrue(result.isValid)
-        assertTrue(result.warnings.any { it.contains("VBR average bitrate") })
-        assertFalse(result.warnings.any { it.contains("CBR") })
+        assertTrue(result.warnings.any { it.contains("below 90%") })
+    }
+
+    @Test
+    fun missingAverageBitrateWarnsWithoutFalseFailure() {
+        val result = RenderedOutputValidationPolicy.validate(
+            metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 30.0),
+            preset = RenderPreset.FULL_HD_1080P,
+            expectedDurationMs = 60_000L,
+            expectedAudio = true,
+            expectedWidth = 1080,
+            expectedHeight = 1920,
+            expectedFrameRate = 30,
+            requestedVideoBitrate = 10_000_000,
+            averageVideoBitrate = null,
+        )
+
+        assertTrue(result.isValid)
+        assertTrue(result.warnings.any { it.contains("did not report average video bitrate") })
     }
 
     @Test
@@ -179,20 +235,18 @@ class RenderedOutputValidationPolicyTest {
         )
     }
 
-    private fun validMetadata(durationMs: Long) = RenderedOutputMetadata(
-        width = 1080,
-        height = 1920,
-        durationMs = durationMs,
-        videoMimeType = "video/avc",
-        audioMimeType = "audio/mp4a-latm",
-    )
     @Test
     fun matchingSourceAwareFrameRatePasses() {
         val result = RenderedOutputValidationPolicy.validate(
             metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 59.94),
-            preset = RenderPreset.FULL_HD_1080P, expectedDurationMs = 60_000L, expectedAudio = true,
-            expectedWidth = 1080, expectedHeight = 1920, expectedFrameRate = 60,
-            requestedVideoBitrate = 12_000_000, averageVideoBitrate = 8_000_000,
+            preset = RenderPreset.FULL_HD_1080P,
+            expectedDurationMs = 60_000L,
+            expectedAudio = true,
+            expectedWidth = 1080,
+            expectedHeight = 1920,
+            expectedFrameRate = 60,
+            requestedVideoBitrate = 15_000_000,
+            averageVideoBitrate = 15_000_000,
         )
         assertTrue(result.isValid)
     }
@@ -201,24 +255,24 @@ class RenderedOutputValidationPolicyTest {
     fun materialFrameRateFallbackIsRejectedWhenMetadataIsAvailable() {
         val result = RenderedOutputValidationPolicy.validate(
             metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 30.0),
-            preset = RenderPreset.FULL_HD_1080P, expectedDurationMs = 60_000L, expectedAudio = true,
-            expectedWidth = 1080, expectedHeight = 1920, expectedFrameRate = 60,
-            requestedVideoBitrate = 12_000_000, averageVideoBitrate = 8_000_000,
+            preset = RenderPreset.FULL_HD_1080P,
+            expectedDurationMs = 60_000L,
+            expectedAudio = true,
+            expectedWidth = 1080,
+            expectedHeight = 1920,
+            expectedFrameRate = 60,
+            requestedVideoBitrate = 15_000_000,
+            averageVideoBitrate = 15_000_000,
         )
         assertFalse(result.isValid)
         assertTrue(result.errors.any { it.contains("60fps") })
     }
 
-    @Test
-    fun vbrAverageBelowTargetIsNotTreatedAsCbrFailure() {
-        val result = RenderedOutputValidationPolicy.validate(
-            metadata = validMetadata(durationMs = 60_000L).copy(frameRate = 30.0),
-            preset = RenderPreset.FULL_HD_1080P, expectedDurationMs = 60_000L, expectedAudio = true,
-            expectedWidth = 1080, expectedHeight = 1920, expectedFrameRate = 30,
-            requestedVideoBitrate = 8_000_000, averageVideoBitrate = 4_000_000,
-        )
-        assertTrue(result.isValid)
-        assertFalse(result.warnings.any { it.contains("CBR") })
-    }
-
+    private fun validMetadata(durationMs: Long) = RenderedOutputMetadata(
+        width = 1080,
+        height = 1920,
+        durationMs = durationMs,
+        videoMimeType = "video/avc",
+        audioMimeType = "audio/mp4a-latm",
+    )
 }
