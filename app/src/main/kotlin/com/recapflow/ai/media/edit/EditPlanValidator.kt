@@ -33,6 +33,10 @@ object EditPlanValidator {
                 }
             }
         }
+        val selectedRanges = AdaptiveCutCompiler.compile(
+            plan.adaptiveCuts,
+            plan.trimRange,
+        ) ?: listOf(plan.trimRange)
         if (
             plan.transform.enabled &&
             plan.transform.speedEnabled &&
@@ -57,10 +61,6 @@ object EditPlanValidator {
             } else {
                 val requiredDurationMs = plan.transform.transition.durationMs *
                     if (plan.transform.transition.mode == TransitionMode.FADE_IN_OUT) 2L else 1L
-                val selectedRanges = AdaptiveCutCompiler.compile(
-                    plan.adaptiveCuts,
-                    plan.trimRange,
-                ) ?: listOf(plan.trimRange)
                 val speed = SpeedCompiler.compile(plan.transform)
                 val hasTooShortRange = selectedRanges.any { range ->
                     val contentDurationMs = speed?.outputDurationMs(range.durationMs)
@@ -71,6 +71,24 @@ object EditPlanValidator {
                     add(EditPlanIssue.TRANSITION_TOO_LONG)
                 }
             }
+        }
+        ClipTransitionPolicy.validate(
+            settings = plan.clipTransitions,
+            selectedRanges = selectedRanges,
+            transform = plan.transform,
+        ).forEach { issue ->
+            add(
+                when (issue) {
+                    ClipTransitionIssue.DUPLICATE_BOUNDARY ->
+                        EditPlanIssue.CLIP_TRANSITION_DUPLICATE_BOUNDARY
+                    ClipTransitionIssue.BOUNDARY_NOT_FOUND ->
+                        EditPlanIssue.CLIP_TRANSITION_BOUNDARY_NOT_FOUND
+                    ClipTransitionIssue.DURATION_OUT_OF_RANGE ->
+                        EditPlanIssue.CLIP_TRANSITION_DURATION_INVALID
+                    ClipTransitionIssue.TRANSITION_LONGER_THAN_CLIP ->
+                        EditPlanIssue.CLIP_TRANSITION_TOO_LONG
+                },
+            )
         }
         if (
             plan.transform.enabled &&
@@ -201,6 +219,10 @@ enum class EditPlanIssue(val description: String) {
     FREEZE_DURATION_INVALID("Freeze duration must be 1, 2, or 3 seconds"),
     TRANSITION_DURATION_INVALID("Transition duration must be 0.5, 1, or 1.5 seconds"),
     TRANSITION_TOO_LONG("The selected clip is too short for this transition"),
+    CLIP_TRANSITION_DUPLICATE_BOUNDARY("Only one transition may be attached to a clip boundary"),
+    CLIP_TRANSITION_BOUNDARY_NOT_FOUND("The selected transition boundary no longer matches adjacent clips"),
+    CLIP_TRANSITION_DURATION_INVALID("Clip transition duration must be between 0.15 and 1 second"),
+    CLIP_TRANSITION_TOO_LONG("Both clips must be longer than the transition after Speed is applied"),
     CROP_RECTANGLE_INVALID("Crop edges must leave at least ten percent of the frame"),
     COLOR_SETTINGS_INVALID("Color adjustments are outside the supported range"),
     AUDIO_VOLUME_INVALID("Audio volume must be between 0% and 100%"),
