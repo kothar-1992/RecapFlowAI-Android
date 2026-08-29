@@ -281,7 +281,7 @@ class LocalRenderCoordinator(
                     VideoEncoderSettings.Builder()
                         .setBitrate(qualityRequest.requestedVideoBitrate)
                         .setBitrateMode(
-                            MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR,
+                            MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR,
                         )
                         .build(),
                 )
@@ -292,7 +292,7 @@ class LocalRenderCoordinator(
                 RENDER_LOG_TAG,
                 "Starting ${editPlan.exportPreset.displayName} H.264 export; " +
                     "requestedVideoBitrate=${qualityRequest.requestedVideoBitrate}; " +
-                    "bitrateMode=VBR; targetFrameRate=${qualityRequest.targetFrameRate}; " +
+                    "bitrateMode=CBR; targetFrameRate=${qualityRequest.targetFrameRate}; " +
                     "sourceShortSide=${qualityRequest.sourceShortSidePixels}; " +
                     "upscale=${qualityRequest.isUpscaling}; " +
                     "composition=${compiledComposition.plan.summary}",
@@ -416,10 +416,10 @@ class LocalRenderCoordinator(
             return
         }
 
-        // Resolution, codec, duration and audio-policy validation is intentionally performed
-        // after Transformer completion but before Completed/public export. A device encoder may
-        // reject requested settings; an unexpected fallback must never be labelled as the user's
-        // selected 720p, 1080p or 2K output.
+        // Resolution, codec, duration, audio and bitrate-quality validation is intentionally
+        // performed after Transformer completion but before Completed/public export. A device
+        // encoder may reject requested settings; an unexpected fallback must never be labelled
+        // as the user's selected 720p, 1080p or 2K quality.
         preparationFuture = preparationExecutor.submit {
             val inspected = runCatching { RenderedOutputInspector.inspect(output) }
             mainHandler.post {
