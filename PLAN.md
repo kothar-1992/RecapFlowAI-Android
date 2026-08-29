@@ -1,7 +1,7 @@
 # Recap Flow AI Android — Active Implementation Plan
 
 - **Project:** RecapFlowAI Android
-- **Last updated:** 2026-08-29
+- **Last updated:** 2026-08-30
 - **Verified main baseline:** `7baca862cf7ba02677bebfdba1ada146bd71c1d6`
 - **Verified media rollback:** `stable/phase-6f2.8.1`
 - **Primary target:** ARM64 Android phones/tablets
@@ -137,7 +137,7 @@ Rules:
 
 ## Phase 6H.1 — Realtime Clip Transitions — Issue #20
 
-**Status: IN PROGRESS — 6H.1A semantic model/timeline foundation authored; Termux verification pending**
+**Status: IN PROGRESS — 6H.1A/B verified in Termux; 6H.1C capability guard verified; deterministic two-lane Crossfade topology authored and awaiting the next Termux gate**
 
 ### Goal
 Add clip-boundary transitions that can be tested in realtime before export.
@@ -161,21 +161,32 @@ Later presets:
 - [x] Keep transition duration in presentation time while scaling required source overlap under Speed.
 - [x] Accumulate overlap deterministically across multiple boundaries.
 - [x] Add unit coverage for disabled no-op, adjacent boundary projection, Speed, multiple boundaries, duplicate/missing/too-long boundaries.
-- [ ] Termux `:app:testDebugUnitTest` PASS.
-- [ ] Termux FFmpeg-enabled `:app:assembleDebug` PASS.
+- [x] Termux `:app:testDebugUnitTest` PASS.
+- [x] Termux FFmpeg-enabled `:app:assembleDebug` PASS.
 
 ### 6H.1B — EditPlan + validation integration
-- [ ] Attach clip-transition settings to the immutable reviewed `EditPlan`.
-- [ ] Subtract compiled crossfade overlap from planned output duration.
-- [ ] Surface transition validation through `EditPlanValidator`.
-- [ ] Preserve the existing Transform fade operation as a separate legacy/global visual effect until intentionally migrated.
+- [x] Attach clip-transition settings to the immutable reviewed `EditPlan`.
+- [x] Subtract compiled crossfade overlap from planned output duration.
+- [x] Surface transition validation through `EditPlanValidator`.
+- [x] Preserve the existing Transform fade operation as a separate legacy/global visual effect until intentionally migrated.
+- [x] Termux unit/build gate PASS in 2m 55s; 28 actionable tasks executed.
 
-### 6H.1C — shared Media3 crossfade execution
-- [ ] Compile adjacent clips into a shared overlap/compositor topology rather than baking either source clip.
-- [ ] Reuse the same transition definition for CompositionPlayer preview and Transformer export.
-- [ ] Define explicit preview fallback when the device/API compositor path is unavailable.
+### 6H.1C — shared runtime topology and capability-safe execution
+- [x] Carry compiled clip-boundary transitions into `Media3CompositionPlan`.
+- [x] Add an explicit runtime capability guard so an enabled Crossfade cannot silently degrade to a hard cut.
+- [x] Capability-guard Termux unit/build gate PASS in 2m 53s; 28 actionable tasks executed.
+- [x] Define a deterministic two-lane overlap schedule for future Media3 sequence/compositor execution.
+- [x] Define one shared easing function for visual/audio Crossfade envelopes.
+- [x] Reject adjacent Crossfades that overlap inside the same middle clip; a two-lane runtime must never create triple-overlap ambiguity.
+- [x] Add unit coverage for lane alternation, Freeze/Speed offsets, easing alpha and overlapping-boundary rejection.
+- [ ] Termux unit/build gate PASS for the new two-lane topology commits.
+- [ ] Wire the verified topology to a reviewed Media3/custom compositor execution path for both preview and export.
+- [ ] Define and verify matching audio Crossfade envelopes; do not accept a video-only blend with doubled audio during overlap.
 - [ ] Keep exactly one final `Transformer.start(...)`.
 - [ ] No temporary crossfade MP4 or per-feature render.
+
+### Media3 limitation decision
+The project remains pinned to Media3 1.10.0. Multiple `EditedMediaItemSequence` tracks can overlap and a custom `VideoCompositorSettings` can vary overlay alpha by presentation time, but Android's current Composition documentation still lists direct video/audio crossfading as unsupported. Therefore the branch treats the two-lane/compositor route as a capability-gated implementation spike, not as a proven runtime contract. Until owner-device preview/export validates a shared path, reviewed Crossfade state must fail explicitly rather than silently render as a hard cut.
 
 ### 6H.1D — realtime boundary controls
 - [ ] Select a clip boundary.
@@ -186,7 +197,7 @@ Later presets:
 - [ ] Reset to None / hard cut.
 
 ### Phase 6H.1 exit gate
-- [ ] Termux unit tests + FFmpeg-enabled debug build PASS.
+- [ ] Termux unit tests + FFmpeg-enabled debug build PASS for final runtime implementation.
 - [ ] owner-device realtime boundary preview PASS.
 - [ ] 720p + 1080p crossfade export PASS.
 - [ ] combined current features + crossfade still show exactly one final Transformer start.
@@ -353,15 +364,26 @@ feature/phase-7-render-jobs
 
 ## 6. Immediate next action
 
-Verify the new 6H.1A transition foundation in **Termux**:
+Verify the new 6H.1C two-lane topology and adjacent-overlap validation in **Termux**:
 
 ```bash
+cd /storage/emulated/0/AndroidIDEProjects/RecapFlowAI-Android/
 git fetch origin
 git switch feature/phase-6h1-transitions
 git pull --ff-only origin feature/phase-6h1-transitions
 
-./gradlew :app:testDebugUnitTest --no-daemon --max-workers=2
-./gradlew :app:assembleDebug -Precapflow.ffmpeg.enabled=true --no-daemon --max-workers=2
+AAPT2_BIN="$PREFIX/bin/aapt2"
+GRADLE="$HOME/.local/opt/gradle-9.0.0/bin/gradle"
+
+"$GRADLE" :app:testDebugUnitTest \
+  -Precapflow.ffmpeg.enabled=true \
+  -Pandroid.aapt2FromMavenOverride="$AAPT2_BIN" \
+  --no-daemon --max-workers=2 --rerun-tasks --stacktrace
+
+"$GRADLE" :app:assembleDebug \
+  -Precapflow.ffmpeg.enabled=true \
+  -Pandroid.aapt2FromMavenOverride="$AAPT2_BIN" \
+  --no-daemon --max-workers=2 --rerun-tasks --stacktrace
 ```
 
-If both pass, continue immediately to **6H.1B EditPlan integration**, followed by the shared Media3 Crossfade preview/export path. Do not add additional transition presets before Crossfade passes the full Termux + owner-device gate.
+If both pass, continue to the capability-gated Media3/custom compositor spike. Do not add more transition presets before Crossfade passes shared preview/export and owner-device validation.
