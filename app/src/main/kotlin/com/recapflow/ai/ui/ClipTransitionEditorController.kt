@@ -128,7 +128,7 @@ class ClipTransitionEditorController(
         }
         previewButton.setOnClickListener {
             val ranges = selectedRangesProvider()
-            val pair = ClipTransitionEditorPolicy.selectedRanges(state, ranges)
+            val pair = ClipTransitionEditorPolicy.selectedRangePair(state, ranges)
                 ?: return@setOnClickListener
             onPreviewBoundary(pair.first, pair.second, selectedBoundaryEnabled())
         }
@@ -145,7 +145,7 @@ class ClipTransitionEditorController(
     private fun render() {
         val ranges = selectedRangesProvider()
         state = ClipTransitionEditorPolicy.reconcile(state, ranges)
-        val pair = ClipTransitionEditorPolicy.selectedRanges(state, ranges)
+        val pair = ClipTransitionEditorPolicy.selectedRangePair(state, ranges)
         rendering = true
         try {
             unavailable.visibility = if (pair == null) View.VISIBLE else View.GONE
