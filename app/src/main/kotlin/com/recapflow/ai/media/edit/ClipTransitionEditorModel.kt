@@ -75,7 +75,7 @@ object ClipTransitionEditorPolicy {
         }
     }
 
-    fun selectedRanges(
+    fun selectedRangePair(
         state: ClipTransitionEditorState,
         selectedRanges: List<TrimRange>,
     ): Pair<TrimRange, TrimRange>? {
@@ -120,10 +120,10 @@ object ClipTransitionEditorPolicy {
         selectedRanges: List<TrimRange>,
     ): ClipTransitionEditorState {
         val reconciled = reconcile(state, selectedRanges)
-        val pair = selectedRanges(reconciled, selectedRanges) ?: return reconciled
+        val pair = selectedRangePair(reconciled, selectedRanges) ?: return reconciled
         val key = pair.first.endMs to pair.second.startMs
         val boundaries = reconciled.settings.boundaries.filterNot { boundary ->
-            boundary.leftSourceEndMs to boundary.rightSourceStartMs == key
+            (boundary.leftSourceEndMs to boundary.rightSourceStartMs) == key
         }
         return reconciled.copy(
             settings = reconciled.settings.copy(
@@ -139,12 +139,12 @@ object ClipTransitionEditorPolicy {
         update: (ClipTransitionBoundary) -> ClipTransitionBoundary,
     ): ClipTransitionEditorState {
         val reconciled = reconcile(state, selectedRanges)
-        val pair = selectedRanges(reconciled, selectedRanges) ?: return reconciled
+        val pair = selectedRangePair(reconciled, selectedRanges) ?: return reconciled
         val left = pair.first
         val right = pair.second
         val key = left.endMs to right.startMs
         val remembered = reconciled.settings.boundaries.firstOrNull { boundary ->
-            boundary.leftSourceEndMs to boundary.rightSourceStartMs == key
+            (boundary.leftSourceEndMs to boundary.rightSourceStartMs) == key
         } ?: ClipTransitionBoundary(
             leftSourceEndMs = left.endMs,
             rightSourceStartMs = right.startMs,
@@ -153,7 +153,7 @@ object ClipTransitionEditorPolicy {
         val replacement = update(remembered)
         val boundaries = reconciled.settings.boundaries
             .filterNot { boundary ->
-                boundary.leftSourceEndMs to boundary.rightSourceStartMs == key
+                (boundary.leftSourceEndMs to boundary.rightSourceStartMs) == key
             } + replacement
         return reconciled.copy(
             settings = reconciled.settings.copy(
