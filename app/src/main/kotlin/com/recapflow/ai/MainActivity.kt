@@ -87,6 +87,7 @@ import com.recapflow.ai.media.importer.MediaImportCoordinator
 import com.recapflow.ai.media.importer.ReplacementAudioImportCoordinator
 import com.recapflow.ai.media.importer.ReplacementAudioImportState
 import com.recapflow.ai.media.render.CompositionPreviewTimelinePolicy
+import com.recapflow.ai.media.render.CompositionPreviewPlayerFactory
 import com.recapflow.ai.media.render.Media3CompositionCompiler
 import com.recapflow.ai.media.render.Media3CompositionPlan
 import com.recapflow.ai.media.render.Media3CompositionPlanCompiler
@@ -894,8 +895,8 @@ class MainActivity : AppCompatActivity() {
         if (compositionPreviewActive && compositionPlayer != null && plan != null && editPlan != null) {
             return CompositionPreviewTimelinePolicy.outputToSourceMs(
                 outputPositionMs = compositionPlayer.currentPosition.coerceAtLeast(0L),
-                ranges = plan.selectedRanges,
-                settings = editPlan.transform,
+                plan = plan,
+                editPlan = editPlan,
             ).coerceIn(0L, info.durationMs)
         }
         return previewPlayer.currentPosition.coerceAtLeast(0L)
@@ -912,8 +913,8 @@ class MainActivity : AppCompatActivity() {
             )
             val outputPositionMs = CompositionPreviewTimelinePolicy.sourceToOutputMs(
                 sourcePositionMs = selectedSourceMs,
-                ranges = plan.selectedRanges,
-                settings = editPlan.transform,
+                plan = plan,
+                editPlan = editPlan,
             )
             compositionPlayer.seekTo(outputPositionMs.coerceAtLeast(0L))
         } else {
@@ -968,8 +969,8 @@ class MainActivity : AppCompatActivity() {
         )
         val outputPositionMs = CompositionPreviewTimelinePolicy.sourceToOutputMs(
             sourcePositionMs = selectedSourceMs,
-            ranges = plan.selectedRanges,
-            settings = editPlan.transform,
+            plan = plan,
+            editPlan = editPlan,
         )
 
         releaseCompositionPreview(attachExoPlayer = false, reason = "replace composition: $reason")
@@ -978,7 +979,7 @@ class MainActivity : AppCompatActivity() {
             previewPlayer.stop()
             previewPlayer.clearMediaItems()
         }
-        val player = CompositionPlayer.Builder(this).build()
+        val player = CompositionPreviewPlayerFactory.create(this, compiled)
         compositionPreviewPlayer = player
         compositionPreviewPlan = plan
         compositionPreviewEditPlan = editPlan
