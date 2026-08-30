@@ -110,7 +110,7 @@ class ClipTransitionEditorPolicyTest {
 
         assertEquals(ClipTransitionEditorState(), reconciled)
         assertNull(
-            ClipTransitionEditorPolicy.selectedRanges(
+            ClipTransitionEditorPolicy.selectedRangePair(
                 reconciled,
                 listOf(TrimRange(0L, 5_000L)),
             ),
