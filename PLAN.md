@@ -112,7 +112,7 @@ Rules:
 
 ## Phase 6H.1 — Realtime Clip Transitions — Issue #20
 
-**Status: IN PROGRESS — semantic/EditPlan/two-lane runtime and preview timeline mapping build-verified; Activity integration gate active**
+**Status: IN PROGRESS — runtime and MainActivity preview integration build-verified; 6H.1D boundary controls authored and awaiting Termux gate**
 
 ### First vertical slice
 **Crossfade only.** Later transition presets remain blocked until Crossfade passes the complete runtime/device gate.
@@ -156,26 +156,32 @@ Rules:
 - [x] Crossfade-aware source/output preview timeline mapping authored with dominant-visual overlap semantics.
 - [x] Crossfade-aware timeline mapping unit gate PASS: **BUILD SUCCESSFUL in 2m 52s, 28 actionable tasks executed**.
 - [x] Crossfade-aware timeline mapping assemble gate PASS: **BUILD SUCCESSFUL in 2m 59s, 43 actionable tasks executed**.
-- [x] Auditable MainActivity integration patch staged at `scripts/phase6h1_mainactivity_preview_integration.patch`.
-- [ ] `MainActivity` CompositionPlayer creation consumes `CompositionPreviewPlayerFactory` and shared Crossfade-aware seek mapping in committed source.
-- [ ] Preview-integration unit + assemble gate PASS.
+- [x] `MainActivity` now consumes `CompositionPreviewPlayerFactory` and plan-aware source/output seek mapping in committed source.
+- [x] Preview-integration unit gate PASS: **BUILD SUCCESSFUL in 3m 35s, 28 actionable tasks executed**.
+- [x] Preview-integration assemble gate PASS: **BUILD SUCCESSFUL in 3m 20s, 43 actionable tasks executed**.
 - [ ] owner-device realtime preview proves multiple-input graph behavior.
-- [ ] Runtime failure preserves EditPlan and verified hard-cut path.
+- [ ] Runtime failure preserves EditPlan and verified hard-cut path on device.
 - [x] One final `Transformer.start(...)`; no temporary Crossfade MP4 remains the architecture invariant.
 
 ### Media3 constraint
 The project is pinned to Media3 1.10.0. Official Media3 Composition documentation still lists direct video/audio crossfading as unsupported. Media3 does support overlapping sequences plus custom `VideoCompositorSettings`, including presentation-time-dependent alpha. Therefore the custom compositor path is an explicitly feature-gated runtime spike and is not production-supported until physical-device preview/export evidence passes.
 
 ### 6H.1D — realtime boundary controls
-- [ ] Select clip boundary.
-- [ ] Crossfade ON/OFF.
-- [ ] Duration 150–1000 ms.
-- [ ] Easing selection.
-- [ ] Boundary preview.
-- [ ] Reset to hard cut.
+- [x] Pure source-identity boundary editor state authored with stale-boundary pruning.
+- [x] Select clip boundary controls authored.
+- [x] Crossfade ON/OFF controls authored.
+- [x] Duration 150–1000 ms controls authored.
+- [x] Easing selection authored.
+- [x] Boundary preview action authored; no encode is started.
+- [x] Reset-to-hard-cut action authored.
+- [x] UI controller feeds `EditPlan.clipTransitions` without backend-specific metadata.
+- [x] Editor-policy JVM regression tests authored.
+- [x] MainActivity integration patch staged at `scripts/phase6h1d_boundary_controls.patch`.
+- [ ] 6H.1D Termux unit gate PASS.
+- [ ] 6H.1D Termux assemble gate PASS.
 
 ### Exit gate
-- [ ] Feature-gated runtime build/test PASS after preview integration.
+- [ ] Feature-gated runtime build/test PASS after boundary-control integration.
 - [ ] owner-device realtime boundary preview PASS.
 - [ ] 720p + 1080p Crossfade export PASS.
 - [ ] A/V Crossfade quality/sync PASS.
@@ -204,4 +210,4 @@ After creative composition is stable.
 ---
 
 ## Immediate next action
-Apply the staged MainActivity integration patch to the active branch so CompositionPlayer creation uses `CompositionPreviewPlayerFactory` and all Composition preview source/output seeks use the plan-aware Crossfade mapping. Then rerun `:app:testDebugUnitTest` and FFmpeg-enabled `:app:assembleDebug` before owner-device validation.
+Pull the latest `feature/phase-6h1-transitions`, apply `scripts/phase6h1d_boundary_controls.patch`, run `git diff --check`, then run the feature-gated unit and assemble commands. After those PASS, commit the MainActivity integration and begin owner-device Crossfade boundary preview testing with reviewed Adaptive Cut ranges.
