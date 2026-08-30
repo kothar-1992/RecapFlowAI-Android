@@ -1,21 +1,21 @@
 <resources>
     <string name="clip_transition_badge">ကလစ်နှစ်ခုကြား ချောမွေ့ကူးပြောင်းမှု</string>
     <string name="clip_transition_title">ကလစ်နှစ်ခုကြား ကူးပြောင်းပုံ</string>
-    <string name="clip_transition_description">ပြန်လည်စစ်ဆေးထားသော ကလစ်နှစ်ခု ဆုံသည့်နေရာကို ရွေးပြီး တစ်ခုမှတစ်ခုသို့ ချောမွေ့စွာကူးပြောင်းအောင် လုပ်နိုင်သည်။ မသုံးလိုပါက ကလစ်တစ်ခုကနေ နောက်တစ်ခုကို တိုက်ရိုက်ပြောင်းမည်။</string>
-    <string name="clip_transition_unavailable">ကလစ်နှစ်ခုကြား ကူးပြောင်းမှုထည့်ရန် အနည်းဆုံး ပြန်လည်စစ်ဆေးထားသော ကလစ် ၂ ခုကို အရင်အသုံးပြုပါ။</string>
+    <string name="clip_transition_description">စစ်ဆေးထားသော ကလစ်နှစ်ခု ဆုံသည့်နေရာကို ရွေးပြီး တစ်ခုမှတစ်ခုသို့ ချောမွေ့စွာ ကူးပြောင်းအောင် လုပ်နိုင်သည်။ မသုံးလိုပါက ကလစ်တစ်ခုမှ နောက်တစ်ခုကို ချက်ချင်းပြောင်းမည်။</string>
+    <string name="clip_transition_unavailable">ကလစ်နှစ်ခုကြား ကူးပြောင်းမှုထည့်ရန် အနည်းဆုံး စစ်ဆေးထားသော ကလစ် 2 ခုကို အရင်အသုံးပြုပါ။</string>
     <string name="clip_transition_boundary_value">ကလစ်ပြောင်းသည့်နေရာ %1$d / %2$d • %3$s → %4$s</string>
     <string name="clip_transition_previous">ယခင်ကလစ်ပြောင်းသည့်နေရာ</string>
     <string name="clip_transition_next">နောက်ကလစ်ပြောင်းသည့်နေရာ</string>
-    <string name="clip_transition_enable">ဒီကလစ်နှစ်ခုကို ချောမွေ့စွာကူးပြောင်းပါ</string>
+    <string name="clip_transition_enable">ဒီကလစ်နှစ်ခုကို ချောမွေ့စွာ ကူးပြောင်းမည်</string>
     <string name="clip_transition_off_summary">တိုက်ရိုက်ပြောင်းမည် — နောက်ကလစ်ကို ချက်ချင်းစတင်မည်။</string>
     <string name="clip_transition_on_summary">ချောမွေ့ကူးပြောင်းမှု • %1$s • %2$s</string>
     <string name="clip_transition_duration">ကူးပြောင်းမှုကြာချိန်</string>
     <string name="clip_transition_duration_value">ကူးပြောင်းချိန်: %1$s</string>
-    <string name="clip_transition_easing">ကူးပြောင်းသည့်ခံစားချက်</string>
+    <string name="clip_transition_easing">ကူးပြောင်းပုံ နူးညံ့မှု</string>
     <string name="clip_transition_linear">အစမှအဆုံး တသမတ်တည်း</string>
     <string name="clip_transition_ease_in_out">အစနှင့်အဆုံး နူးညံ့စွာ</string>
-    <string name="clip_transition_preview">ဒီကလစ်ပြောင်းမှုကို စမ်းကြည့်မည်</string>
+    <string name="clip_transition_preview">ဒီကလစ်ကူးပြောင်းမှုကို စမ်းကြည့်မည်</string>
     <string name="clip_transition_reset">ကူးပြောင်းမှုကို ဖယ်ရှားမည်</string>
-    <string name="clip_transition_preview_unavailable">လက်ရှိ fallback preview တွင် ချောမွေ့ကူးပြောင်းမှုကို မစမ်းနိုင်သေးပါ။ Retry live preview ကို အရင်နှိပ်ပါ။</string>
+    <string name="clip_transition_preview_unavailable">ဒီစက်တွင် လက်ရှိအကျိုးသက်ရောက်မှုများကို တိုက်ရိုက်ကြိုကြည့်မရသေးပါ။ တိုက်ရိုက်ကြိုကြည့်မှုကို ထပ်စမ်းပြီးမှ ဒီကူးပြောင်းမှုကို စမ်းကြည့်ပါ။</string>
     <string name="clip_transition_seconds_value">%1$s စက္ကန့်</string>
 </resources>
