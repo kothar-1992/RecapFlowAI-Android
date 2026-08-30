@@ -5,7 +5,7 @@ Rules:
 - Every translatable <string> in res/values must exist in res/values-my.
 - Myanmar translations must not contain Myanmar numeral glyphs (၀၁၂၃၄၅၆၇၈၉).
   RecapFlowAI intentionally keeps 0-9 numerals consistent in both languages.
-- Format placeholders are compared by name to catch accidental localization breakage.
+- Android format placeholders are compared to catch accidental localization breakage.
 """
 
 from __future__ import annotations
@@ -19,7 +19,19 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DIR = ROOT / "app" / "src" / "main" / "res" / "values"
 MYANMAR_DIR = ROOT / "app" / "src" / "main" / "res" / "values-my"
 MYANMAR_DIGITS = set("၀၁၂၃၄၅၆၇၈၉")
-FORMAT_RE = re.compile(r"%(?:\d+\$)?[-+# 0,(<]*\d*(?:\.\d+)?[a-zA-Z%]")
+
+# Android string resources in this project primarily use positional format arguments
+# such as %1$s, %2$d, and %3$.2f. Also accept compact non-positional printf-style
+# arguments (for example %s or %.2f), but deliberately do not allow whitespace after
+# '%' so ordinary percentage prose such as "100% for preview" is never mistaken for
+# a format argument.
+FORMAT_RE = re.compile(
+    r"%(?:"
+    r"\d+\$[-+#0,(<]*\d*(?:\.\d+)?[bBhHsScCdoxXeEfgGaAtTn]"
+    r"|"
+    r"[-+#0,(<]*\d*(?:\.\d+)?[bBhHsScCdoxXeEfgGaAtTn]"
+    r")"
+)
 
 
 def read_strings(directory: Path) -> dict[str, str]:
@@ -42,7 +54,7 @@ def read_strings(directory: Path) -> dict[str, str]:
 
 
 def placeholders(value: str) -> list[str]:
-    return sorted(token for token in FORMAT_RE.findall(value) if token != "%%")
+    return sorted(FORMAT_RE.findall(value))
 
 
 def main() -> int:
