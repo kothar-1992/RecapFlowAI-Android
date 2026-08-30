@@ -1,0 +1,7 @@
+<resources>
+    <string name="settings_language_title">App ဘာသာစကား</string>
+    <string name="settings_language_description">App ထဲက ခလုတ်များ၊ ရှင်းလင်းချက်များ၊ သတိပေးချက်များနှင့် Editor လုပ်ဆောင်ချက်များတွင် အသုံးပြုမည့် ဘာသာစကားကို ရွေးပါ။</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_myanmar">မြန်မာ</string>
+    <string name="settings_language_note">ဘာသာစကားပြောင်းလဲချိန်တွင် စာမျက်နှာကို ပြန်ဖွင့်မည်။ လက်ရှိ Project နှင့် Edit Settings များကို မဖျက်ပါ။</string>
+</resources>
