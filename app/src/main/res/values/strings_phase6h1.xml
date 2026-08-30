@@ -1,0 +1,20 @@
+<resources>
+    <string name="clip_transition_badge">PHASE 6H.1 • CLIP CROSSFADE</string>
+    <string name="clip_transition_title">Boundary transition</string>
+    <string name="clip_transition_description">Select a reviewed clip boundary and preview one realtime Crossfade. Disabled boundaries remain hard cuts.</string>
+    <string name="clip_transition_unavailable">Apply at least two reviewed clips to configure a boundary transition.</string>
+    <string name="clip_transition_boundary_value">Boundary %1$d of %2$d • %3$s → %4$s</string>
+    <string name="clip_transition_previous">Previous</string>
+    <string name="clip_transition_next">Next</string>
+    <string name="clip_transition_enable">Crossfade this boundary</string>
+    <string name="clip_transition_off_summary">Hard cut — no transition is applied at this boundary.</string>
+    <string name="clip_transition_on_summary">Crossfade • %1$d ms • %2$s</string>
+    <string name="clip_transition_duration">Crossfade duration</string>
+    <string name="clip_transition_duration_value">Duration: %1$d ms</string>
+    <string name="clip_transition_easing">Easing</string>
+    <string name="clip_transition_linear">Linear</string>
+    <string name="clip_transition_ease_in_out">Ease in/out</string>
+    <string name="clip_transition_preview">Preview boundary</string>
+    <string name="clip_transition_reset">Reset to hard cut</string>
+    <string name="clip_transition_preview_unavailable">Realtime Crossfade preview is unavailable on the current preview fallback. Retry live preview first.</string>
+</resources>
