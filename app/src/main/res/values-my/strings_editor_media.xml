@@ -101,4 +101,10 @@
     <string name="overlay_on_no_items_summary">ဖွင့်ထားပါတယ် — စာတန်းဖျော့မလား၊ ပုံ/လိုဂို ထည့်မလား ရွေးပါ။</string>
     <string name="overlay_source_blur_summary">စာတန်းဖျော့ • အား %1$d • %2$s–%3$s</string>
     <string name="overlay_image_summary">ပုံ • %1$s • အရွယ် %2$d%% • မြင်သာမှု %3$d%%</string>
+
+    <string name="transform_random_mirror_suffix"> • ကလစ်တိုင်း ကျပန်း ဘယ်/ညာပြောင်း</string>
+    <string name="random_mirror_per_clip_enable">ကလစ်တိုင်းကို ကျပန်း ဘယ်/ညာပြောင်းမယ်</string>
+    <string name="random_mirror_per_clip_off_summary">ပိတ်ထားပါတယ် — စစ်ဆေးထားတဲ့ ကလစ်တွေကို မူလ ဘယ်/ညာအတိုင်း ထားပါမယ်။</string>
+    <string name="random_mirror_per_clip_on_summary">ဖွင့်ထားပါတယ် — ကလစ်တိုင်းကို တည်ငြိမ်တဲ့ ကျပန်းပုံစံနဲ့ ဘယ်/ညာပြောင်းပါမယ်။ ကြိုကြည့်နဲ့ ဗီဒီယိုထုတ်တဲ့အခါ တူညီတဲ့ ရွေးချယ်မှုကို သုံးပါမယ်။</string>
+    <string name="random_mirror_per_clip_remembered_summary">ဖွင့်ထားတာကို မှတ်ထားပါတယ် — ပုံစံပြင်တာကို ဖွင့်ပြီး စစ်ဆေးထားတဲ့ ကလစ် အနည်းဆုံး 2 ခု သုံးပါ။</string>
 </resources>
