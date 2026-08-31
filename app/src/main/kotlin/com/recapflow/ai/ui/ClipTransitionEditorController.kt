@@ -69,6 +69,16 @@ class ClipTransitionEditorController(
         render()
     }
 
+    /**
+     * Replaces semantic settings without emitting [onSettingsChanged].
+     * Used when target-duration replanning rebinds source-boundary identities by clip index.
+     */
+    fun replaceSettings(settings: ClipTransitionSettings) {
+        state = state.copy(settings = settings)
+        state = ClipTransitionEditorPolicy.reconcile(state, selectedRangesProvider())
+        render()
+    }
+
     fun reset() {
         state = ClipTransitionEditorState()
         render()
