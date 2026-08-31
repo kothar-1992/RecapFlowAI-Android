@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Safe launcher for Phase 6H.1E Per-Clip Random Mirror.
 
-Uses the shared helper for all files, but replaces its compiler and layout patches
-with scoped implementations that are safe against the reviewed 6H.1 source shape.
+Uses the shared helper for all files, replaces its compiler and layout patches with
+scoped implementations safe against the reviewed 6H.1 source shape, then applies the
+ViewBinding parameter-budget split required by the large editor layout.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HELPER_PATH = ROOT / "scripts/apply_phase6h1e_per_clip_random_mirror.py"
+BUDGET_FIX_PATH = ROOT / "scripts/apply_phase6h1e_binding_budget_fix.py"
 
 spec = importlib.util.spec_from_file_location("phase6h1e_helper", HELPER_PATH)
 if spec is None or spec.loader is None:
@@ -149,4 +151,13 @@ def safe_patch_layout() -> bool:
 
 helper.patch_compiler = safe_patch_compiler
 helper.patch_layout = safe_patch_layout
-raise SystemExit(helper.main())
+result = helper.main()
+if result != 0:
+    raise SystemExit(result)
+
+budget_spec = importlib.util.spec_from_file_location("phase6h1e_binding_budget", BUDGET_FIX_PATH)
+if budget_spec is None or budget_spec.loader is None:
+    raise SystemExit(f"Unable to load {BUDGET_FIX_PATH}")
+budget = importlib.util.module_from_spec(budget_spec)
+budget_spec.loader.exec_module(budget)
+raise SystemExit(budget.main())
