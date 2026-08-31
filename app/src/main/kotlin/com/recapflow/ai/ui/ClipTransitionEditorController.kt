@@ -18,6 +18,7 @@ import com.recapflow.ai.media.edit.ClipTransitionEditorState
 import com.recapflow.ai.media.edit.ClipTransitionPolicy
 import com.recapflow.ai.media.edit.ClipTransitionSettings
 import com.recapflow.ai.media.edit.TrimRange
+import java.text.NumberFormat
 
 /**
  * Small View-based adapter for the Phase 6H.1D boundary editor.
@@ -157,6 +158,7 @@ class ClipTransitionEditorController(
             val boundary = ClipTransitionEditorPolicy.selectedBoundary(state, ranges)
             val effective = boundary ?: defaultBoundary(pair.first, pair.second)
             val enabled = boundary?.enabled == true
+            val readableDuration = humanDurationLabel(effective.durationMs)
 
             boundaryValue.text = context.getString(
                 R.string.clip_transition_boundary_value,
@@ -172,7 +174,7 @@ class ClipTransitionEditorController(
             summary.text = if (enabled) {
                 context.getString(
                     R.string.clip_transition_on_summary,
-                    effective.durationMs.toInt(),
+                    readableDuration,
                     easingLabel(effective.easing),
                 )
             } else {
@@ -182,7 +184,7 @@ class ClipTransitionEditorController(
             durationSlider.isEnabled = !busy && enabled
             durationValue.text = context.getString(
                 R.string.clip_transition_duration_value,
-                effective.durationMs.toInt(),
+                readableDuration,
             )
             easingGroup.check(
                 if (effective.easing == ClipTransitionEasing.LINEAR) {
@@ -197,6 +199,15 @@ class ClipTransitionEditorController(
         } finally {
             rendering = false
         }
+    }
+
+    private fun humanDurationLabel(durationMs: Long): String {
+        val locale = context.resources.configuration.locales.get(0)
+        val number = NumberFormat.getNumberInstance(locale).apply {
+            minimumFractionDigits = 0
+            maximumFractionDigits = 2
+        }.format(durationMs.toDouble() / 1_000.0)
+        return context.getString(R.string.clip_transition_seconds_value, number)
     }
 
     private fun defaultBoundary(left: TrimRange, right: TrimRange): ClipTransitionBoundary =

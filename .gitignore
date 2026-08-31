@@ -20,6 +20,10 @@ local.properties
 *.keystore
 keystore.properties
 
+# Ignore Python helper-script cache files
+__pycache__/
+*.py[cod]
+
 # Generated ARM64 FFmpeg SDK. Recreate with the checked-in build script.
 app/src/main/cpp/ffmpeg/prebuilt/arm64-v8a/include/
 app/src/main/cpp/ffmpeg/prebuilt/arm64-v8a/lib/*.a

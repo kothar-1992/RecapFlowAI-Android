@@ -1766,7 +1766,7 @@ class MainActivity : AppCompatActivity() {
                 editor.exportDurationAdvisorDetail.text = getString(
                     R.string.export_duration_aligned,
                     exactDurationText(assessment.plannedDurationMs),
-                    toleranceMs,
+                    humanDurationDeltaText(toleranceMs),
                 )
                 editor.exportApplyDurationButton.isVisible = false
             }
@@ -1776,8 +1776,8 @@ class MainActivity : AppCompatActivity() {
                     exactDurationText(assessment.plannedDurationMs),
                     MediaFormatters.duration(assessment.suggestedDurationMs),
                     if (assessment.adjustmentMs >= 0L) "+" else "−",
-                    abs(assessment.adjustmentMs),
-                    toleranceMs,
+                    humanDurationDeltaText(abs(assessment.adjustmentMs)),
+                    humanDurationDeltaText(toleranceMs),
                 )
                 editor.exportApplyDurationButton.isVisible = true
                 editor.exportApplyDurationButton.text = getString(
@@ -1795,7 +1795,7 @@ class MainActivity : AppCompatActivity() {
                     exactDurationText(assessment.plannedDurationMs),
                     MediaFormatters.duration(assessment.suggestedDurationMs),
                     if (assessment.adjustmentMs >= 0L) "+" else "−",
-                    abs(assessment.adjustmentMs),
+                    humanDurationDeltaText(abs(assessment.adjustmentMs)),
                 )
                 editor.exportApplyDurationButton.isVisible = false
             }
@@ -6048,6 +6048,12 @@ class MainActivity : AppCompatActivity() {
         MediaFormatters.duration(durationMs),
         durationMs.coerceAtLeast(0L) % 1_000L,
     )
+
+    private fun humanDurationDeltaText(durationMs: Long): String = String.format(
+        Locale.US,
+        "%.3f",
+        durationMs.coerceAtLeast(0L) / 1_000.0,
+    ).trimEnd('0').trimEnd('.')
 
     private fun RenderUiState.isActiveRender(): Boolean =
         this is RenderUiState.Preparing ||
