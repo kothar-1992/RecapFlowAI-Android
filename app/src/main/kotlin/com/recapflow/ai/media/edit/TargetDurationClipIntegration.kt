@@ -33,13 +33,13 @@ object TargetDurationClipIntegration {
             newRanges = plan.ranges,
         )
 
-        repeat(MAX_RECONCILIATION_PASSES) {
+        for (pass in 0 until MAX_RECONCILIATION_PASSES) {
             val compiledOverlapMs = ClipTransitionPolicy.plannedOverlapDurationMs(
                 settings = reboundTransitions,
                 selectedRanges = plan.ranges,
                 transform = transform,
             )
-            if (compiledOverlapMs == overlapBudgetMs) return@repeat
+            if (compiledOverlapMs == overlapBudgetMs) break
 
             overlapBudgetMs = compiledOverlapMs
             val previousRanges = plan.ranges
@@ -76,14 +76,15 @@ object TargetDurationClipIntegration {
             )
         }
 
+        val compiledFinalOverlapMs = ClipTransitionPolicy.plannedOverlapDurationMs(
+            settings = reboundTransitions,
+            selectedRanges = plan.ranges,
+            transform = transform,
+        )
         val finalEstimatedDurationMs = TargetDurationClipPlanner.estimateFinalDurationMs(
             ranges = plan.ranges,
             transform = transform,
-            presentationOverlapBudgetMs = ClipTransitionPolicy.plannedOverlapDurationMs(
-                settings = reboundTransitions,
-                selectedRanges = plan.ranges,
-                transform = transform,
-            ),
+            presentationOverlapBudgetMs = compiledFinalOverlapMs,
         )
         if (
             kotlin.math.abs(finalEstimatedDurationMs - targetDurationMs) >
@@ -101,7 +102,10 @@ object TargetDurationClipIntegration {
         return TargetDurationClipReconciliation(
             adaptiveCuts = adaptiveCuts,
             clipTransitions = reboundTransitions,
-            plan = plan.copy(estimatedFinalDurationMs = finalEstimatedDurationMs),
+            plan = plan.copy(
+                estimatedFinalDurationMs = finalEstimatedDurationMs,
+                presentationOverlapBudgetMs = compiledFinalOverlapMs,
+            ),
         )
     }
 
