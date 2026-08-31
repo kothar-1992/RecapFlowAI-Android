@@ -83,6 +83,10 @@ class EditorPreferencesStore(context: Context) {
             .putFloat(key(prefix, "transform.crop.right"), transform.crop.rectangle.right)
             .putFloat(key(prefix, "transform.crop.bottom"), transform.crop.rectangle.bottom)
             .putBoolean(key(prefix, "transform.mirror"), transform.mirrorEnabled)
+            .putBoolean(
+                key(prefix, "transform.mirror.randomPerClip"),
+                transform.randomMirrorPerClipEnabled,
+            )
             .putBoolean(key(prefix, "transform.color.enabled"), transform.color.enabled)
             .putFloat(key(prefix, "transform.color.brightness"), transform.color.brightness)
             .putFloat(key(prefix, "transform.color.contrast"), transform.color.contrast)
@@ -161,6 +165,11 @@ class EditorPreferencesStore(context: Context) {
                 enumValue(prefix, "transform.zoom.mode", ZoomMode.IN),
             ),
             mirrorEnabled = bool(prefix, "transform.mirror", false),
+            randomMirrorPerClipEnabled = bool(
+                prefix,
+                "transform.mirror.randomPerClip",
+                false,
+            ),
             color = color,
             freeze = FreezeSettings(
                 bool(prefix, "transform.freeze.enabled", false),
@@ -246,7 +255,7 @@ class EditorPreferencesStore(context: Context) {
         ?: default
 
     companion object {
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
         private const val MIN_SUPPORTED_SCHEMA_VERSION = 1
         private const val FILE_NAME = "recapflow_editor_preferences"
         private const val KEY_AUTO_RESTORE = "autoRestore"

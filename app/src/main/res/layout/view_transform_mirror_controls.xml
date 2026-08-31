@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+                                                android:id="@+id/mirrorEnabledSwitch"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:layout_marginTop="18dp"
+                                                android:minHeight="48dp"
+                                                android:text="@string/mirror_enable"
+                                                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                                                android:textColor="@color/rf_on_surface" />
+
+                                            <TextView
+                                                android:id="@+id/mirrorSummary"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:layout_marginTop="2dp"
+                                                android:text="@string/mirror_off_summary"
+                                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                                android:textColor="@color/rf_on_surface_variant" />
+
+                                            <com.google.android.material.materialswitch.MaterialSwitch
+                                                android:id="@+id/randomMirrorPerClipSwitch"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:layout_marginTop="14dp"
+                                                android:minHeight="48dp"
+                                                android:text="@string/random_mirror_per_clip_enable"
+                                                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                                                android:textColor="@color/rf_on_surface" />
+
+                                            <TextView
+                                                android:id="@+id/randomMirrorPerClipSummary"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:layout_marginTop="2dp"
+                                                android:text="@string/random_mirror_per_clip_off_summary"
+                                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                                android:textColor="@color/rf_on_surface_variant" />
+
+</LinearLayout>

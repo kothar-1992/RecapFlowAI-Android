@@ -126,6 +126,7 @@
     <string name="transform_on_summary">On • %1$s • %2$s</string>
     <string name="transform_crop_suffix"> • Custom crop</string>
     <string name="transform_mirror_suffix"> • Mirror</string>
+    <string name="transform_random_mirror_suffix"> • Random mirror by clip</string>
     <string name="transform_color_suffix"> • Color</string>
     <string name="transform_zoom_suffix"> • Zoom</string>
     <string name="transform_speed_suffix"> • %1$s speed</string>
@@ -161,6 +162,10 @@
     <string name="mirror_off_summary">Off — remembered mirror choice is omitted from preview and render.</string>
     <string name="mirror_on_summary">On — live preview and exported video are flipped left to right.</string>
     <string name="mirror_remembered_summary">Remembered On — turn Transform on to include Mirror.</string>
+    <string name="random_mirror_per_clip_enable">Random mirror each clip</string>
+    <string name="random_mirror_per_clip_off_summary">Off — reviewed clips keep the normal left/right direction.</string>
+    <string name="random_mirror_per_clip_on_summary">On — each reviewed clip gets a stable random left/right flip. Preview and export use the same choices.</string>
+    <string name="random_mirror_per_clip_remembered_summary">Remembered On — turn Transform on and use at least 2 reviewed clips.</string>
     <string name="color_enable">Color adjustments</string>
     <string name="color_off_summary">Off — remembered color values are omitted from preview and render.</string>
     <string name="color_remembered_summary">Remembered On — turn Transform on to include Color.</string>

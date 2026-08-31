@@ -10,10 +10,12 @@ import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import com.recapflow.ai.BuildConfig
 import com.recapflow.ai.media.MediaInfo
+import com.recapflow.ai.media.edit.AdaptiveCutCompiler
 import com.recapflow.ai.media.edit.AudioCompiler
 import com.recapflow.ai.media.edit.EditPlan
 import com.recapflow.ai.media.edit.OverlayCompiler
 import com.recapflow.ai.media.edit.OverlaySettings
+import com.recapflow.ai.media.edit.PerClipMirrorPolicy
 import com.recapflow.ai.media.edit.ReplacementAudioAsset
 import com.recapflow.ai.media.edit.TransformSettings
 import com.recapflow.ai.media.edit.TrimRange
@@ -141,7 +143,7 @@ object Media3CompositionCompiler {
                 )
                 compositionOffsetUs += plan.freeze.durationMs * 1_000L
             }
-            plan.selectedRanges.forEach { range ->
+            plan.selectedRanges.forEachIndexed { rangeIndex, range ->
                 addItem(
                     buildEditedVideoItem(
                         mediaInfo = mediaInfo,
@@ -153,6 +155,7 @@ object Media3CompositionCompiler {
                         forCompositionPreview = forCompositionPreview,
                         targetFrameRate = targetFrameRate,
                         crossfadeSlot = null,
+                        rangeIndex = rangeIndex,
                     ),
                 )
                 compositionOffsetUs += CompositionOverlayTimelinePolicy.presentationDurationUs(
@@ -298,6 +301,7 @@ object Media3CompositionCompiler {
                     forCompositionPreview = forCompositionPreview,
                     targetFrameRate = targetFrameRate,
                     crossfadeSlot = slot,
+                    rangeIndex = slot.rangeIndex,
                 ),
             )
             cursorUs = slot.presentationEndUs
@@ -316,15 +320,22 @@ object Media3CompositionCompiler {
         forCompositionPreview: Boolean,
         targetFrameRate: Int,
         crossfadeSlot: Media3CrossfadeClipSlot?,
+        rangeIndex: Int,
     ): EditedMediaItem {
+        val rangeTransformSettings = PerClipMirrorPolicy.resolvedSettings(
+            settings = editPlan.transform,
+            range = range,
+            rangeIndex = rangeIndex,
+            clipCount = plan.selectedRanges.size,
+        )
         val speedEffects = if (forCompositionPreview) {
             TransformSpeedEffectsFactory.forCompositionPreview(
-                settings = editPlan.transform,
+                settings = rangeTransformSettings,
                 hasAudio = mediaInfo.hasAudio && !plan.removeSourceAudio,
             )
         } else {
             TransformSpeedEffectsFactory.forRender(
-                settings = editPlan.transform,
+                settings = rangeTransformSettings,
                 hasAudio = mediaInfo.hasAudio && !plan.removeSourceAudio,
             )
         }
@@ -352,7 +363,7 @@ object Media3CompositionCompiler {
         )
         val videoEffects = if (forCompositionPreview) {
             TransformVideoEffects.forCompositionPreview(
-                settings = editPlan.transform,
+                settings = rangeTransformSettings,
                 preset = RenderPreset.HD_720P,
                 targetFrameRate = targetFrameRate.toFloat(),
                 sourceDurationMs = range.durationMs,
@@ -363,7 +374,7 @@ object Media3CompositionCompiler {
             )
         } else {
             TransformVideoEffects.forRender(
-                settings = editPlan.transform,
+                settings = rangeTransformSettings,
                 preset = editPlan.exportPreset,
                 targetFrameRate = targetFrameRate.toFloat(),
                 sourceDurationMs = range.durationMs,
@@ -409,7 +420,20 @@ object Media3CompositionCompiler {
             Effects(
                 emptyList(),
                 TransformVideoEffects.forRender(
-                    settings = frozenVisualSettings(editPlan.transform),
+                    settings = frozenVisualSettings(
+                        PerClipMirrorPolicy.resolvedSettings(
+                            settings = editPlan.transform,
+                            range = (AdaptiveCutCompiler.compile(
+                                editPlan.adaptiveCuts,
+                                editPlan.trimRange,
+                            ) ?: listOf(editPlan.trimRange)).first(),
+                            rangeIndex = 0,
+                            clipCount = (AdaptiveCutCompiler.compile(
+                                editPlan.adaptiveCuts,
+                                editPlan.trimRange,
+                            ) ?: listOf(editPlan.trimRange)).size,
+                        ),
+                    ),
                     preset = editPlan.exportPreset,
                     targetFrameRate = targetFrameRate.toFloat(),
                     sourceDurationMs = freeze.durationMs,

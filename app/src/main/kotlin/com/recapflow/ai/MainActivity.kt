@@ -130,6 +130,18 @@ class MainActivity : AppCompatActivity() {
         get() = checkNotNull(_binding) { "Activity has been destroyed" }
     private val editor
         get() = binding.editorContent
+    private val mirrorEnabledSwitch
+        get() = binding.root.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(
+            R.id.mirrorEnabledSwitch,
+        )
+    private val mirrorSummaryView
+        get() = binding.root.findViewById<android.widget.TextView>(R.id.mirrorSummary)
+    private val randomMirrorPerClipSwitch
+        get() = binding.root.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(
+            R.id.randomMirrorPerClipSwitch,
+        )
+    private val randomMirrorPerClipSummaryView
+        get() = binding.root.findViewById<android.widget.TextView>(R.id.randomMirrorPerClipSummary)
 
     private lateinit var importCoordinator: MediaImportCoordinator
     private lateinit var replacementAudioImportCoordinator: ReplacementAudioImportCoordinator
@@ -172,6 +184,7 @@ class MainActivity : AppCompatActivity() {
     private var cropEnabled = false
     private var cropRectangle = CropRectangle()
     private var mirrorEnabled = false
+    private var randomMirrorPerClipEnabled = false
     private var colorEnabled = false
     private var colorBrightness = 0f
     private var colorContrast = 0f
@@ -611,6 +624,9 @@ class MainActivity : AppCompatActivity() {
             ?: ScaleMode.FIT
         cropEnabled = savedInstanceState?.getBoolean(KEY_CROP_ENABLED) ?: false
         mirrorEnabled = savedInstanceState?.getBoolean(KEY_MIRROR_ENABLED) ?: false
+        randomMirrorPerClipEnabled = savedInstanceState?.getBoolean(
+            KEY_RANDOM_MIRROR_PER_CLIP_ENABLED,
+        ) ?: false
         colorEnabled = savedInstanceState?.getBoolean(KEY_COLOR_ENABLED) ?: false
         colorBrightness = savedInstanceState?.getFloat(KEY_COLOR_BRIGHTNESS) ?: 0f
         colorContrast = savedInstanceState?.getFloat(KEY_COLOR_CONTRAST) ?: 0f
@@ -2993,7 +3009,8 @@ class MainActivity : AppCompatActivity() {
         editor.aspectRatioGroup.check(aspectRatioButtonId(transformAspectRatio))
         editor.scaleModeGroup.check(scaleModeButtonId(transformScaleMode))
         editor.cropEnabledSwitch.isChecked = cropEnabled
-        editor.mirrorEnabledSwitch.isChecked = mirrorEnabled
+        mirrorEnabledSwitch.isChecked = mirrorEnabled
+        randomMirrorPerClipSwitch.isChecked = randomMirrorPerClipEnabled
         editor.colorEnabledSwitch.isChecked = colorEnabled
         editor.colorBrightnessSlider.value = colorBrightness
         editor.colorContrastSlider.value = colorContrast
@@ -3061,9 +3078,24 @@ class MainActivity : AppCompatActivity() {
                 onUserChangedTransform()
             }
         }
-        editor.mirrorEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
+        mirrorEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (mirrorEnabled != isChecked) {
                 mirrorEnabled = isChecked
+                if (isChecked && randomMirrorPerClipEnabled) {
+                    randomMirrorPerClipEnabled = false
+                    randomMirrorPerClipSwitch.isChecked = false
+                }
+                renderTransformControls()
+                onUserChangedTransform()
+            }
+        }
+        randomMirrorPerClipSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (randomMirrorPerClipEnabled != isChecked) {
+                randomMirrorPerClipEnabled = isChecked
+                if (isChecked && mirrorEnabled) {
+                    mirrorEnabled = false
+                    mirrorEnabledSwitch.isChecked = false
+                }
                 renderTransformControls()
                 onUserChangedTransform()
             }
@@ -4125,6 +4157,7 @@ class MainActivity : AppCompatActivity() {
         cropEnabled = transform.crop.enabled
         cropRectangle = transform.crop.rectangle
         mirrorEnabled = transform.mirrorEnabled
+        randomMirrorPerClipEnabled = transform.randomMirrorPerClipEnabled
         colorEnabled = transform.color.enabled
         colorBrightness = transform.color.brightness
         colorContrast = transform.color.contrast
@@ -4192,7 +4225,8 @@ class MainActivity : AppCompatActivity() {
         editor.cropTopSlider.value = cropRectangle.top * 100f
         editor.cropRightSlider.value = (1f - cropRectangle.right) * 100f
         editor.cropBottomSlider.value = (1f - cropRectangle.bottom) * 100f
-        editor.mirrorEnabledSwitch.isChecked = mirrorEnabled
+        mirrorEnabledSwitch.isChecked = mirrorEnabled
+        randomMirrorPerClipSwitch.isChecked = randomMirrorPerClipEnabled
         editor.colorEnabledSwitch.isChecked = colorEnabled
         editor.colorBrightnessSlider.value = colorBrightness
         editor.colorContrastSlider.value = colorContrast
@@ -5310,7 +5344,8 @@ class MainActivity : AppCompatActivity() {
         }
         editor.scaleModeGroup.setChildrenEnabled(scaleControlsEnabled)
         editor.cropEnabledSwitch.isEnabled = controlsEnabled
-        editor.mirrorEnabledSwitch.isEnabled = controlsEnabled
+        mirrorEnabledSwitch.isEnabled = controlsEnabled
+        randomMirrorPerClipSwitch.isEnabled = controlsEnabled
         editor.colorEnabledSwitch.isEnabled = controlsEnabled
         editor.zoomEnabledSwitch.isEnabled = controlsEnabled
         editor.speedEnabledSwitch.isEnabled = controlsEnabled
@@ -5365,6 +5400,9 @@ class MainActivity : AppCompatActivity() {
             append(baseSummary)
             if (transformEnabled && cropEnabled) append(getString(R.string.transform_crop_suffix))
             if (transformEnabled && mirrorEnabled) append(getString(R.string.transform_mirror_suffix))
+            if (transformEnabled && randomMirrorPerClipEnabled) {
+                append(getString(R.string.transform_random_mirror_suffix))
+            }
             if (transformEnabled && colorEnabled) append(getString(R.string.transform_color_suffix))
             if (transformEnabled && zoomEnabled) append(getString(R.string.transform_zoom_suffix))
             if (transformEnabled && speedEnabled) {
@@ -5383,11 +5421,18 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-        editor.mirrorSummary.setText(
+        mirrorSummaryView.setText(
             when {
                 !mirrorEnabled -> R.string.mirror_off_summary
                 transformEnabled -> R.string.mirror_on_summary
                 else -> R.string.mirror_remembered_summary
+            },
+        )
+        randomMirrorPerClipSummaryView.setText(
+            when {
+                !randomMirrorPerClipEnabled -> R.string.random_mirror_per_clip_off_summary
+                transformEnabled -> R.string.random_mirror_per_clip_on_summary
+                else -> R.string.random_mirror_per_clip_remembered_summary
             },
         )
         editor.colorSummary.text = when {
@@ -5912,6 +5957,7 @@ class MainActivity : AppCompatActivity() {
             rectangle = cropRectangle,
         ),
         mirrorEnabled = mirrorEnabled,
+        randomMirrorPerClipEnabled = randomMirrorPerClipEnabled,
         color = ColorSettings(
             enabled = colorEnabled,
             brightness = colorBrightness,
@@ -6063,6 +6109,7 @@ class MainActivity : AppCompatActivity() {
         outState.putFloat(KEY_CROP_RIGHT, cropRectangle.right)
         outState.putFloat(KEY_CROP_BOTTOM, cropRectangle.bottom)
         outState.putBoolean(KEY_MIRROR_ENABLED, mirrorEnabled)
+        outState.putBoolean(KEY_RANDOM_MIRROR_PER_CLIP_ENABLED, randomMirrorPerClipEnabled)
         outState.putBoolean(KEY_COLOR_ENABLED, colorEnabled)
         outState.putFloat(KEY_COLOR_BRIGHTNESS, colorBrightness)
         outState.putFloat(KEY_COLOR_CONTRAST, colorContrast)
@@ -6266,6 +6313,8 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_CROP_RIGHT = "recapflow.transform.crop.right"
         private const val KEY_CROP_BOTTOM = "recapflow.transform.crop.bottom"
         private const val KEY_MIRROR_ENABLED = "recapflow.transform.mirror.enabled"
+        private const val KEY_RANDOM_MIRROR_PER_CLIP_ENABLED =
+            "recapflow.transform.mirror.randomPerClip.enabled"
         private const val KEY_COLOR_ENABLED = "recapflow.transform.color.enabled"
         private const val KEY_COLOR_BRIGHTNESS = "recapflow.transform.color.brightness"
         private const val KEY_COLOR_CONTRAST = "recapflow.transform.color.contrast"

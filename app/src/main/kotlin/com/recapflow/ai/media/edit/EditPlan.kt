@@ -69,6 +69,7 @@ data class TransformSettings(
     val crop: CropSettings = CropSettings(),
     val zoom: ZoomSettings = ZoomSettings(),
     val mirrorEnabled: Boolean = false,
+    val randomMirrorPerClipEnabled: Boolean = false,
     val color: ColorSettings = ColorSettings(),
     val freeze: FreezeSettings = FreezeSettings(),
     val speedEnabled: Boolean = false,
