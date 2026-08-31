@@ -32,10 +32,11 @@ Do not regress this baseline while adding creative features.
 
 # Phase 6UX.1 — English/Myanmar Language + Human-Readable Copy — Issue #26
 
-**Status: ACCEPTANCE PASS — final approved source is validated in the owner's Termux working tree and awaiting repository sync to PR #27.**
+**Status: ACCEPTANCE PASS — repository sync complete; Issue #26 closed completed.**
 
 Implementation branch: `feature/phase-6ux1-language-copy`  
-Stacked PR: #27 (base `feature/phase-6h1-transitions`)
+Stacked PR: #27 (base `feature/phase-6h1-transitions`)  
+Final localization commit: `ada027f846dffe2c8c8d0c8b0976c578e8996d01`
 
 ### Implemented
 - [x] Settings includes explicit `English` / `မြန်မာ` language controls.
@@ -61,9 +62,12 @@ Stacked PR: #27 (base `feature/phase-6h1-transitions`)
 - [x] Owner-device wording/layout/numeric-format review PASS.
 
 ### Repository completion gate
-- [ ] Commit/push the final approved local Human Myanmar/resource-duration edits to PR #27 head.
-- [ ] Confirm PR #27 head contains the approved files.
-- [ ] Mark PR #27 ready and complete Issue #26 only after repository sync is visible.
+- [x] Final approved Human Myanmar/resource-duration edits committed and pushed to PR #27 head.
+- [x] PR #27 head confirmed at `ada027f846dffe2c8c8d0c8b0976c578e8996d01`.
+- [x] Issue #26 closed completed.
+- [ ] GitHub PR #27 draft flag still needs to be switched to Ready for review; connector mutation failed after source validation. The PR is otherwise mergeable and acceptance-complete.
+
+PR #27 remains stacked on `feature/phase-6h1-transitions`; preserve stack ordering while PR #25 remains the active Crossfade branch.
 
 ---
 
@@ -125,6 +129,6 @@ Implementation branch: `feature/phase-6h1-transitions`.
 
 ## Immediate next action
 
-1. Sync the final approved Phase 6UX.1 local source changes to `feature/phase-6ux1-language-copy` and confirm PR #27 head.
-2. Mark Phase 6UX.1 repository gate complete.
-3. Resume Phase 6H.1 owner-device Crossfade runtime validation; do not treat language/device validation as Crossfade runtime proof.
+1. Resume Phase 6H.1 owner-device Crossfade runtime validation; do not treat Phase 6UX.1 language/device validation as Crossfade runtime proof.
+2. Prove realtime boundary preview or capture the precise fallback/runtime failure path without altering the reviewed EditPlan.
+3. After preview PASS, validate 720p + 1080p Crossfade export and A/V sync while preserving the one-final-Transformer invariant.
