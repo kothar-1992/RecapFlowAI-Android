@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Safe launcher for Phase 6H.1E Per-Clip Random Mirror.
 
-Uses the shared helper for all files, but replaces its compiler patch with a scoped
-implementation so the new PerClipMirrorPolicy call itself is never rewritten.
+Uses the shared helper for all files, but replaces its compiler and layout patches
+with scoped implementations that are safe against the reviewed 6H.1 source shape.
 """
 
 from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 HELPER_PATH = ROOT / "scripts/apply_phase6h1e_per_clip_random_mirror.py"
@@ -84,8 +83,7 @@ def safe_patch_compiler() -> bool:
     body2 = body.replace("settings = editPlan.transform,", "settings = rangeTransformSettings,")
     if body2 == body and "settings = rangeTransformSettings," not in body:
         raise RuntimeError("compiler per-item visual settings anchors were not found")
-    block2 = prefix + body2
-    text = text[:start] + block2 + text[end:]
+    text = text[:start] + prefix + body2 + text[end:]
 
     text = helper.replace_once(
         text,
@@ -109,5 +107,46 @@ def safe_patch_compiler() -> bool:
     return helper.write_if_changed(helper.COMPILER, text)
 
 
+def safe_patch_layout() -> bool:
+    text = helper.LAYOUT.read_text(encoding="utf-8")
+    if "@+id/randomMirrorPerClipSwitch" in text:
+        return False
+
+    marker = 'android:id="@+id/mirrorSummary"'
+    marker_index = text.find(marker)
+    if marker_index < 0:
+        raise RuntimeError("layout mirrorSummary id not found")
+
+    block_start = text.rfind("<TextView", 0, marker_index)
+    block_end = text.find("/>", marker_index)
+    if block_start < 0 or block_end < 0:
+        raise RuntimeError("layout mirrorSummary block boundaries not found")
+    block_end += 2
+
+    line_start = text.rfind("\n", 0, block_start) + 1
+    indent = text[line_start:block_start]
+    addition = f'''\n\n{indent}<com.google.android.material.materialswitch.MaterialSwitch
+{indent}    android:id="@+id/randomMirrorPerClipSwitch"
+{indent}    android:layout_width="match_parent"
+{indent}    android:layout_height="wrap_content"
+{indent}    android:layout_marginTop="14dp"
+{indent}    android:minHeight="48dp"
+{indent}    android:text="@string/random_mirror_per_clip_enable"
+{indent}    android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+{indent}    android:textColor="@color/rf_on_surface" />
+
+{indent}<TextView
+{indent}    android:id="@+id/randomMirrorPerClipSummary"
+{indent}    android:layout_width="match_parent"
+{indent}    android:layout_height="wrap_content"
+{indent}    android:layout_marginTop="2dp"
+{indent}    android:text="@string/random_mirror_per_clip_off_summary"
+{indent}    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+{indent}    android:textColor="@color/rf_on_surface_variant" />'''
+    text = text[:block_end] + addition + text[block_end:]
+    return helper.write_if_changed(helper.LAYOUT, text)
+
+
 helper.patch_compiler = safe_patch_compiler
+helper.patch_layout = safe_patch_layout
 raise SystemExit(helper.main())
