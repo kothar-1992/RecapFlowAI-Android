@@ -43,6 +43,8 @@ def locate_element(text: str, view_id: str) -> tuple[int, int]:
 def patch_layout() -> bool:
     text = LAYOUT.read_text(encoding="utf-8")
     if '@layout/view_transform_mirror_controls' in text:
+        if not CHILD.exists():
+            raise RuntimeError("parent references mirror child layout, but child file is missing")
         return False
 
     spans = [locate_element(text, view_id) for view_id in IDS]
@@ -73,6 +75,7 @@ def patch_layout() -> bool:
 
 def patch_main() -> bool:
     text = MAIN.read_text(encoding="utf-8")
+    before = text
     anchor = '''    private val editor\n        get() = binding.editorContent\n'''
     properties = '''    private val mirrorEnabledSwitch\n        get() = binding.root.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(\n            R.id.mirrorEnabledSwitch,\n        )\n    private val mirrorSummaryView\n        get() = binding.root.findViewById<android.widget.TextView>(R.id.mirrorSummary)\n    private val randomMirrorPerClipSwitch\n        get() = binding.root.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(\n            R.id.randomMirrorPerClipSwitch,\n        )\n    private val randomMirrorPerClipSummaryView\n        get() = binding.root.findViewById<android.widget.TextView>(R.id.randomMirrorPerClipSummary)\n'''
 
@@ -90,8 +93,10 @@ def patch_main() -> bool:
     for old, new in replacements.items():
         text = text.replace(old, new)
 
-    MAIN.write_text(text, encoding="utf-8")
-    return True
+    if text != before:
+        MAIN.write_text(text, encoding="utf-8")
+        return True
+    return False
 
 
 def verify() -> None:
@@ -131,13 +136,15 @@ def main() -> int:
         return 2
 
     changed_layout = patch_layout()
-    patch_main()
+    changed_main = patch_main()
     verify()
     print("Phase 6H.1E ViewBinding parameter-budget fix applied.")
     if changed_layout:
         print("Mirror controls moved into view_transform_mirror_controls.xml.")
     else:
         print("Mirror controls were already split from the parent binding.")
+    if changed_main:
+        print("MainActivity mirror references now use root.findViewById.")
     print("Next: rm -rf app/build scripts/__pycache__; git diff --check; rerun unit tests.")
     return 0
 
