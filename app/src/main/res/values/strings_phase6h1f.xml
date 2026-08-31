@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="target_duration_badge">PRIMARY CLIPS MODE</string>
+    <string name="target_duration_title">Target duration</string>
+    <string name="target_duration_description">Choose the final video length. RecapFlowAI distributes clips across the full source instead of trimming only the beginning or end.</string>
+    <string name="target_duration_source_label">Source duration</string>
+    <string name="target_duration_source_value">%1$s</string>
+    <string name="target_duration_desired_label">Desired output</string>
+    <string name="target_duration_minutes_hint">min</string>
+    <string name="target_duration_seconds_hint">sec</string>
+    <string name="target_duration_compression_waiting">Source coverage will appear after a plan is generated.</string>
+    <string name="target_duration_source_keep_value">Keeps %1$s%% of source time</string>
+    <string name="target_duration_estimated_waiting">Estimated final duration: —</string>
+    <string name="target_duration_estimated_value">Estimated final duration: %1$s</string>
+    <string name="target_duration_generate">Generate clip plan</string>
+    <string name="target_duration_invalid">Enter a valid target using minutes and seconds. Seconds must be 0–59 and the target must be at least 2 seconds.</string>
+    <string name="target_duration_impossible">This target cannot be reconciled with the current Speed, Freeze, or Crossfade settings. Change the target or those timing settings and try again.</string>
+    <string name="target_duration_ready">Plan active — review the generated clips before export.</string>
+    <string name="target_duration_draft_off">Target plan is available but currently not applied.</string>
+    <string name="target_duration_pending_changes">Target changed — generate again to apply the new duration.</string>
+    <string name="target_duration_no_source">Import a video to set a target duration.</string>
+</resources>
