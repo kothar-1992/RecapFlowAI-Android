@@ -415,9 +415,9 @@
     <string name="export_quality_2k_detail">2K QHD (1440p) • exact 1440 px short side • 45–60 Mbps H.264 CBR target</string>
     <string name="export_duration_advisor_title">Final duration advisor</string>
     <string name="export_duration_advisor_waiting">Import a video to calculate the reviewed clip duration.</string>
-    <string name="export_duration_aligned">Reviewed plan: %1$s. It already lands on a whole second. Allowed frame/codec drift: ±%2$d ms.</string>
-    <string name="export_duration_suggestion">Reviewed plan: %1$s • closest feasible second: %2$s • final clip adjustment: %3$s%4$d ms. Allowed frame/codec drift after render: ±%5$d ms.</string>
-    <string name="export_duration_unavailable">Reviewed plan: %1$s • closest second: %2$s • difference: %3$s%4$d ms. The final selected range cannot be adjusted safely; change Trim or the final reviewed clip.</string>
+    <string name="export_duration_aligned">Reviewed video: %1$s. It already lands on a whole second. Export may vary by up to ±%2$s seconds.</string>
+    <string name="export_duration_suggestion">Reviewed video: %1$s • closest whole second: %2$s • adjust final clip by %3$s%4$s seconds • export may vary by about ±%5$s seconds.</string>
+    <string name="export_duration_unavailable">Reviewed video: %1$s • closest whole second: %2$s • difference: %3$s%4$s seconds. The final clip cannot be adjusted automatically; change the final clip end time.</string>
     <string name="export_duration_apply">Update clips to %1$s</string>
     <string name="export_duration_updated">Reviewed clips updated to %1$s.</string>
     <string name="export_duration_update_unavailable">The closest duration is no longer available. Review the latest Trim or Adaptive Cuts.</string>
