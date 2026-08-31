@@ -42,7 +42,7 @@ Do not regress this baseline while changing Clips/timeline semantics.
 - [x] Termux unit + assemble PASS (owner report).
 - [x] Owner-device language switch/persistence/layout review PASS.
 - [x] Issue #26 closed.
-- [x] PR #27 merged into `feature/phase-6h1-transitions` as merge commit `3537b7451644177486e27344959c2213896c4f3c`.
+- [x] PR #27 merged into `feature/phase-6h1-transitions`.
 
 Localization is no longer a separate blocker. New UI work must add both English and Myanmar copy from the start.
 
@@ -50,9 +50,9 @@ Localization is no longer a separate blocker. New UI work must add both English 
 
 # Phase 6H.1 — Realtime Clip Transitions — Issue #20 / PR #25
 
-**Status: SOURCE + TERMUX GATES PASS; OWNER-DEVICE CROSSFADE RUNTIME NOT YET ACCEPTED.**
+**Status: SOURCE + TERMUX GATES PASS; OWNER-DEVICE CROSSFADE RUNTIME STILL NOT ACCEPTED.**
 
-Current PR scope is **Crossfade only**.
+Current PR scope remains **Crossfade only**.
 
 ### Implemented
 - [x] semantic per-boundary Crossfade model
@@ -64,8 +64,9 @@ Current PR scope is **Crossfade only**.
 - [x] realtime boundary controls integrated
 - [x] Termux unit + assemble gates reported PASS
 - [x] localization merged into the active branch
+- [x] accepted Random Mirror feature is now also integrated into this active stack
 
-### Remaining gate
+### Remaining Crossfade gate
 - [ ] realtime owner-device Crossfade preview on the actual composition path
 - [ ] explicit safe behavior if preview path is unsupported
 - [ ] 720p Crossfade export PASS
@@ -73,15 +74,16 @@ Current PR scope is **Crossfade only**.
 - [ ] A/V quality/sync PASS
 - [ ] one-final-Transformer invariant preserved
 
-Do **not** add fade-through-black, slide, zoom, or blur-dissolve to PR #25. Additional transition families are deferred until Target-duration Clips (#30) is stable.
+Do **not** add fade-through-black, slide, zoom, or blur-dissolve to PR #25. Additional transition families stay deferred until Target-duration Clips (#30) is stable.
 
 ---
 
 # Phase 6H.1E — Deterministic Per-Clip Random Mirror — Issue #28 / PR #29
 
-**Status: IMPLEMENTED; TERMUX BUILD/TEST PASS REPORTED; OWNER-DEVICE VALIDATION PENDING.**
+**Status: COMPLETE AND INTEGRATED.**
 
-### Implemented
+Final validated/integrated head: `a7cc98cc1507ce2d2c3e8e7e4ea9ca2421fcddde`.
+
 - [x] global Mirror retained
 - [x] separate Random mirror each clip mode
 - [x] deterministic clip-identity decision; no runtime `Random`
@@ -90,40 +92,34 @@ Do **not** add fade-through-black, slide, zoom, or blur-dissolve to PR #25. Addi
 - [x] Crossfade source-index preservation
 - [x] Intro Freeze matches first moving clip orientation
 - [x] preference/state persistence
-- [x] ViewBinding parameter overflow fixed by extracting Mirror controls to a child layout
-- [x] `testDebugUnitTest` PASS (owner report)
-- [x] `assembleDebug` PASS (owner report)
+- [x] ViewBinding budget fix via child Mirror-controls layout
+- [x] refreshed `testDebugUnitTest` PASS (owner report)
+- [x] refreshed `assembleDebug` PASS (owner report)
 - [x] `git diff --check` PASS
+- [x] Myanmar localization verifier PASS: **484 strings covered**
+- [x] Arabic digits `0-9` policy PASS
+- [x] English/Myanmar Random Mirror copy present
+- [x] owner-device verification PASS (owner report)
+- [x] PR #29 recorded by GitHub as merged into `feature/phase-6h1-transitions`
+- [x] Issue #28 closed completed
 
-### Remaining gate
-PR #27 localization is now in PR #29's base branch. Refresh PR #29 from the updated base before final device acceptance.
-
-- [ ] 3+ clips show mixed stable mirror choices
-- [ ] preview rebuild preserves the same pattern
-- [ ] global/random mutual exclusion on device
-- [ ] single clip stays normal
-- [ ] Intro Freeze parity
-- [ ] Crossfade + Random Mirror A/V/identity sanity
-- [ ] 720p/1080p preview/export pattern parity
-- [ ] Random Mirror English/Myanmar copy verified together
-
-Keep PR #29 draft until these pass. Do not expand Random Mirror scope.
+No further Random Mirror scope expansion before Target-duration Clips.
 
 ---
 
 # NEXT CORE WORKFLOW — Target-Duration Clips — Issue #30
 
-**Priority: IMMEDIATE AFTER CURRENT VALIDATION CLEANUP.**
+**Priority: START NEXT.**
 
 The product value is not manual head/tail trimming. Replace the normal Trim-first Clips UX with an authoritative target-duration workflow.
 
-### Required contract
+### Product contract
 - remove standalone head/tail Trim from the normal user-facing Clips workflow
-- internal `TrimRange` may remain as a full-source/timeline boundary only
+- internal `TrimRange` may remain only as a full-source/timeline boundary if required by the IR
 - user chooses final desired duration, e.g. `03:00 → 01:00` or `03:00 → 02:00`
-- deterministic planner distributes kept ranges across the source in chronological order
+- deterministic planner distributes kept ranges across the whole source in chronological order
 - do not truncate the first N seconds or simply delete the tail
-- generated ranges remain reviewable
+- generated ranges remain reviewable before export
 - Clips works with Transform completely OFF
 - Speed remains optional but composes with Clips instead of conflicting with it
 - user target represents **final planned output duration**, not raw selected clip sum
@@ -133,6 +129,14 @@ The product value is not manual head/tail trimming. Replace the normal Trim-firs
 - source is never overwritten
 - exactly one final Transformer export
 
+### First implementation slice
+1. Add a first-class target-duration field/mode to the canonical Clips model.
+2. Port the deterministic target-duration planning principle from `ZeusOwner/recapflow-ai` into Android without server/AI dependency.
+3. Generate source-distributed ordered ranges from source duration + user target.
+4. Reconcile required kept-source duration against active Speed/Crossfade/Freeze semantics so `EditPlan.plannedDurationMs` stays near the requested target.
+5. Replace the normal Trim-first UI with source duration + desired `mm:ss` + compression + estimated final duration + Generate/Review flow.
+6. Provide English/Myanmar copy from the same PR; keep numeric values in Arabic digits `0-9`.
+
 ### First acceptance scenarios
 - [ ] `03:00 → 01:00` distributed source plan
 - [ ] `03:00 → 02:00` distributed source plan
@@ -140,8 +144,11 @@ The product value is not manual head/tail trimming. Replace the normal Trim-firs
 - [ ] Clips + Speed ON/OFF re-reconciles to the same requested target
 - [ ] Crossfade/Freeze included in final-duration tolerance
 - [ ] source-order/story sanity
+- [ ] deterministic repeatability
 - [ ] preview/export duration parity and A/V sync
 - [ ] English/Myanmar UI with Arabic digits `0-9`
+- [ ] Termux unit + assemble PASS
+- [ ] owner-device validation PASS
 
 ---
 
@@ -159,7 +166,7 @@ The product value is not manual head/tail trimming. Replace the normal Trim-firs
 
 ## Immediate next actions
 
-1. Keep PR #25 draft; capture/resolve the owner-device realtime Crossfade fallback path and finish 720p/1080p + A/V validation.
-2. Refresh PR #29 from the now-localized `feature/phase-6h1-transitions` base and run its remaining owner-device Random Mirror checks; do not expand its feature scope.
-3. After those validation-only gates, start Issue #30 as the next implementation phase: **User Target Duration → distributed reviewed Clips → Speed/Crossfade/Freeze reconciliation → shared preview → one final export**.
-4. Do not start #21/#4/#22/#23/#3/#5/#6/#7 implementation PRs before #30 establishes the authoritative duration model.
+1. Start Issue #30 implementation from the consolidated `feature/phase-6h1-transitions` stack at/after `a7cc98cc1507ce2d2c3e8e7e4ea9ca2421fcddde`.
+2. Treat Crossfade PR #25 as a parallel **validation-only** gate; do not expand transition scope while #30 changes the authoritative duration model.
+3. Build the target-duration planner first, then replace the user-facing Trim-first Clips controls.
+4. Prove `03:00 → 01:00`, `03:00 → 02:00`, Clips-only, and Clips+Speed before starting #21/#4/#22/#23/#3/#5/#6/#7 implementation work.
