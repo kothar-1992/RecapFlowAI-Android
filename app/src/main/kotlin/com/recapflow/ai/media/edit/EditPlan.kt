@@ -51,7 +51,14 @@ data class AdaptiveCutSettings(
     val enabled: Boolean = false,
     val preset: AdaptiveCutPreset = AdaptiveCutPreset.BALANCED,
     val reviewedRanges: List<TrimRange> = emptyList(),
+    val mode: ClipPlanningMode = ClipPlanningMode.PRESET_PACING,
+    val targetDurationMs: Long? = null,
 )
+
+enum class ClipPlanningMode {
+    PRESET_PACING,
+    TARGET_DURATION,
+}
 
 enum class AdaptiveCutPreset(
     val keepWindowMs: Long,
