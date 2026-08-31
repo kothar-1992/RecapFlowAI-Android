@@ -1,213 +1,134 @@
 # Recap Flow AI Android — Active Implementation Plan
 
 - **Project:** RecapFlowAI Android
-- **Last updated:** 2026-08-30
+- **Last updated:** 2026-08-31
 - **Verified main baseline:** `7baca862cf7ba02677bebfdba1ada146bd71c1d6`
 - **Verified media rollback:** `stable/phase-6f2.8.1`
-- **Primary target:** ARM64 Android phones/tablets
 - **Primary development / Git environment:** **Termux**
-- **AndroidIDE status:** legacy/fallback environment for IDE-specific inspection when needed; it is no longer the primary branch/build workflow
 - **UI:** Native Kotlin + XML + ViewBinding
-- **Media:** Media3 Composition / CompositionPlayer / Transformer, with FFmpeg/JNI retained for bounded native media support where required
-- **Core invariant:** non-destructive editing; one reviewed `EditPlan`; no intermediate MP4 render per feature; exactly one authoritative final `Transformer.start(...)`
-- **Core processing:** local/on-device; no VPS dependency for normal editing/export
+- **Media:** Media3 Composition / CompositionPlayer / Transformer, with FFmpeg/JNI retained only for bounded native media support.
+- **Core invariant:** one immutable reviewed `EditPlan`; no intermediate MP4 per feature; exactly one authoritative final `Transformer.start(...)`.
 
 ---
 
-## 1. Verified baseline — Phase 6F.2.8.1 DONE
+## Development gate wording
 
-Phase 6F.2.8.1 is the current verified media baseline.
+**Termux build/test PASS → owner-device runtime validation PASS.**
 
-### Verified on owner device
-- [x] 720p H.264 CBR export: 720×1280, target/actual 7.50 Mbps, AAC, Gallery publication PASS.
-- [x] 1080p H.264 CBR export: 1080×1920, target 10.00 Mbps, actual 9.11 Mbps, AAC, Gallery publication PASS.
-- [x] Duration reconciliation accepts bounded MediaCodec/container finalization drift with 350 ms floor while drifts above 250 ms remain visible.
-- [x] Reported average bitrate below 80% of requested CBR target fails validation; 80–90% warns.
-- [x] Source-aware 24/25/30/48/50/60 fps policy remains intact; no synthetic promotion of normal-fps sources to 60 fps.
-- [x] CompositionPlayer / ExoPlayer preview fallback architecture remains intact.
-- [x] Source verifier confirms exactly one final `Transformer.start(...)`.
-- [x] Synced unit tests + debug build PASS.
-- [x] Finalized output completed downstream SRT/narrator editing and successful TikTok playback, providing practical A/V sanity evidence.
+---
 
-### Repository state
-- PR #19 merged Phase 6F.2.8.1 to `main`.
-- PR #24 refreshed this active roadmap.
-- Issues #17 and #13 are closed completed.
-- `stable/phase-6f2.8.1` remains the media rollback checkpoint.
+## Verified baseline — Phase 6F.2.8.1 DONE
+
+- [x] 720p and 1080p H.264/AAC Gallery export accepted on owner device.
+- [x] Duration reconciliation and bitrate validation accepted.
+- [x] Source-aware frame-rate policy retained.
+- [x] Shared preview/export architecture retained.
+- [x] Exactly one final `Transformer.start(...)` remains the render invariant.
+- [x] `stable/phase-6f2.8.1` remains the rollback checkpoint.
 
 Do not regress this baseline while adding creative features.
 
 ---
 
-## 2. Development workflow — Termux primary
+# Phase 6UX.1 — English/Myanmar Language + Human-Readable Copy — Issue #26
 
-The active workflow uses **Termux** for Git, source verification, unit tests and Gradle builds.
+**Status: ACCEPTANCE PASS — repository sync complete; Issue #26 closed completed.**
 
-```text
-GitHub issue / plan
-    ↓
-Termux git fetch / branch / diff / rebase
-    ↓
-Termux source verifier + unit tests
-    ↓
-Termux FFmpeg-enabled assembleDebug
-    ↓
-install/test on physical Android device
-    ↓
-owner-device preview/media acceptance
-    ↓
-PR merge
-```
+Implementation branch: `feature/phase-6ux1-language-copy`  
+Stacked PR: #27 (base `feature/phase-6h1-transitions`)  
+Final localization commit: `ada027f846dffe2c8c8d0c8b0976c578e8996d01`
 
-Normal wording: **Termux build/test PASS → owner-device runtime PASS**.
+### Implemented
+- [x] Settings includes explicit `English` / `မြန်မာ` language controls.
+- [x] AppCompat per-app locale switching and persistence are wired.
+- [x] Android locale config declares `en` and `my`.
+- [x] Language changes do not alter media/EditPlan state and do not start rendering.
+- [x] Myanmar resources cover Home, Editor, Settings, Clips, Transform, Audio, Overlay, Adaptive Clips, Export/Render, diagnostics, and Crossfade surfaces.
+- [x] Normal UI copy is rewritten into plain conversational Myanmar instead of literal engineering terminology.
+- [x] Normal duration copy uses human-readable seconds instead of raw millisecond values.
+- [x] Myanmar UI keeps English/Arabic digits `0-9`; Myanmar digit glyphs are prohibited.
+- [x] Localization verifier checks coverage, format placeholders, XML safety, and numeral policy.
+- [x] Python `__pycache__` / `*.py[cod]` ignored by Git.
 
----
+### Acceptance evidence
+- [x] Human Myanmar final polish PASS.
+- [x] XML structure validation PASS.
+- [x] Localization verifier PASS: **479 strings covered; English numerals `0-9` policy satisfied**.
+- [x] `git diff --check` PASS.
+- [x] Fresh Termux `:app:testDebugUnitTest` PASS (owner report).
+- [x] Fresh FFmpeg-enabled `:app:assembleDebug` PASS (owner report).
+- [x] Owner-device English ↔ မြန်မာ switch PASS.
+- [x] Language persists after restart.
+- [x] Owner-device wording/layout/numeric-format review PASS.
 
-## 3. Product objective
+### Repository completion gate
+- [x] Final approved Human Myanmar/resource-duration edits committed and pushed to PR #27 head.
+- [x] PR #27 head confirmed at `ada027f846dffe2c8c8d0c8b0976c578e8996d01`.
+- [x] Issue #26 closed completed.
+- [ ] GitHub PR #27 draft flag still needs to be switched to Ready for review; connector mutation failed after source validation. The PR is otherwise mergeable and acceptance-complete.
 
-Target creator workflow:
-
-```text
-Import
-  -> Clips
-  -> realtime transitions
-  -> Transform / Blur / Overlay
-  -> animated logo
-  -> SRT + Narrator tracks
-  -> Hook 0–3s preview
-  -> full composition preview
-  -> one final export
-  -> publish
-```
+PR #27 remains stacked on `feature/phase-6h1-transitions`; preserve stack ordering while PR #25 remains the active Crossfade branch.
 
 ---
 
-## 4. Architecture contract
+# Phase 6H.1 — Realtime Clip Transitions — Issue #20
 
-```text
-User controls
-    ↓
-Immutable reviewed EditPlan
-    ↓
-Timeline/source-time projection
-    ↓
-Shared Media3 composition/effect semantics
-    ├── CompositionPlayer / explicit preview fallback
-    └── Transformer final export
-```
+**Status: IN PROGRESS — implementation/build gates passed; owner-device Crossfade runtime remains unverified.**
 
-Rules:
-1. No feature toggle may start an intermediate MP4 render.
-2. Preview and export interpret the same timing/geometry/easing/audio semantics.
-3. Off means true no-op.
-4. Source media is never overwritten.
-5. One final encode remains authoritative.
-6. FFmpeg remains bounded.
-7. Unsupported realtime paths fail explicitly; effects are never silently cleared.
-8. Every implementation PR updates PLAN and regression coverage.
+First vertical slice: **Crossfade only**.
 
----
+### 6H.1A/B/C
+- [x] Semantic `ClipTransitionSettings` / boundaries.
+- [x] Source-boundary identity and speed-aware presentation projection.
+- [x] `EditPlan.clipTransitions` and duration/validation integration.
+- [x] Deterministic two-lane overlapping schedule.
+- [x] Shared compositor alpha/easing primitives.
+- [x] PCM Crossfade envelope after Speed.
+- [x] Feature-gated Media3 Composition execution path.
+- [x] Multiple-input preview graph selection authored.
+- [x] Crossfade-aware source/output preview mapping authored.
+- [x] MainActivity preview factory/timeline integration committed on the transition branch.
+- [x] Unit/assemble gates for these slices PASS.
 
-# ACTIVE FAST TRACK
+### 6H.1D — boundary controls
+- [x] Boundary selector and source-identity editor policy.
+- [x] Crossfade ON/OFF.
+- [x] 150–1000 ms semantic duration policy; normal UI presents human-readable seconds.
+- [x] Linear / ease-in-out choice.
+- [x] Focused boundary preview action; no intermediate encode.
+- [x] Reset-to-direct-change action.
+- [x] MainActivity integration exists remotely.
+- [x] 6H.1D Termux unit gate PASS (owner report).
+- [x] 6H.1D Termux assemble gate PASS (owner report).
 
-## Phase 6H.1 — Realtime Clip Transitions — Issue #20
-
-**Status: IN PROGRESS — runtime and MainActivity preview integration build-verified; 6H.1D boundary controls authored and awaiting Termux gate**
-
-### First vertical slice
-**Crossfade only.** Later transition presets remain blocked until Crossfade passes the complete runtime/device gate.
-
-### 6H.1A — semantic model + timeline projection
-- [x] Backend-independent `ClipTransitionSettings` / `ClipTransitionBoundary`.
-- [x] Adjacent source-range boundary identity.
-- [x] CROSSFADE only.
-- [x] Linear / Ease-in-out semantic easing.
-- [x] 150–1000 ms presentation-duration policy.
-- [x] Trim/reviewed Adaptive Cuts/Speed projection.
-- [x] Presentation duration remains stable under Speed.
-- [x] Deterministic accumulated overlap.
-- [x] Unit regression coverage.
-- [x] Termux `:app:testDebugUnitTest` PASS.
-- [x] Termux FFmpeg-enabled `:app:assembleDebug` PASS.
-
-### 6H.1B — EditPlan + validation integration
-- [x] `EditPlan.clipTransitions` added as immutable reviewed metadata.
-- [x] Planned output duration subtracts valid Crossfade overlap.
-- [x] `EditPlanValidator` maps semantic boundary failures.
-- [x] Existing Transform fade remains separate.
-- [x] Termux gate PASS: **BUILD SUCCESSFUL in 2m 55s, 28 actionable tasks executed**.
-
-### 6H.1C — shared runtime topology + execution spike
-- [x] `Media3CompositionPlan` carries compiled transition topology.
-- [x] Explicit capability guard prevents silent hard-cut fallback.
-- [x] Capability-guard Termux gate PASS: **BUILD SUCCESSFUL in 2m 53s, 28 actionable tasks executed**.
-- [x] Deterministic two-lane clip schedule for overlapping adjacent clips.
-- [x] Shared lane-alpha/easing calculation.
-- [x] Reject adjacent Crossfades that overlap inside the same middle clip.
-- [x] Two-lane topology Termux gate PASS: **BUILD SUCCESSFUL in 2m 55s, 28 actionable tasks executed**.
-- [x] Feature-gated `VideoCompositorSettings` runtime primitives.
-- [x] Matching PCM audio Crossfade envelope primitive after Speed.
-- [x] Runtime-primitives unit gate PASS: **BUILD SUCCESSFUL in 2m 58s, 28 actionable tasks executed**.
-- [x] Runtime-primitives assemble gate PASS: **BUILD SUCCESSFUL in 3m 7s, 43 actionable tasks executed**.
-- [x] Feature-gated two-lane `Composition` execution wiring with explicit gaps and shared compositor.
-- [x] Execution-wiring unit gate PASS: **BUILD SUCCESSFUL in 2m 58s, 28 actionable tasks executed**.
-- [x] Execution-wiring assemble gate PASS: **BUILD SUCCESSFUL in 3m 3s, 43 actionable tasks executed**.
-- [x] `CompositionPreviewPlayerFactory` can select `MultipleInputVideoGraph.Factory` for two video lanes.
-- [x] Crossfade-aware source/output preview timeline mapping authored with dominant-visual overlap semantics.
-- [x] Crossfade-aware timeline mapping unit gate PASS: **BUILD SUCCESSFUL in 2m 52s, 28 actionable tasks executed**.
-- [x] Crossfade-aware timeline mapping assemble gate PASS: **BUILD SUCCESSFUL in 2m 59s, 43 actionable tasks executed**.
-- [x] `MainActivity` now consumes `CompositionPreviewPlayerFactory` and plan-aware source/output seek mapping in committed source.
-- [x] Preview-integration unit gate PASS: **BUILD SUCCESSFUL in 3m 35s, 28 actionable tasks executed**.
-- [x] Preview-integration assemble gate PASS: **BUILD SUCCESSFUL in 3m 20s, 43 actionable tasks executed**.
-- [ ] owner-device realtime preview proves multiple-input graph behavior.
-- [ ] Runtime failure preserves EditPlan and verified hard-cut path on device.
-- [x] One final `Transformer.start(...)`; no temporary Crossfade MP4 remains the architecture invariant.
-
-### Media3 constraint
-The project is pinned to Media3 1.10.0. Official Media3 Composition documentation still lists direct video/audio crossfading as unsupported. Media3 does support overlapping sequences plus custom `VideoCompositorSettings`, including presentation-time-dependent alpha. Therefore the custom compositor path is an explicitly feature-gated runtime spike and is not production-supported until physical-device preview/export evidence passes.
-
-### 6H.1D — realtime boundary controls
-- [x] Pure source-identity boundary editor state authored with stale-boundary pruning.
-- [x] Select clip boundary controls authored.
-- [x] Crossfade ON/OFF controls authored.
-- [x] Duration 150–1000 ms controls authored.
-- [x] Easing selection authored.
-- [x] Boundary preview action authored; no encode is started.
-- [x] Reset-to-hard-cut action authored.
-- [x] UI controller feeds `EditPlan.clipTransitions` without backend-specific metadata.
-- [x] Editor-policy JVM regression tests authored.
-- [x] MainActivity integration patch staged at `scripts/phase6h1d_boundary_controls.patch`.
-- [ ] 6H.1D Termux unit gate PASS.
-- [ ] 6H.1D Termux assemble gate PASS.
+### Runtime status
+Owner-device screenshot previously reached the transition UI but reported that realtime Crossfade preview was unavailable on the current preview fallback. Therefore Crossfade runtime acceptance is **not** inferred from the Phase 6UX.1 language/device PASS.
 
 ### Exit gate
-- [ ] Feature-gated runtime build/test PASS after boundary-control integration.
-- [ ] owner-device realtime boundary preview PASS.
-- [ ] 720p + 1080p Crossfade export PASS.
+- [ ] Owner-device realtime Crossfade boundary preview PASS.
+- [ ] Runtime failure preserves EditPlan and hard-cut/direct-change fallback state.
+- [ ] 720p Crossfade export PASS.
+- [ ] 1080p Crossfade export PASS.
 - [ ] A/V Crossfade quality/sync PASS.
-- [ ] combined features still use exactly one final Transformer start.
+- [ ] Combined features still use exactly one final `Transformer.start(...)`.
 - [ ] PR #25 merged and Issue #20 completed.
 
 Implementation branch: `feature/phase-6h1-transitions`.
 
 ---
 
-## Phase 6H.2 — Animated Logo Overlay + Loop — Issue #21
-Starts after Phase 6H.1 semantics/runtime are stable.
+## Next phases
 
-## Phase 6G.2 + Phase 6H.3 — SRT and Narrator Timeline Integration — Issues #4 + #22
-One authoritative source/presentation timeline; no second timeline model.
-
-## Phase 6H.4 — Hook 0–3 Second Preview — Issue #23
-One action loops the opening window using the reviewed EditPlan.
-
-## Phase 6G.3 — Unified Multi-Stage Edit Graph — Issue #5
-Semantic order remains deterministic and tested.
-
-## Phase 7 — Persistent Render Job Engine — Issue #6
-After creative composition is stable.
+- **6H.2 — Animated Logo Overlay + Loop — Issue #21:** starts after Crossfade runtime semantics are stable.
+- **6G.2 + 6H.3 — SRT + Narrator Timeline — Issues #4 + #22:** use the same authoritative source/presentation timeline.
+- **6H.4 — Hook 0–3 Second Preview — Issue #23.**
+- **6G.3 — Unified Multi-Stage Edit Graph — Issue #5.**
+- **Phase 7 — Persistent Render Job Engine — Issue #6.**
 
 ---
 
 ## Immediate next action
-Pull the latest `feature/phase-6h1-transitions`, apply `scripts/phase6h1d_boundary_controls.patch`, run `git diff --check`, then run the feature-gated unit and assemble commands. After those PASS, commit the MainActivity integration and begin owner-device Crossfade boundary preview testing with reviewed Adaptive Cut ranges.
+
+1. Resume Phase 6H.1 owner-device Crossfade runtime validation; do not treat Phase 6UX.1 language/device validation as Crossfade runtime proof.
+2. Prove realtime boundary preview or capture the precise fallback/runtime failure path without altering the reviewed EditPlan.
+3. After preview PASS, validate 720p + 1080p Crossfade export and A/V sync while preserving the one-final-Transformer invariant.
