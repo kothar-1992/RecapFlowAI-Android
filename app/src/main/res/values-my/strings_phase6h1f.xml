@@ -2,18 +2,22 @@
 <resources>
     <string name="target_duration_badge">အဓိက CLIPS ပုံစံ</string>
     <string name="target_duration_title">လိုချင်တဲ့ ဗီဒီယိုကြာချိန်</string>
-    <string name="target_duration_description">နောက်ဆုံးထွက်မယ့် ဗီဒီယိုကြာချိန်ကို သတ်မှတ်ပါ။ RecapFlowAI က အစ ဒါမှမဟုတ် အဆုံးကိုပဲ ဖြတ်မပစ်ဘဲ မူရင်းဗီဒီယိုတစ်လျှောက် ကလစ်တွေကို ဖြန့်ပြီး ရွေးပေးပါမယ်။</string>
+    <string name="target_duration_description">နောက်ဆုံးထွက်မယ့် ဗီဒီယိုကြာချိန်ကို Slider ဆွဲပြီး ရွေးပါ။ RecapFlowAI က အစ ဒါမှမဟုတ် အဆုံးကိုပဲ ဖြတ်မပစ်ဘဲ မူရင်းဗီဒီယိုတစ်လျှောက် ကလစ်တွေကို ဖြန့်ပြီး ရွေးပေးပါမယ်။</string>
     <string name="target_duration_source_label">မူရင်းဗီဒီယိုကြာချိန်</string>
     <string name="target_duration_source_value">%1$s</string>
     <string name="target_duration_desired_label">လိုချင်တဲ့ နောက်ဆုံးကြာချိန်</string>
     <string name="target_duration_minutes_hint">မိနစ်</string>
     <string name="target_duration_seconds_hint">စက္ကန့်</string>
+    <string name="target_duration_slider_hint">1 စက္ကန့်စီ</string>
+    <string name="target_duration_slider_ready">Slider ကို ဆွဲပြီး ကလစ်အစီအစဉ်ကို ဖန်တီးပါ။</string>
+    <string name="target_duration_source_too_short">ဒီမူရင်းဗီဒီယိုက Target Duration Clips အတွက် တိုလွန်းပါတယ်။</string>
     <string name="target_duration_compression_waiting">ကလစ်အစီအစဉ် ဖန်တီးပြီးရင် မူရင်းဗီဒီယိုထဲက ထိန်းထားမယ့် အချိန်အချိုးကို ပြပါမယ်။</string>
+    <string name="target_duration_selected_ratio">ရွေးထားတဲ့ နောက်ဆုံးကြာချိန်က မူရင်းအချိန်ရဲ့ %1$s%% ဖြစ်ပါတယ်</string>
     <string name="target_duration_source_keep_value">မူရင်းအချိန်ရဲ့ %1$s%% ကို ထိန်းထားမယ်</string>
     <string name="target_duration_estimated_waiting">ခန့်မှန်း နောက်ဆုံးကြာချိန်: —</string>
     <string name="target_duration_estimated_value">ခန့်မှန်း နောက်ဆုံးကြာချိန်: %1$s</string>
     <string name="target_duration_generate">ကလစ်အစီအစဉ် ဖန်တီးမယ်</string>
-    <string name="target_duration_invalid">မိနစ်နဲ့ စက္ကန့်ကို မှန်ကန်စွာ ထည့်ပါ။ စက္ကန့်က 0–59 အတွင်း ဖြစ်ရပြီး လိုချင်တဲ့ကြာချိန်က အနည်းဆုံး 2 စက္ကန့် ဖြစ်ရပါမယ်။</string>
+    <string name="target_duration_invalid">လိုချင်တဲ့ကြာချိန်ကို အနည်းဆုံး 2 စက္ကန့် ရွေးပါ။</string>
     <string name="target_duration_impossible">လက်ရှိ Speed၊ Freeze ဒါမှမဟုတ် Crossfade ချိန်ညှိချက်တွေနဲ့ ဒီကြာချိန်ကို တိတိကျကျ မညှိနိုင်ပါ။ လိုချင်တဲ့ကြာချိန် ဒါမှမဟုတ် အဲဒီ timing ချိန်ညှိချက်တွေကို ပြောင်းပြီး ထပ်စမ်းပါ။</string>
     <string name="target_duration_ready">ကလစ်အစီအစဉ် အသုံးပြုနေပါပြီ — Export မလုပ်ခင် ဖန်တီးထားတဲ့ ကလစ်တွေကို စစ်ဆေးပါ။</string>
     <string name="target_duration_draft_off">လိုချင်တဲ့ကြာချိန်အတွက် ကလစ်အစီအစဉ် ရှိပေမယ့် လက်ရှိ အသုံးမပြုထားပါ။</string>
