@@ -52,7 +52,8 @@ object ImageOverlayAnimationVisualPolicy {
                 rotationDegrees = 360f * progress,
             )
             ImageOverlayAnimationPreset.BOUNCE -> ImageOverlayAnimationVisualState(
-                translateYInOverlayHeights = -0.35f * abs(sin((PI * progress).toFloat())),
+                translateYInOverlayHeights = -0.35f *
+                    abs(sin(PI * progress.toDouble())).toFloat(),
             )
         }
     }
@@ -72,7 +73,7 @@ object ImageOverlayAnimationVisualPolicy {
     }
 
     private fun sinTurn(progress: Float): Float =
-        sin((2.0 * PI * progress.toDouble())).toFloat()
+        sin(2.0 * PI * progress.toDouble()).toFloat()
 }
 
 data class ImageOverlayAnimationVisualState(
