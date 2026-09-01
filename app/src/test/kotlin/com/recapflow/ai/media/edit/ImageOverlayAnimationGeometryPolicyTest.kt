@@ -1,5 +1,6 @@
 package com.recapflow.ai.media.edit
 
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -14,10 +15,12 @@ class ImageOverlayAnimationGeometryPolicyTest {
             ImageOverlayAnimationVisualPolicy.IDENTITY,
         )
 
-        assertEquals(0.80f, result.centerX)
-        assertEquals(0.15f, result.centerY)
-        assertEquals(1f, result.scaleMultiplier)
-        assertEquals(0f, result.rotationRadians)
+        // Normalized geometry is Float-based. Arithmetic such as (0.70f + 0.90f) / 2f may not
+        // be bit-identical to the 0.80f literal even though the geometry is semantically equal.
+        assertTrue(abs(result.centerX - 0.80f) < EPSILON)
+        assertTrue(abs(result.centerY - 0.15f) < EPSILON)
+        assertTrue(abs(result.scaleMultiplier - 1f) < EPSILON)
+        assertTrue(abs(result.rotationRadians) < EPSILON)
     }
 
     @Test
@@ -57,5 +60,9 @@ class ImageOverlayAnimationGeometryPolicyTest {
         assertTrue(result.scaleMultiplier < 1.08f)
         assertTrue(result.centerX + result.rotatedHalfWidth <= 1.0001f)
         assertTrue(result.centerY + result.rotatedHalfHeight <= 1.0001f)
+    }
+
+    private companion object {
+        const val EPSILON = 0.0001f
     }
 }
