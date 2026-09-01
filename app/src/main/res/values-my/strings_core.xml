@@ -105,8 +105,8 @@
     <string name="bitrate_label">ဒေတာနှုန်း</string>
     <string name="file_size_label">ဖိုင်အရွယ်အစား</string>
     <string name="review_editor_title">လိုတဲ့အပိုင်းကို ရွေးမယ်</string>
-    <string name="review_editor_clips_tab">ကလစ်များ • ဖြတ်ရွေး</string>
-    <string name="review_editor_subtitle">သိမ်းချင်တဲ့ ဗီဒီယိုအပိုင်းကို ရွေးပါ။ မဖြတ်ချင်ရင် ဗီဒီယိုအပြည့်ကို ပြန်ရွေးပါ။</string>
+    <string name="review_editor_clips_tab">ကလစ်များ • လိုချင်တဲ့ကြာချိန်</string>
+    <string name="review_editor_subtitle">လိုချင်တဲ့ နောက်ဆုံးကြာချိန်ကို သတ်မှတ်ပြီး ဗီဒီယိုတစ်လျှောက် ကလစ်အစီအစဉ် ဖန်တီးပါ။ ပြီးရင် ရွေးထားတဲ့ကလစ်တွေကို စစ်ဆေးပါ။</string>
     <string name="review_editor_tab_clips">ကလစ်</string>
     <string name="review_editor_tab_transform">ပုံစံပြင်</string>
     <string name="review_editor_tab_audio">အသံ</string>
