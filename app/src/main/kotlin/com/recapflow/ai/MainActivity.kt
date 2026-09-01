@@ -46,6 +46,7 @@ import com.recapflow.ai.media.edit.AudioCompiler
 import com.recapflow.ai.media.edit.AudioPolicy
 import com.recapflow.ai.media.edit.AudioSettings
 import com.recapflow.ai.media.edit.BlurRectangle
+import com.recapflow.ai.media.edit.ClipPlanningMode
 import com.recapflow.ai.media.edit.ClipTransitionSettings
 import com.recapflow.ai.media.edit.ColorSettings
 import com.recapflow.ai.media.edit.CropCompiler
@@ -71,6 +72,8 @@ import com.recapflow.ai.media.edit.ScaleMode
 import com.recapflow.ai.media.edit.SpeedCompiler
 import com.recapflow.ai.media.edit.SourceSubtitleBlurSettings
 import com.recapflow.ai.media.edit.TransformCompiler
+import com.recapflow.ai.media.edit.TargetDurationClipIntegration
+import com.recapflow.ai.media.edit.TargetDurationClipPlanner
 import com.recapflow.ai.media.edit.TransformSettings
 import com.recapflow.ai.media.edit.TransitionCompiler
 import com.recapflow.ai.media.edit.TransitionMode
@@ -114,6 +117,7 @@ import com.recapflow.ai.preferences.EditorSection
 import com.recapflow.ai.preferences.OverlayPreference
 import com.recapflow.ai.ui.ClipTransitionEditorController
 import com.recapflow.ai.ui.MediaFormatters
+import com.recapflow.ai.ui.TargetDurationClipsController
 import java.io.File
 import java.util.Locale
 import kotlin.math.abs
@@ -164,6 +168,7 @@ class MainActivity : AppCompatActivity() {
     private val editorPreferencesHandler = Handler(Looper.getMainLooper())
     private val clipTransitionPreviewHandler = Handler(Looper.getMainLooper())
     private lateinit var clipTransitionEditorController: ClipTransitionEditorController
+    private lateinit var targetDurationClipsController: TargetDurationClipsController
     private val realtimeSourceBlurState = RealtimeSourceBlurState()
     private val realtimeImageOverlayState = RealtimeImageOverlayState()
     private val realtimePreviewSession = RealtimePreviewSession()
@@ -230,6 +235,9 @@ class MainActivity : AppCompatActivity() {
     private var replacementAudioImportName: String? = null
     private var replacementPreviewPath: String? = null
     private var replacementPreviewErrorShown = false
+    // PHASE6H1F_TARGET_DURATION_UI: target output length is the primary Clips authority.
+    private var targetDurationMs: Long? = null
+    private var targetDurationTimingSignature: String? = null
     private var adaptivePreset = AdaptiveCutPreset.BALANCED
     private var adaptiveDraftRanges: List<TrimRange> = emptyList()
     private var adaptiveApplied = false
@@ -782,6 +790,10 @@ class MainActivity : AppCompatActivity() {
         adaptivePreset = savedInstanceState?.getString(KEY_ADAPTIVE_PRESET)
             ?.let { savedName -> AdaptiveCutPreset.entries.firstOrNull { it.name == savedName } }
             ?: AdaptiveCutPreset.BALANCED
+        targetDurationMs = savedInstanceState
+            ?.takeIf { it.containsKey(KEY_TARGET_DURATION_MS) }
+            ?.getLong(KEY_TARGET_DURATION_MS)
+            ?.takeIf { it >= TargetDurationClipPlanner.MIN_TARGET_DURATION_MS }
         val adaptiveStarts = savedInstanceState?.getLongArray(KEY_ADAPTIVE_RANGE_STARTS)
         val adaptiveEnds = savedInstanceState?.getLongArray(KEY_ADAPTIVE_RANGE_ENDS)
         adaptiveDraftRanges = if (
@@ -1066,6 +1078,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         editor.resetTrimButton.setOnClickListener { resetTrimToFullSource() }
+        bindTargetDurationClipsControls()
         bindAdaptiveCutControls()
         bindClipTransitionControls()
         bindReviewEditorTabs()
@@ -1208,6 +1221,163 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun currentAdaptiveCutSettings(): AdaptiveCutSettings = AdaptiveCutSettings(
+        enabled = adaptiveApplied,
+        preset = adaptivePreset,
+        reviewedRanges = adaptiveDraftRanges,
+        mode = if (targetDurationMs != null) {
+            ClipPlanningMode.TARGET_DURATION
+        } else {
+            ClipPlanningMode.PRESET_PACING
+        },
+        targetDurationMs = targetDurationMs,
+    )
+
+    private fun bindTargetDurationClipsControls() {
+        val parent = editor.editCard.getChildAt(0) as? ViewGroup
+            ?: error("Clips editor card must expose a ViewGroup content root")
+
+        // User-facing head/tail Trim is intentionally retired for the normal Clips workflow.
+        // Keep its bound slider as an internal full-source boundary so older IR/compiler code stays
+        // stable while the authoritative user input moves to final target duration.
+        editor.trimRangeSlider.isVisible = false
+        ((editor.trimStartValue.parent as? View)?.parent as? View)?.isVisible = false
+        editor.trimDurationValue.isVisible = false
+        editor.trimValidationMessage.isVisible = false
+        editor.resetTrimButton.isVisible = false
+
+        // PHASE6H1F2_CLIPS_UX_UNIFICATION: Target Duration is the single normal planning authority.
+        // Keep only the shared downstream review controls visible. Preset pacing stays implemented
+        // internally until an explicit Advanced planning mode is introduced.
+        editor.adaptivePresetGroup.isVisible = false
+        editor.generateAdaptiveDraftButton.isVisible = false
+        editor.adaptiveApplySwitch.isVisible = false
+        editor.adaptiveApplyNote.isVisible = false
+
+        targetDurationClipsController = TargetDurationClipsController(
+            context = this,
+            parent = parent,
+            insertionIndex = 3,
+            onGenerate = ::generateTargetDurationPlan,
+        )
+        targetDurationClipsController.setTargetDurationMs(targetDurationMs)
+        renderTargetDurationClipsControls()
+    }
+
+    private fun renderTargetDurationClipsControls() {
+        if (!::targetDurationClipsController.isInitialized) return
+        val info = activeMediaInfo
+        val target = targetDurationMs
+        val hasTargetDraft = target != null && adaptiveDraftRanges.isNotEmpty()
+        val sourceKeepRatio = if (info != null && hasTargetDraft && info.durationMs > 0L) {
+            adaptiveDraftRanges.sumOf { it.durationMs }.toDouble() / info.durationMs.toDouble()
+        } else {
+            null
+        }
+        val estimatedFinalDurationMs = when {
+            info == null || !hasTargetDraft -> null
+            adaptiveApplied -> currentEditPlan(RenderPreset.HD_720P).plannedDurationMs
+            else -> target
+        }
+        val renderActive = ::renderCoordinator.isInitialized &&
+            renderCoordinator.currentState.isActiveRender()
+        targetDurationClipsController.render(
+            sourceDurationMs = info?.durationMs,
+            targetDurationMs = target,
+            estimatedFinalDurationMs = estimatedFinalDurationMs,
+            sourceKeepRatio = sourceKeepRatio,
+            renderActive = renderActive,
+            targetApplied = target != null && adaptiveApplied,
+            hasDraft = hasTargetDraft,
+        )
+    }
+
+    private fun generateTargetDurationPlan(targetMs: Long): Boolean {
+        cancelAdaptivePreview()
+        val generated = applyTargetDurationPlan(targetMs, resetCandidate = true)
+        if (!generated) return false
+        onUserChangedAdaptiveCuts()
+        seekToAdaptiveCandidate()
+        return true
+    }
+
+    private fun applyTargetDurationPlan(
+        targetMs: Long,
+        resetCandidate: Boolean,
+    ): Boolean {
+        val info = activeMediaInfo ?: return false
+        if (renderCoordinator.currentState.isActiveRender()) return false
+        val sourceRange = TrimRange(0L, info.durationMs)
+        val currentRanges = currentSelectedClipRanges(info)
+        val currentTransitions = if (::clipTransitionEditorController.isInitialized) {
+            clipTransitionEditorController.currentSettings()
+        } else {
+            ClipTransitionSettings()
+        }
+        val result = TargetDurationClipIntegration.generate(
+            sourceRange = sourceRange,
+            targetDurationMs = targetMs,
+            currentAdaptiveCuts = currentAdaptiveCutSettings(),
+            currentSelectedRanges = currentRanges,
+            transform = currentTransformSettings(),
+            clipTransitions = currentTransitions,
+        ) ?: return false
+
+        targetDurationMs = targetMs
+        adaptiveDraftRanges = result.adaptiveCuts.reviewedRanges
+        adaptiveApplied = true
+        adaptiveCandidateIndex = if (resetCandidate) {
+            0
+        } else {
+            adaptiveCandidateIndex.coerceIn(0, adaptiveDraftRanges.lastIndex.coerceAtLeast(0))
+        }
+        targetDurationTimingSignature = currentTargetDurationTimingSignature()
+        if (::clipTransitionEditorController.isInitialized) {
+            clipTransitionEditorController.replaceSettings(result.clipTransitions)
+        }
+        if (editor.adaptiveApplySwitch.isChecked != true) {
+            editor.adaptiveApplySwitch.isChecked = true
+        }
+        renderAdaptiveCutControls()
+        renderTargetDurationClipsControls()
+        return true
+    }
+
+    private fun currentTargetDurationTimingSignature(): String {
+        val transform = currentTransformSettings()
+        val speed = SpeedCompiler.compile(transform)?.multiplier ?: 1f
+        val freezeMs = FreezeCompiler.compile(transform)?.durationMs ?: 0L
+        return "${speed.toRawBits()}:$freezeMs"
+    }
+
+    private fun reconcileTargetDurationForTimingChange() {
+        val target = targetDurationMs ?: return
+        if (!adaptiveApplied || adaptiveDraftRanges.isEmpty()) return
+        val signature = currentTargetDurationTimingSignature()
+        if (signature == targetDurationTimingSignature) return
+        if (!applyTargetDurationPlan(target, resetCandidate = false)) {
+            adaptiveApplied = false
+            targetDurationTimingSignature = null
+            if (editor.adaptiveApplySwitch.isChecked) {
+                editor.adaptiveApplySwitch.isChecked = false
+            }
+            if (::targetDurationClipsController.isInitialized) {
+                targetDurationClipsController.showImpossibleTarget()
+            }
+            renderAdaptiveCutControls()
+            renderTargetDurationClipsControls()
+        }
+    }
+
+    private fun clearTargetDurationMode(clearFields: Boolean) {
+        targetDurationMs = null
+        targetDurationTimingSignature = null
+        if (::targetDurationClipsController.isInitialized) {
+            if (clearFields) targetDurationClipsController.setTargetDurationMs(null)
+            renderTargetDurationClipsControls()
+        }
+    }
+
     private fun bindAdaptiveCutControls() {
         editor.adaptivePresetGroup.check(adaptivePresetButtonId(adaptivePreset))
         editor.adaptiveApplySwitch.isChecked = adaptiveApplied
@@ -1221,6 +1391,7 @@ class MainActivity : AppCompatActivity() {
                 else -> AdaptiveCutPreset.BALANCED
             }
             if (adaptivePreset != selected) {
+                clearTargetDurationMode(clearFields = true)
                 val wasApplied = adaptiveApplied
                 adaptivePreset = selected
                 adaptiveDraftRanges = emptyList()
@@ -1236,6 +1407,7 @@ class MainActivity : AppCompatActivity() {
         editor.generateAdaptiveDraftButton.setOnClickListener {
             val info = activeMediaInfo ?: return@setOnClickListener
             cancelAdaptivePreview()
+            clearTargetDurationMode(clearFields = true)
             adaptiveDraftRanges = AdaptiveCutDraftEngine.generate(
                 currentTrimRange(info),
                 adaptivePreset,
@@ -1281,6 +1453,7 @@ class MainActivity : AppCompatActivity() {
         editor.adaptiveClearButton.setOnClickListener {
             val wasApplied = adaptiveApplied
             cancelAdaptivePreview()
+            clearTargetDurationMode(clearFields = true)
             adaptiveDraftRanges = emptyList()
             adaptiveCandidateIndex = 0
             adaptiveApplied = false
@@ -1550,11 +1723,13 @@ class MainActivity : AppCompatActivity() {
         )
         renderAdaptiveCutControls()
         renderTransformControls()
+        renderTargetDurationClipsControls()
         updateTrimSummary()
     }
 
     private fun clearAdaptiveDraft() {
         cancelAdaptivePreview()
+        clearTargetDurationMode(clearFields = true)
         adaptiveDraftRanges = emptyList()
         adaptiveCandidateIndex = 0
         adaptiveApplied = false
@@ -1587,11 +1762,7 @@ class MainActivity : AppCompatActivity() {
     private fun currentSelectedClipRanges(info: MediaInfo): List<TrimRange> {
         val trim = currentTrimRange(info)
         return AdaptiveCutCompiler.compile(
-            AdaptiveCutSettings(
-                enabled = adaptiveApplied,
-                preset = adaptivePreset,
-                reviewedRanges = adaptiveDraftRanges,
-            ),
+            currentAdaptiveCutSettings(),
             trim,
         ) ?: listOf(trim)
     }
@@ -1601,6 +1772,17 @@ class MainActivity : AppCompatActivity() {
         clipTransitionPreviewHandler.removeCallbacks(clipTransitionPreviewCompletion)
         cancelFreezePreview()
         cancelAdaptivePreview()
+        val target = targetDurationMs
+        if (target != null && adaptiveApplied && adaptiveDraftRanges.isNotEmpty()) {
+            if (!applyTargetDurationPlan(target, resetCandidate = false)) {
+                adaptiveApplied = false
+                targetDurationTimingSignature = null
+                if (editor.adaptiveApplySwitch.isChecked) {
+                    editor.adaptiveApplySwitch.isChecked = false
+                }
+                targetDurationClipsController.showImpossibleTarget()
+            }
+        }
         clipTransitionEditorController.reconcile()
         if (!renderCoordinator.currentState.isActiveRender() &&
             renderCoordinator.currentState !is RenderUiState.Idle
@@ -1613,6 +1795,7 @@ class MainActivity : AppCompatActivity() {
             immediate = true,
             force = true,
         )
+        renderTargetDurationClipsControls()
         updateTrimSummary()
     }
 
@@ -1827,11 +2010,13 @@ class MainActivity : AppCompatActivity() {
             )
             onUserChangedAdaptiveCuts()
         } else {
-            editor.trimRangeSlider.values = listOf(
-                update.trimRange.startMs / 1_000f,
-                update.trimRange.endMs / 1_000f,
-            )
-            onUserChangedTrim()
+            Snackbar.make(
+                binding.mainRoot,
+                R.string.export_duration_update_unavailable,
+                Snackbar.LENGTH_SHORT,
+            ).show()
+            renderDurationFitAdvisor()
+            return
         }
 
         Snackbar.make(
@@ -3555,6 +3740,18 @@ class MainActivity : AppCompatActivity() {
         if (::clipTransitionEditorController.isInitialized) {
             clipTransitionEditorController.reconcile()
         }
+        val restoredTarget = targetDurationMs
+        if (restoredTarget != null && adaptiveApplied && adaptiveDraftRanges.isNotEmpty()) {
+            if (!applyTargetDurationPlan(restoredTarget, resetCandidate = false)) {
+                adaptiveApplied = false
+                targetDurationTimingSignature = null
+                if (editor.adaptiveApplySwitch.isChecked) {
+                    editor.adaptiveApplySwitch.isChecked = false
+                }
+                targetDurationClipsController.showImpossibleTarget()
+            }
+        }
+        renderTargetDurationClipsControls()
 
         if (previewPath != info.workingFilePath) {
             technicalDetailsExpanded = false
@@ -4270,6 +4467,7 @@ class MainActivity : AppCompatActivity() {
         renderAudioControls()
         renderOverlayControls()
         renderAdaptiveCutControls()
+        renderTargetDurationClipsControls()
         renderExportQualityControls()
         renderReviewEditorTab()
         applyPreviewOverlayLayout()
@@ -4716,17 +4914,11 @@ class MainActivity : AppCompatActivity() {
         val maxSeconds = (info.durationMs / 1_000f).coerceAtLeast(1f)
         editor.trimRangeSlider.valueFrom = 0f
         editor.trimRangeSlider.valueTo = maxSeconds
-
-        val startMs = restoredTrimStartMs
-            ?.coerceIn(0L, info.durationMs)
-            ?: 0L
-        val endMs = restoredTrimEndMs
-            ?.coerceIn(startMs, info.durationMs)
-            ?: info.durationMs
-        editor.trimRangeSlider.values = listOf(startMs / 1_000f, endMs / 1_000f)
+        editor.trimRangeSlider.values = listOf(0f, maxSeconds)
         restoredTrimStartMs = null
         restoredTrimEndMs = null
         updateTrimSummary()
+        renderTargetDurationClipsControls()
     }
 
     private fun resetTrimToFullSource() {
@@ -4773,6 +4965,7 @@ class MainActivity : AppCompatActivity() {
         val info = activeMediaInfo ?: return
         cancelFreezePreview()
         cancelAdaptivePreview()
+        reconcileTargetDurationForTimingChange()
         if (!renderCoordinator.currentState.isActiveRender() &&
             renderCoordinator.currentState !is RenderUiState.Idle
         ) {
@@ -4782,6 +4975,7 @@ class MainActivity : AppCompatActivity() {
         requestSourceBlurPreviewUpdate("transform controls", immediate = false)
         refreshAudioPreview()
         renderAdaptiveCutControls()
+        renderTargetDurationClipsControls()
         updateTrimSummary()
     }
 
@@ -5898,11 +6092,7 @@ class MainActivity : AppCompatActivity() {
                 else -> EditProfile.NORMAL
             },
             trimRange = currentTrimRange(info),
-            adaptiveCuts = AdaptiveCutSettings(
-                enabled = adaptiveApplied,
-                preset = adaptivePreset,
-                reviewedRanges = adaptiveDraftRanges,
-            ),
+            adaptiveCuts = currentAdaptiveCutSettings(),
             transform = currentTransformSettings(),
             audio = currentAudioSettings(),
             overlays = currentOverlaySettings(),
@@ -6179,6 +6369,7 @@ class MainActivity : AppCompatActivity() {
             outState.putLong(KEY_REPLACEMENT_AUDIO_SIZE_BYTES, asset.fileSizeBytes)
         }
         outState.putString(KEY_ADAPTIVE_PRESET, adaptivePreset.name)
+        targetDurationMs?.let { outState.putLong(KEY_TARGET_DURATION_MS, it) }
         outState.putLongArray(
             KEY_ADAPTIVE_RANGE_STARTS,
             adaptiveDraftRanges.map { it.startMs }.toLongArray(),
@@ -6372,6 +6563,7 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_REPLACEMENT_AUDIO_SIZE_BYTES =
             "recapflow.audio.replacement.sizeBytes"
         private const val KEY_ADAPTIVE_PRESET = "recapflow.adaptive.preset"
+        private const val KEY_TARGET_DURATION_MS = "recapflow.adaptive.targetDurationMs"
         private const val KEY_ADAPTIVE_RANGE_STARTS = "recapflow.adaptive.rangeStarts"
         private const val KEY_ADAPTIVE_RANGE_ENDS = "recapflow.adaptive.rangeEnds"
         private const val KEY_ADAPTIVE_APPLIED = "recapflow.adaptive.applied"
