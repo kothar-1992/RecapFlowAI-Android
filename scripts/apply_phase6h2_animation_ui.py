@@ -16,13 +16,6 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
-def replace_exact(text: str, old: str, new: str, expected: int, label: str) -> str:
-    count = text.count(old)
-    if count != expected:
-        raise SystemExit(f"FAIL: {label}: expected {expected} anchors, found {count}")
-    return text.replace(old, new, expected)
-
-
 def replace_string_resource(text: str, name: str, value: str, label: str) -> str:
     pattern = re.compile(rf'<string name="{re.escape(name)}">.*?</string>')
     replacement = f'<string name="{name}">{value}</string>'
@@ -134,22 +127,27 @@ bind_block = (
 )
 main = replace_once(main, bind_anchor, bind_block, "controller binding")
 
-reset_anchor = (
-    "            imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY\n"
-    "            imageOverlayRangeInitialized = false\n"
+# The same semantic reset appears with different indentation in two lifecycle paths:
+# the explicit Reset button and source-replacement cleanup. Match indentation instead of
+# assuming both blocks have the same whitespace.
+reset_pattern = re.compile(
+    r"(?m)^([ \t]+)imageOverlayOpacity = OverlayCompiler\.DEFAULT_IMAGE_OPACITY\n"
+    r"\1imageOverlayRangeInitialized = false\n"
 )
-reset_block = (
-    "            imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY\n"
-    "            imageOverlayAnimation = ImageOverlayAnimationSettings()\n"
-    "            imageOverlayRangeInitialized = false\n"
-)
-main = replace_exact(
-    main,
-    reset_anchor,
-    reset_block,
-    expected=2,
-    label="image reset lifecycles",
-)
+
+def add_animation_reset(match: re.Match[str]) -> str:
+    indent = match.group(1)
+    return (
+        f"{indent}imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY\n"
+        f"{indent}imageOverlayAnimation = ImageOverlayAnimationSettings()\n"
+        f"{indent}imageOverlayRangeInitialized = false\n"
+    )
+
+main, reset_count = reset_pattern.subn(add_animation_reset, main)
+if reset_count != 2:
+    raise SystemExit(
+        f"FAIL: image reset lifecycles: expected 2 semantic reset blocks, found {reset_count}"
+    )
 
 render_anchor = (
     "        editor.imageOverlayOpacitySlider.value = imageOverlayOpacity * 100f\n"
