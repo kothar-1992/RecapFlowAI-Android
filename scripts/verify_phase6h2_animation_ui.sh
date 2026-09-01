@@ -12,7 +12,7 @@ LAYOUT="app/src/main/res/layout/view_image_overlay_animation_controls.xml"
 EN="app/src/main/res/values/strings_phase6h2.xml"
 MY="app/src/main/res/values-my/strings_phase6h2.xml"
 CORE_EN="app/src/main/res/values/strings.xml"
-CORE_MY="app/src/main/res/values-my/strings_core.xml"
+CORE_MY="app/src/main/res/values-my/strings_overlay_adaptive.xml"
 TEST="app/src/test/kotlin/com/recapflow/ai/preferences/ImageOverlayAnimationPreferencePolicyTest.kt"
 
 for path in "$MAIN" "$PREFS" "$STORE" "$CONTROLLER" "$LAYOUT" "$EN" "$MY" "$CORE_EN" "$CORE_MY" "$TEST"; do
