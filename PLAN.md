@@ -133,7 +133,7 @@ Architecture contract now established:
 
 # NEXT CORE WORKFLOW — Phase 6H.2 Animated Logo / Loop — Issue #21 / PR #32
 
-**Status: FOUNDATION GATES PASS; SHARED OPENGL ANIMATION SLICE PUSHED; REFRESHED GATE PENDING.**
+**Status: FOUNDATION PASS; SHARED OPENGL ANIMATION SLICE IN VALIDATION.**
 
 The static image/logo overlay is extended with semantic animation metadata rather than temporary rendered logo clips.
 
@@ -149,41 +149,39 @@ The static image/logo overlay is extended with semantic animation metadata rathe
 - no temporary animated-logo MP4
 - exactly one final Transformer export
 
-### Phase 6H.2 foundation slice
+### Foundation — PASS
 - [x] first-class `ImageOverlayAnimationPreset` semantics in canonical `EditPlan`
 - [x] loop/duration/period settings with static `NONE` default for backward compatibility
 - [x] deterministic pure `ImageOverlayAnimationPolicy`
 - [x] compiler-owned phase offset so a later reviewed clip resumes source-anchored loop phase instead of restarting
 - [x] CompositionPlayer Speed projection scales window + animation duration + period + phase offset together
 - [x] validation contract for animation duration/period
-- [x] JVM tests added for non-loop, loop repetition, settled interval, clip-boundary phase continuity and Speed projection
-- [x] canonical Termux `testDebugUnitTest` PASS (owner report, 2026-09-01)
-- [x] canonical Termux `assembleDebug` PASS (owner report, 2026-09-01)
+- [x] JVM timing/phase tests
+- [x] owner-reported canonical `testDebugUnitTest` BUILD SUCCESSFUL
+- [x] owner-reported canonical `assembleDebug` BUILD SUCCESSFUL
 
-### Phase 6H.2 shared OpenGL animation slice
-- [x] pure deterministic visual curves for Fade, Fade + scale, Pop, Slide, Pulse, Float, Rotate and Bounce
-- [x] `StaticImageOverlayEffect` consumes the same compiled phase semantics used by preview/export
-- [x] dedicated shader branch preserves the existing `NONE`/static axis-aligned sampling path
-- [x] animated inverse texture sampling supports scale, translation and rotation without temporary media
-- [x] frame-safe transformed geometry clamps rotated/scaled/moving logo inside post-Transform output bounds
-- [x] visual-curve JVM tests added
-- [x] frame-safety JVM tests added
-- [x] Speed preview/export visual-phase parity test added
-- [x] `scripts/verify_phase6h2_animation_gl.sh` source contract gate added
-- [ ] refreshed Termux unit gate after GL slice
-- [ ] refreshed Termux assemble gate after GL slice
-- [ ] owner-device preset preview validation
-- [ ] 720p/1080p animated-logo export validation
+### Shared OpenGL animation slice
+- [x] deterministic visual curves for Fade, Fade+Scale, Pop, Slide, Pulse, Float, Rotate and Bounce
+- [x] shared `StaticImageOverlayEffect` consumes canonical phase/visual semantics for preview/export
+- [x] `NONE` preserves dedicated legacy static shader behavior
+- [x] inverse texture mapping supports translation, scale and rotation
+- [x] transformed logo geometry remains frame-safe after aspect conversion
+- [x] JVM visual-curve / frame-safety / Speed parity tests added
+- [x] first refreshed gate exposed a Float exact-equality-only failure in `identityKeepsResolvedCenterAndScale`
+- [x] test fixed to use epsilon comparisons for normalized Float geometry; production geometry policy unchanged
+- [ ] refreshed Termux `testDebugUnitTest` PASS after float-safe fix
+- [ ] refreshed Termux `assembleDebug` PASS after float-safe fix
 
-### Next implementation slices
-1. Add realtime UI controls and English/Myanmar copy for preset, loop, duration and period.
-2. Persist/restore user settings without altering static-overlay defaults.
-3. Validate Target-duration Clips + Speed + Crossfade + animation in CompositionPlayer preview and one final Transformer export.
-4. Owner-device 720p/1080p preview/export phase, geometry and A/V validation.
+### Next after refreshed gate PASS
+1. Add realtime Animation Preset / Loop / Duration / Period controls.
+2. Add English + Myanmar copy from the same slice.
+3. Persist/restore animation settings without changing static defaults.
+4. Validate Target-duration Clips + Speed + Crossfade + animation in CompositionPlayer preview and one final Transformer export.
+5. Owner-device 720p/1080p preview/export phase and geometry validation.
 
 ---
 
-## Deferred after Phase 6H.2 foundation
+## Deferred after Phase 6H.2
 
 - **6G.2 SRT/Text — Issue #4 + 6H.3 Narrator — Issue #22:** implement together against the authoritative Clips/timing model.
 - **6H.4 Hook 0–3s Preview — Issue #23:** wait until opening composition includes stable Clips/SRT/Narrator timing.
@@ -196,7 +194,7 @@ The static image/logo overlay is extended with semantic animation metadata rathe
 
 ## Immediate next actions
 
-1. Run `scripts/verify_phase6h2_animation_gl.sh` and `git diff --check` on `feature/phase-6h2-animated-logo`.
-2. Run refreshed canonical Termux `:app:testDebugUnitTest` + `:app:assembleDebug` gates.
-3. If both pass, add realtime preset/loop/duration/period controls with English/Myanmar copy.
-4. Keep Crossfade PR #25 as a parallel validation-only gate; do not broaden transition scope.
+1. Pull `feature/phase-6h2-animated-logo` after commit `7bc02bbd24dd911f636928813f669765c63ab784`.
+2. Re-run `scripts/verify_phase6h2_animation_gl.sh` and `git diff --check`.
+3. Re-run canonical Termux `:app:testDebugUnitTest` and `:app:assembleDebug` gates.
+4. Only after both pass, add realtime animation UI/persistence controls.
