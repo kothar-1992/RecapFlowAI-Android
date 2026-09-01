@@ -1,9 +1,10 @@
 # Recap Flow AI Android — Active Implementation Plan
 
 - **Project:** RecapFlowAI Android
-- **Last updated:** 2026-08-31
-- **Verified main baseline:** `7baca862cf7ba02677bebfdba1ada146bd71c1d6`
+- **Last updated:** 2026-09-01
 - **Verified media rollback:** `stable/phase-6f2.8.1`
+- **Active transition baseline:** `feature/phase-6h1-transitions`
+- **Target-duration Clips merge:** `5cdf300e12e62bd1cdb32dc3cc4e90ec5270fd3f`
 - **Primary development / Git environment:** **Termux**
 - **UI:** Native Kotlin + XML + ViewBinding
 - **Media:** Media3 Composition / CompositionPlayer / Transformer, with FFmpeg/JNI retained only for bounded native media support.
@@ -15,6 +16,8 @@
 
 **Termux build/test PASS → owner-device runtime validation PASS.**
 
+Canonical Termux/AndroidIDE gate uses Gradle 9.0.0, `$PREFIX/bin/aapt2`, FFmpeg enabled, Crossfade runtime enabled, `--rerun-tasks`, and `--stacktrace`.
+
 ---
 
 ## Verified baseline — Phase 6F.2.8.1 DONE
@@ -25,7 +28,7 @@
 - [x] Exactly one final `Transformer.start(...)` remains the render invariant.
 - [x] `stable/phase-6f2.8.1` remains the rollback checkpoint.
 
-Do not regress this baseline while changing Clips/timeline semantics.
+Do not regress this baseline while changing timeline semantics.
 
 ---
 
@@ -64,7 +67,7 @@ Current PR scope remains **Crossfade only**.
 - [x] realtime boundary controls integrated
 - [x] Termux unit + assemble gates reported PASS
 - [x] localization merged into the active branch
-- [x] accepted Random Mirror feature is now also integrated into this active stack
+- [x] accepted Random Mirror feature is integrated into this active stack
 
 ### Remaining Crossfade gate
 - [ ] realtime owner-device Crossfade preview on the actual composition path
@@ -74,15 +77,13 @@ Current PR scope remains **Crossfade only**.
 - [ ] A/V quality/sync PASS
 - [ ] one-final-Transformer invariant preserved
 
-Do **not** add fade-through-black, slide, zoom, or blur-dissolve to PR #25. Additional transition families stay deferred until Target-duration Clips (#30) is stable.
+Do not expand transition families while Phase 6H.2 is landing.
 
 ---
 
 # Phase 6H.1E — Deterministic Per-Clip Random Mirror — Issue #28 / PR #29
 
 **Status: COMPLETE AND INTEGRATED.**
-
-Final validated/integrated head: `a7cc98cc1507ce2d2c3e8e7e4ea9ca2421fcddde`.
 
 - [x] global Mirror retained
 - [x] separate Random mirror each clip mode
@@ -96,69 +97,85 @@ Final validated/integrated head: `a7cc98cc1507ce2d2c3e8e7e4ea9ca2421fcddde`.
 - [x] refreshed `testDebugUnitTest` PASS (owner report)
 - [x] refreshed `assembleDebug` PASS (owner report)
 - [x] `git diff --check` PASS
-- [x] Myanmar localization verifier PASS: **484 strings covered**
+- [x] Myanmar localization verifier PASS
 - [x] Arabic digits `0-9` policy PASS
-- [x] English/Myanmar Random Mirror copy present
 - [x] owner-device verification PASS (owner report)
-- [x] PR #29 recorded by GitHub as merged into `feature/phase-6h1-transitions`
+- [x] PR #29 merged into `feature/phase-6h1-transitions`
 - [x] Issue #28 closed completed
 
-No further Random Mirror scope expansion before Target-duration Clips.
+---
+
+# Phase 6H.1F / 6H.1F.2 — Target-Duration Clips — Issue #30 / PR #31
+
+**Status: COMPLETE, VALIDATED, MERGED.**
+
+- [x] standalone head/tail Trim removed from the normal user-facing Clips workflow
+- [x] full-source `TrimRange` retained only as an internal timeline boundary
+- [x] Target Duration is the primary Clips authority
+- [x] deterministic whole-source range planning
+- [x] `03:00 → 01:00` and `03:00 → 02:00` planner coverage
+- [x] generated clips remain chronological and reviewable
+- [x] duplicate Gentle/Balanced/Compact + Generate draft + Apply controls removed from normal Target mode
+- [x] Speed + Crossfade + Intro Freeze reconciliation preserves requested target within tolerance
+- [x] canonical `MainActivity.kt`/localization source committed; no local-only patch state required
+- [x] owner-device Target Duration → Review → Export validation PASS
+- [x] owner explicitly confirmed exported video correct
+- [x] canonical Termux `testDebugUnitTest` PASS
+- [x] canonical Termux `assembleDebug` PASS
+- [x] PR #31 merged as `5cdf300e12e62bd1cdb32dc3cc4e90ec5270fd3f`
+- [x] Issue #30 closed completed
+
+Architecture contract now established:
+
+`Import → Target-duration Clips planning → Review → optional effects → Preview → one final export`
 
 ---
 
-# NEXT CORE WORKFLOW — Target-Duration Clips — Issue #30
+# NEXT CORE WORKFLOW — Phase 6H.2 Animated Logo / Loop — Issue #21
 
-**Priority: START NEXT.**
+**Status: IMPLEMENTATION STARTED on `feature/phase-6h2-animated-logo`.**
 
-The product value is not manual head/tail trimming. Replace the normal Trim-first Clips UX with an authoritative target-duration workflow.
+The static image/logo overlay is extended with semantic animation metadata rather than temporary rendered logo clips.
 
 ### Product contract
-- remove standalone head/tail Trim from the normal user-facing Clips workflow
-- internal `TrimRange` may remain only as a full-source/timeline boundary if required by the IR
-- user chooses final desired duration, e.g. `03:00 → 01:00` or `03:00 → 02:00`
-- deterministic planner distributes kept ranges across the whole source in chronological order
-- do not truncate the first N seconds or simply delete the tail
-- generated ranges remain reviewable before export
-- Clips works with Transform completely OFF
-- Speed remains optional but composes with Clips instead of conflicting with it
-- user target represents **final planned output duration**, not raw selected clip sum
-- duration reconciliation accounts for Speed, Crossfade overlap and Intro Freeze
-- later SRT/Narrator timing must consume the same duration authority
-- preview/export share the same resolved ranges/timing
-- source is never overwritten
+- keep current PNG/JPEG/WebP logo import, normalized position, size, opacity and source-time start/end window
+- presets: None/static, Fade, Fade + scale, Pop, Slide, Pulse, Float, Rotate, Bounce
+- loop ON/OFF
+- animation duration
+- loop period/interval
+- deterministic bounded looping inside the configured overlay window
+- animation timing survives Target-duration Clips boundaries and Speed without preview/export phase drift
+- same Media3/OpenGL effect path for preview and final Transformer export
+- no temporary animated-logo MP4
 - exactly one final Transformer export
 
-### First implementation slice
-1. Add a first-class target-duration field/mode to the canonical Clips model.
-2. Port the deterministic target-duration planning principle from `ZeusOwner/recapflow-ai` into Android without server/AI dependency.
-3. Generate source-distributed ordered ranges from source duration + user target.
-4. Reconcile required kept-source duration against active Speed/Crossfade/Freeze semantics so `EditPlan.plannedDurationMs` stays near the requested target.
-5. Replace the normal Trim-first UI with source duration + desired `mm:ss` + compression + estimated final duration + Generate/Review flow.
-6. Provide English/Myanmar copy from the same PR; keep numeric values in Arabic digits `0-9`.
+### Phase 6H.2 first implementation slice
+- [x] first-class `ImageOverlayAnimationPreset` semantics in canonical `EditPlan`
+- [x] loop/duration/period settings with static `NONE` default for backward compatibility
+- [x] deterministic pure `ImageOverlayAnimationPolicy`
+- [x] compiler-owned phase offset so a later reviewed clip resumes source-anchored loop phase instead of restarting
+- [x] CompositionPlayer Speed projection scales window + animation duration + period + phase offset together
+- [x] validation contract for animation duration/period
+- [x] JVM tests added for non-loop, loop repetition, settled interval, clip-boundary phase continuity and Speed projection
+- [ ] Termux unit gate for first slice
+- [ ] Termux assemble gate for first slice
 
-### First acceptance scenarios
-- [ ] `03:00 → 01:00` distributed source plan
-- [ ] `03:00 → 02:00` distributed source plan
-- [ ] Clips-only with all Transform features OFF
-- [ ] Clips + Speed ON/OFF re-reconciles to the same requested target
-- [ ] Crossfade/Freeze included in final-duration tolerance
-- [ ] source-order/story sanity
-- [ ] deterministic repeatability
-- [ ] preview/export duration parity and A/V sync
-- [ ] English/Myanmar UI with Arabic digits `0-9`
-- [ ] Termux unit + assemble PASS
-- [ ] owner-device validation PASS
+### Next implementation slices
+1. Extend the shared `StaticImageOverlayEffect` shader path into a time-varying logo effect using the canonical phase policy.
+2. Implement preset visual curves while keeping `NONE` pixel-identical to current static behavior.
+3. Add realtime UI controls and English/Myanmar copy for preset, loop, duration and period.
+4. Persist/restore user settings without altering static-overlay defaults.
+5. Validate Target-duration Clips + Speed + Crossfade + animation in CompositionPlayer preview and one final Transformer export.
+6. Owner-device 720p/1080p preview/export phase and geometry validation.
 
 ---
 
-## Deferred until #30 is stable
+## Deferred after Phase 6H.2 foundation
 
-- **6H.2 Animated Logo / Loop — Issue #21:** timing windows must bind to the new target-duration timeline.
-- **6G.2 SRT/Text — Issue #4 + 6H.3 Narrator — Issue #22:** implement together against one authoritative Clips/timing model.
+- **6G.2 SRT/Text — Issue #4 + 6H.3 Narrator — Issue #22:** implement together against the authoritative Clips/timing model.
 - **6H.4 Hook 0–3s Preview — Issue #23:** wait until opening composition includes stable Clips/SRT/Narrator timing.
-- **Timed Video Overlay — Issue #3:** resume only on the new source→presentation projection model.
-- **6G.3 Unified Multi-Stage Edit Graph — Issue #5:** consolidation after target-duration Clips and text/narrator timing are proven.
+- **Timed Video Overlay — Issue #3:** resume on the established source→presentation projection model.
+- **6G.3 Unified Multi-Stage Edit Graph — Issue #5:** consolidation after animated overlay and text/narrator timing are proven.
 - **Phase 7 Persistent Render Job Engine — Issue #6:** wrap the stable final graph, not a moving architecture.
 - **FFmpegAndroid research — Issue #7:** low priority; no architecture replacement during core workflow work.
 
@@ -166,7 +183,7 @@ The product value is not manual head/tail trimming. Replace the normal Trim-firs
 
 ## Immediate next actions
 
-1. Start Issue #30 implementation from the consolidated `feature/phase-6h1-transitions` stack at/after `a7cc98cc1507ce2d2c3e8e7e4ea9ca2421fcddde`.
-2. Treat Crossfade PR #25 as a parallel **validation-only** gate; do not expand transition scope while #30 changes the authoritative duration model.
-3. Build the target-duration planner first, then replace the user-facing Trim-first Clips controls.
-4. Prove `03:00 → 01:00`, `03:00 → 02:00`, Clips-only, and Clips+Speed before starting #21/#4/#22/#23/#3/#5/#6/#7 implementation work.
+1. Run the Phase 6H.2 first-slice Termux unit + assemble gates on `feature/phase-6h2-animated-logo`.
+2. Keep static `NONE` behavior unchanged while wiring animation into the shared OpenGL overlay effect.
+3. Add UI only after timing/phase semantics pass JVM and build gates.
+4. Keep Crossfade PR #25 as a parallel validation-only gate; do not broaden transition scope.
