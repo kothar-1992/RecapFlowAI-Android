@@ -16,6 +16,13 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
+def replace_exact(text: str, old: str, new: str, expected: int, label: str) -> str:
+    count = text.count(old)
+    if count != expected:
+        raise SystemExit(f"FAIL: {label}: expected {expected} anchors, found {count}")
+    return text.replace(old, new, expected)
+
+
 def replace_string_resource(text: str, name: str, value: str, label: str) -> str:
     pattern = re.compile(rf'<string name="{re.escape(name)}">.*?</string>')
     replacement = f'<string name="{name}">{value}</string>'
@@ -127,14 +134,21 @@ bind_block = (
 )
 main = replace_once(main, bind_anchor, bind_block, "controller binding")
 
-main = replace_once(
-    main,
+reset_anchor = (
     "            imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY\n"
-    "            imageOverlayRangeInitialized = false\n",
+    "            imageOverlayRangeInitialized = false\n"
+)
+reset_block = (
     "            imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY\n"
     "            imageOverlayAnimation = ImageOverlayAnimationSettings()\n"
-    "            imageOverlayRangeInitialized = false\n",
-    "reset image controls",
+    "            imageOverlayRangeInitialized = false\n"
+)
+main = replace_exact(
+    main,
+    reset_anchor,
+    reset_block,
+    expected=2,
+    label="image reset lifecycles",
 )
 
 render_anchor = (
@@ -193,7 +207,11 @@ settings_pattern = re.compile(
     r"\s+widthFraction = imageOverlayWidthFraction,\n"
     r"\s+opacity = imageOverlayOpacity,\n)"
 )
-main, count = settings_pattern.subn(r"\1            animation = imageOverlayAnimation,\n", main, count=1)
+main, count = settings_pattern.subn(
+    lambda match: match.group(1) + "            animation = imageOverlayAnimation,\n",
+    main,
+    count=1,
+)
 if count != 1:
     raise SystemExit(f"FAIL: EditPlan image animation: expected one settings block, found {count}")
 
