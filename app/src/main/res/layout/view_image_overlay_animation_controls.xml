@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/imageOverlayAnimationControlsRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/image_overlay_animation_title"
+        android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+        android:textColor="@color/rf_on_surface" />
+
+    <TextView
+        android:id="@+id/imageOverlayAnimationSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/image_overlay_animation_summary_static"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+        android:textColor="@color/rf_on_surface_variant" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:hint="@string/image_overlay_animation_preset_label">
+
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            android:id="@+id/imageOverlayAnimationPresetDropdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/imageOverlayAnimationLoopSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:minHeight="48dp"
+        android:text="@string/image_overlay_animation_loop" />
+
+    <TextView
+        android:id="@+id/imageOverlayAnimationDurationValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/image_overlay_animation_duration_default"
+        android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+        android:textColor="@color/rf_on_surface" />
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/imageOverlayAnimationDurationSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:stepSize="100"
+        android:value="700"
+        android:valueFrom="100"
+        android:valueTo="10000" />
+
+    <LinearLayout
+        android:id="@+id/imageOverlayAnimationPeriodGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/imageOverlayAnimationPeriodValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/image_overlay_animation_period_default"
+            android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+            android:textColor="@color/rf_on_surface" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/imageOverlayAnimationPeriodSlider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:stepSize="100"
+            android:value="2000"
+            android:valueFrom="100"
+            android:valueTo="30000" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/image_overlay_animation_preview_note"
+        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+        android:textColor="@color/rf_on_surface_variant" />
+
+</LinearLayout>
