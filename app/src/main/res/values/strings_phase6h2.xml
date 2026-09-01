@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="image_overlay_animation_title">Logo animation</string>
+    <string name="image_overlay_animation_preset_label">Animation preset</string>
+    <string name="image_overlay_animation_loop">Loop animation</string>
+    <string name="image_overlay_animation_duration_default">Animation duration: 0.7 s</string>
+    <string name="image_overlay_animation_duration_value">Animation duration: %1$s s</string>
+    <string name="image_overlay_animation_period_default">Loop period: 2.0 s</string>
+    <string name="image_overlay_animation_period_value">Loop period: %1$s s</string>
+    <string name="image_overlay_animation_summary_static">Static — keeps the existing logo behavior.</string>
+    <string name="image_overlay_animation_summary_once">%1$s • %2$s s • once</string>
+    <string name="image_overlay_animation_summary_loop">%1$s • %2$s s • repeats every %3$s s</string>
+    <string name="image_overlay_animation_preview_note">Changes update the live logo effect without an intermediate render. Preview and final export use the same animation timing.</string>
+
+    <string name="image_overlay_animation_preset_static">Static</string>
+    <string name="image_overlay_animation_preset_fade">Fade</string>
+    <string name="image_overlay_animation_preset_fade_scale">Fade + scale</string>
+    <string name="image_overlay_animation_preset_pop">Pop</string>
+    <string name="image_overlay_animation_preset_slide">Slide</string>
+    <string name="image_overlay_animation_preset_pulse">Pulse</string>
+    <string name="image_overlay_animation_preset_float">Float</string>
+    <string name="image_overlay_animation_preset_rotate">Rotate</string>
+    <string name="image_overlay_animation_preset_bounce">Bounce</string>
+</resources>
