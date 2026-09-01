@@ -25,7 +25,7 @@
     <string name="image_overlay_off_summary">ပိတ်ထားပါတယ် — အရင်ရွေးထားတဲ့ပုံကို မသုံးပါ။</string>
     <string name="image_overlay_on_summary">ဖွင့်ထားပါတယ် — %1$s ပုံကို တည်းဖြတ်ပြီးတဲ့ ဗီဒီယိုပေါ်မှာ ထည့်ပါမယ်။</string>
     <string name="image_overlay_missing_summary">ပုံတစ်ပုံ ရွေးပါ (PNG၊ JPEG သို့မဟုတ် WebP)။</string>
-    <string name="image_overlay_instruction">လိုဂို ဒါမှမဟုတ် ပုံ 1 ပုံ ထည့်နိုင်ပါတယ်။ နေရာနဲ့အရွယ်ကို အောက်က ခလုတ်တွေနဲ့ ပြင်နိုင်ပါတယ်။</string>
+    <string name="image_overlay_instruction">Logo သို့မဟုတ် image တစ်ပုံထည့်နိုင်ပါတယ်။ နေရာ၊ အရွယ်အစား၊ opacity၊ အသုံးပြုချိန်နဲ့ animation ကို live preview မှာ ကြည့်ပြီး effect graph တစ်ခုတည်းနဲ့ export လုပ်ပါတယ်။</string>
     <string name="image_overlay_choose">ပုံ ရွေးမယ်</string>
     <string name="image_overlay_replace">ပုံ ပြောင်းမယ်</string>
     <string name="image_overlay_remove">ပုံ ဖယ်မယ်</string>
@@ -50,7 +50,7 @@
     <string name="image_overlay_time_label">ပုံကို ဘယ်အချိန်မှာ ပြမလဲ</string>
     <string name="image_overlay_time_value">အချိန်: %1$s – %2$s</string>
     <string name="image_overlay_reset">ပုံဆက်တင်ကို မူလအတိုင်း ပြန်ထားမယ်</string>
-    <string name="image_overlay_preview_note">ပုံရဲ့ ဖောက်မြင်နိုင်မှုကို မပျက်အောင် ထားပါမယ်။ နေရာ၊ အရွယ်၊ ပုံမြင်သာမှုနဲ့ ပြမယ့်အချိန်ကို ကြိုကြည့်နဲ့ 720p/1080p ထုတ်တဲ့အခါ တူတူသုံးပါမယ်။</string>
+    <string name="image_overlay_preview_note">PNG transparency ကို ထိန်းထားပါတယ်။ Realtime preview နဲ့ 720p/1080p export က geometry၊ opacity၊ source-time range နဲ့ animation timing တစ်ခုတည်းကို သုံးပါတယ်။</string>
     <string name="image_overlay_asset_error">ဗီဒီယိုမထုတ်ခင် PNG၊ JPEG ဒါမှမဟုတ် WebP ပုံတစ်ပုံကို ပြန်ရွေးပါ။</string>
     <string name="image_overlay_geometry_error">ပုံရဲ့ နေရာ၊ အရွယ် ဒါမှမဟုတ် ပုံမြင်သာမှုက ရွေးလို့ရတဲ့ အတိုင်းအတာကို ကျော်နေပါတယ်။</string>
     <string name="image_overlay_time_error">ပုံပြမယ့်အချိန်ကို မူရင်းဗီဒီယိုအတွင်းမှာ ရွေးပြီး အနည်းဆုံး 0.25 စက္ကန့်ထားပါ။</string>

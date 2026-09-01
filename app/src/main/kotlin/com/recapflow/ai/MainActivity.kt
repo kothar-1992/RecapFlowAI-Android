@@ -60,6 +60,9 @@ import com.recapflow.ai.media.edit.EditPlanValidator
 import com.recapflow.ai.media.edit.FreezeCompiler
 import com.recapflow.ai.media.edit.FreezeSettings
 import com.recapflow.ai.media.edit.ImageOverlayAsset
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPolicy
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPreset
+import com.recapflow.ai.media.edit.ImageOverlayAnimationSettings
 import com.recapflow.ai.media.edit.ImageOverlayPositionPreset
 import com.recapflow.ai.media.edit.ImageOverlaySettings
 import com.recapflow.ai.media.edit.OverlayCompiler
@@ -116,6 +119,7 @@ import com.recapflow.ai.preferences.EditorPreferencesStore
 import com.recapflow.ai.preferences.EditorSection
 import com.recapflow.ai.preferences.OverlayPreference
 import com.recapflow.ai.ui.ClipTransitionEditorController
+import com.recapflow.ai.ui.ImageOverlayAnimationController
 import com.recapflow.ai.ui.MediaFormatters
 import com.recapflow.ai.ui.TargetDurationClipsController
 import java.io.File
@@ -169,6 +173,7 @@ class MainActivity : AppCompatActivity() {
     private val clipTransitionPreviewHandler = Handler(Looper.getMainLooper())
     private lateinit var clipTransitionEditorController: ClipTransitionEditorController
     private lateinit var targetDurationClipsController: TargetDurationClipsController
+    private lateinit var imageOverlayAnimationController: ImageOverlayAnimationController
     private val realtimeSourceBlurState = RealtimeSourceBlurState()
     private val realtimeImageOverlayState = RealtimeImageOverlayState()
     private val realtimePreviewSession = RealtimePreviewSession()
@@ -224,6 +229,8 @@ class MainActivity : AppCompatActivity() {
     private var imageOverlayCenterY = OverlayCompiler.DEFAULT_IMAGE_CENTER_Y
     private var imageOverlayWidthFraction = OverlayCompiler.DEFAULT_IMAGE_WIDTH_FRACTION
     private var imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY
+    // PHASE6H2_ANIMATION_UI: source-time animation semantics feed live preview + final export.
+    private var imageOverlayAnimation = ImageOverlayAnimationSettings()
     private var imageOverlayStartMs = 0L
     private var imageOverlayEndMs = 0L
     private var imageOverlayRangeInitialized = false
@@ -746,6 +753,37 @@ class MainActivity : AppCompatActivity() {
                 it in OverlayCompiler.MIN_IMAGE_OPACITY..OverlayCompiler.MAX_IMAGE_OPACITY
             }
             ?: OverlayCompiler.DEFAULT_IMAGE_OPACITY
+        val restoredImageAnimationDurationMs = savedInstanceState
+            ?.takeIf { it.containsKey(KEY_IMAGE_OVERLAY_ANIMATION_DURATION_MS) }
+            ?.getLong(KEY_IMAGE_OVERLAY_ANIMATION_DURATION_MS)
+            ?.coerceIn(
+                ImageOverlayAnimationPolicy.MIN_DURATION_MS,
+                ImageOverlayAnimationPolicy.MAX_DURATION_MS,
+            )
+            ?: ImageOverlayAnimationPolicy.DEFAULT_DURATION_MS
+        val restoredImageAnimationPeriodMs = savedInstanceState
+            ?.takeIf { it.containsKey(KEY_IMAGE_OVERLAY_ANIMATION_PERIOD_MS) }
+            ?.getLong(KEY_IMAGE_OVERLAY_ANIMATION_PERIOD_MS)
+            ?.coerceIn(
+                maxOf(ImageOverlayAnimationPolicy.MIN_PERIOD_MS, restoredImageAnimationDurationMs),
+                ImageOverlayAnimationPolicy.MAX_PERIOD_MS,
+            )
+            ?: maxOf(
+                ImageOverlayAnimationPolicy.DEFAULT_PERIOD_MS,
+                restoredImageAnimationDurationMs,
+            )
+        imageOverlayAnimation = ImageOverlayAnimationSettings(
+            preset = savedInstanceState?.getString(KEY_IMAGE_OVERLAY_ANIMATION_PRESET)
+                ?.let { savedName ->
+                    ImageOverlayAnimationPreset.entries.firstOrNull { it.name == savedName }
+                }
+                ?: ImageOverlayAnimationPreset.NONE,
+            loopEnabled = savedInstanceState
+                ?.getBoolean(KEY_IMAGE_OVERLAY_ANIMATION_LOOP_ENABLED)
+                ?: false,
+            durationMs = restoredImageAnimationDurationMs,
+            periodMs = restoredImageAnimationPeriodMs,
+        )
         imageOverlayRangeInitialized = savedInstanceState?.let {
             it.containsKey(KEY_IMAGE_OVERLAY_START_MS) &&
                 it.containsKey(KEY_IMAGE_OVERLAY_END_MS)
@@ -2256,6 +2294,20 @@ class MainActivity : AppCompatActivity() {
         editor.imageOverlayYSlider.value = imageOverlayCenterY * 100f
         editor.imageOverlaySizeSlider.value = imageOverlayWidthFraction * 100f
         editor.imageOverlayOpacitySlider.value = imageOverlayOpacity * 100f
+        if (!::imageOverlayAnimationController.isInitialized) {
+            imageOverlayAnimationController = ImageOverlayAnimationController(
+                container = editor.imageOverlayControlsGroup,
+            ) { settings ->
+                if (imageOverlayAnimation != settings) {
+                    imageOverlayAnimation = settings.copy(phaseOffsetMs = 0L)
+                    renderImageOverlayControls()
+                    onUserChangedOverlay(
+                        throttleSourceBlurPreview = true,
+                        reason = "image animation controls",
+                    )
+                }
+            }
+        }
         renderOverlayControls()
 
         editor.overlayEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -2460,6 +2512,7 @@ class MainActivity : AppCompatActivity() {
             imageOverlayCenterY = OverlayCompiler.DEFAULT_IMAGE_CENTER_Y
             imageOverlayWidthFraction = OverlayCompiler.DEFAULT_IMAGE_WIDTH_FRACTION
             imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY
+            imageOverlayAnimation = ImageOverlayAnimationSettings()
             imageOverlayRangeInitialized = false
             imageOverlayRangeFollowsTrim = true
             ensureImageOverlayRange()
@@ -2921,6 +2974,16 @@ class MainActivity : AppCompatActivity() {
         editor.imageOverlayYSlider.value = imageOverlayCenterY * 100f
         editor.imageOverlaySizeSlider.value = imageOverlayWidthFraction * 100f
         editor.imageOverlayOpacitySlider.value = imageOverlayOpacity * 100f
+        if (::imageOverlayAnimationController.isInitialized) {
+            val renderActive = ::renderCoordinator.isInitialized &&
+                renderCoordinator.currentState.isActiveRender()
+            val animationVisible = overlayEnabled && imageOverlayEnabled
+            imageOverlayAnimationController.render(
+                settings = imageOverlayAnimation,
+                visible = animationVisible,
+                enabled = animationVisible && !renderActive && !imageOverlayImporting,
+            )
+        }
         val preset = ImageOverlayPositionPreset.entries.firstOrNull {
             abs(it.centerX - imageOverlayCenterX) < 0.001f &&
                 abs(it.centerY - imageOverlayCenterY) < 0.001f
@@ -3701,6 +3764,7 @@ class MainActivity : AppCompatActivity() {
                 imageOverlayCenterY = OverlayCompiler.DEFAULT_IMAGE_CENTER_Y
                 imageOverlayWidthFraction = OverlayCompiler.DEFAULT_IMAGE_WIDTH_FRACTION
                 imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY
+                imageOverlayAnimation = ImageOverlayAnimationSettings()
                 imageOverlayRangeInitialized = false
                 imageOverlayRangeFollowsTrim = true
             }
@@ -4329,6 +4393,10 @@ class MainActivity : AppCompatActivity() {
                     imageCenterY = imageOverlayCenterY,
                     imageWidthFraction = imageOverlayWidthFraction,
                     imageOpacity = imageOverlayOpacity,
+                    imageAnimationPreset = imageOverlayAnimation.preset,
+                    imageAnimationLoopEnabled = imageOverlayAnimation.loopEnabled,
+                    imageAnimationDurationMs = imageOverlayAnimation.durationMs,
+                    imageAnimationPeriodMs = imageOverlayAnimation.periodMs,
                 ),
                 adaptivePreset = adaptivePreset,
                 renderPreset = selectedRenderPreset,
@@ -4389,6 +4457,12 @@ class MainActivity : AppCompatActivity() {
         imageOverlayCenterY = snapshot.overlay.imageCenterY
         imageOverlayWidthFraction = snapshot.overlay.imageWidthFraction
         imageOverlayOpacity = snapshot.overlay.imageOpacity
+        imageOverlayAnimation = ImageOverlayAnimationSettings(
+            preset = snapshot.overlay.imageAnimationPreset,
+            loopEnabled = snapshot.overlay.imageAnimationLoopEnabled,
+            durationMs = snapshot.overlay.imageAnimationDurationMs,
+            periodMs = snapshot.overlay.imageAnimationPeriodMs,
+        )
         imageOverlayEnabled = snapshot.overlay.imageEnabled &&
             assetDependentSettings && imageOverlayAsset != null
 
@@ -6125,6 +6199,7 @@ class MainActivity : AppCompatActivity() {
             centerY = imageOverlayCenterY,
             widthFraction = imageOverlayWidthFraction,
             opacity = imageOverlayOpacity,
+            animation = imageOverlayAnimation,
             startMs = imageOverlayStartMs,
             endMs = imageOverlayEndMs,
         ),
@@ -6346,6 +6421,19 @@ class MainActivity : AppCompatActivity() {
         outState.putFloat(KEY_IMAGE_OVERLAY_CENTER_Y, imageOverlayCenterY)
         outState.putFloat(KEY_IMAGE_OVERLAY_WIDTH_FRACTION, imageOverlayWidthFraction)
         outState.putFloat(KEY_IMAGE_OVERLAY_OPACITY, imageOverlayOpacity)
+        outState.putString(KEY_IMAGE_OVERLAY_ANIMATION_PRESET, imageOverlayAnimation.preset.name)
+        outState.putBoolean(
+            KEY_IMAGE_OVERLAY_ANIMATION_LOOP_ENABLED,
+            imageOverlayAnimation.loopEnabled,
+        )
+        outState.putLong(
+            KEY_IMAGE_OVERLAY_ANIMATION_DURATION_MS,
+            imageOverlayAnimation.durationMs,
+        )
+        outState.putLong(
+            KEY_IMAGE_OVERLAY_ANIMATION_PERIOD_MS,
+            imageOverlayAnimation.periodMs,
+        )
         if (imageOverlayRangeInitialized) {
             outState.putLong(KEY_IMAGE_OVERLAY_START_MS, imageOverlayStartMs)
             outState.putLong(KEY_IMAGE_OVERLAY_END_MS, imageOverlayEndMs)
@@ -6547,6 +6635,10 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_IMAGE_OVERLAY_CENTER_Y = "recapflow.overlay.image.centerY"
         private const val KEY_IMAGE_OVERLAY_WIDTH_FRACTION = "recapflow.overlay.image.width"
         private const val KEY_IMAGE_OVERLAY_OPACITY = "recapflow.overlay.image.opacity"
+        private const val KEY_IMAGE_OVERLAY_ANIMATION_PRESET = "recapflow.overlay.image.animation.preset"
+        private const val KEY_IMAGE_OVERLAY_ANIMATION_LOOP_ENABLED = "recapflow.overlay.image.animation.loop"
+        private const val KEY_IMAGE_OVERLAY_ANIMATION_DURATION_MS = "recapflow.overlay.image.animation.durationMs"
+        private const val KEY_IMAGE_OVERLAY_ANIMATION_PERIOD_MS = "recapflow.overlay.image.animation.periodMs"
         private const val KEY_IMAGE_OVERLAY_START_MS = "recapflow.overlay.image.startMs"
         private const val KEY_IMAGE_OVERLAY_END_MS = "recapflow.overlay.image.endMs"
         private const val KEY_IMAGE_OVERLAY_RANGE_FOLLOWS_TRIM = "recapflow.overlay.image.rangeFollowsTrim"
