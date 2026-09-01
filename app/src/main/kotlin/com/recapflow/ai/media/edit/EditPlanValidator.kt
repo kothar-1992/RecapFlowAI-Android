@@ -199,6 +199,9 @@ object EditPlanValidator {
             ) {
                 add(EditPlanIssue.IMAGE_OVERLAY_TIME_RANGE_INVALID)
             }
+            if (!ImageOverlayAnimationPolicy.isValid(image.animation)) {
+                add(EditPlanIssue.IMAGE_OVERLAY_ANIMATION_INVALID)
+            }
         }
     }
 
@@ -239,4 +242,5 @@ enum class EditPlanIssue(val description: String) {
     IMAGE_OVERLAY_ASSET_INVALID("Choose a valid PNG, JPEG, or WebP image before rendering"),
     IMAGE_OVERLAY_GEOMETRY_INVALID("Image overlay position, size, or opacity is outside the supported range"),
     IMAGE_OVERLAY_TIME_RANGE_INVALID("Image overlay time range must stay inside the source and last at least 0.25 seconds"),
+    IMAGE_OVERLAY_ANIMATION_INVALID("Logo animation duration and loop period are outside the supported range"),
 }
