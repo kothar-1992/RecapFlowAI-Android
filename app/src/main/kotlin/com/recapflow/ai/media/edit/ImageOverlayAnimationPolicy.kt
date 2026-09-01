@@ -18,6 +18,7 @@ object ImageOverlayAnimationPolicy {
     const val MAX_PERIOD_MS = 30_000L
     const val DEFAULT_PERIOD_MS = 2_000L
 
+    /** Validation for reviewed/user-facing source-time settings. */
     fun isValid(settings: ImageOverlayAnimationSettings): Boolean =
         settings.durationMs in MIN_DURATION_MS..MAX_DURATION_MS &&
             settings.periodMs in MIN_PERIOD_MS..MAX_PERIOD_MS &&
@@ -29,12 +30,16 @@ object ImageOverlayAnimationPolicy {
      * window. Non-looping presets play once and remain at their settled end state. Looping presets
      * repeat every [ImageOverlayAnimationSettings.periodMs]; any time between animation duration and
      * the next period remains at the settled end state.
+     *
+     * Runtime-resolvable timing intentionally permits positive values below the source-time UI
+     * minimum because CompositionPlayer projects valid source durations through Speed (for example
+     * 100 ms at 2x becomes 50 ms presentation time).
      */
     fun resolve(
         settings: ImageOverlayAnimationSettings,
         windowLocalTimeMs: Long,
     ): ImageOverlayAnimationPhase {
-        require(isValid(settings)) { "Invalid image overlay animation settings: $settings" }
+        require(isResolvable(settings)) { "Unresolvable image overlay animation settings: $settings" }
 
         if (settings.preset == ImageOverlayAnimationPreset.NONE) {
             return ImageOverlayAnimationPhase(
@@ -67,6 +72,11 @@ object ImageOverlayAnimationPolicy {
             animating = animating,
         )
     }
+
+    private fun isResolvable(settings: ImageOverlayAnimationSettings): Boolean =
+        settings.durationMs > 0L &&
+            settings.periodMs >= settings.durationMs &&
+            settings.phaseOffsetMs >= 0L
 
     private fun normalizedProgress(elapsedMs: Long, durationMs: Long): Float =
         (elapsedMs.toDouble() / durationMs.toDouble()).coerceIn(0.0, 1.0).toFloat()
