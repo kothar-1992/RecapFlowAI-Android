@@ -188,8 +188,8 @@ object CompositionPreviewTimelinePolicy {
     /**
      * CompositionPlayer requires the experimental speed effect to be the first video effect. The
      * effects that follow it therefore observe presentation time after speed is applied. Convert a
-     * range-local source-time overlay window to that presentation-time domain before constructing
-     * preview-only blur/logo effects.
+     * range-local source-time overlay window and all source-anchored logo animation timing into that
+     * presentation-time domain before constructing preview-only blur/logo effects.
      */
     fun projectOverlayWindowsToPresentationTime(
         overlays: OverlaySettings,
@@ -205,6 +205,11 @@ object CompositionPreviewTimelinePolicy {
             image = overlays.image.copy(
                 startMs = scaled(overlays.image.startMs),
                 endMs = scaled(overlays.image.endMs),
+                animation = overlays.image.animation.copy(
+                    durationMs = scaled(overlays.image.animation.durationMs).coerceAtLeast(1L),
+                    periodMs = scaled(overlays.image.animation.periodMs).coerceAtLeast(1L),
+                    phaseOffsetMs = scaled(overlays.image.animation.phaseOffsetMs),
+                ),
             ),
         )
     }
