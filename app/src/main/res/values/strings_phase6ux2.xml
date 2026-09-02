@@ -19,5 +19,11 @@
     <string name="drawer_app_version">App version</string>
     <string name="drawer_version_format">Version %1$s (%2$s)</string>
     <string name="drawer_action_not_configured">This destination is not configured yet.</string>
+    <string name="drawer_action_unavailable">No compatible app is available to open this destination.</string>
     <string name="drawer_future_auth_note">Account sign-in will be connected in a later authentication phase.</string>
+    <string name="drawer_contact_subject">RecapFlowAI support</string>
+    <string name="drawer_app_policy_body">RecapFlowAI is a local media-editing application. Use only media you have the right to edit and share. You are responsible for exported content and for following applicable platform, community, and copyright rules. Account, advertising, and cloud-service features are not included in this development build; related policies must be updated before those features are enabled for public release.</string>
+    <string name="drawer_privacy_policy_body">This development build is designed to process imported media and editing state on the device. Account sign-in and AdMob/UMP are not included in this phase. Before any public-release service that collects or uses additional data is enabled, the privacy policy must be reviewed, updated, and published as required.</string>
+    <string name="drawer_terms_body">This build is a development preview. Use the app lawfully, keep backups of original media, and review exports before publishing. Features and behavior may change during development. Public-release terms will be finalized before store distribution.</string>
+    <string name="drawer_open_source_body">RecapFlowAI uses open-source components including AndroidX, Material Components, Media3, and FFmpeg-related native components. Each component remains subject to its own license terms. Complete third-party notices must be reviewed and finalized before public store release.</string>
 </resources>
