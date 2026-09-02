@@ -7,6 +7,7 @@ cd "$ROOT"
 MAIN="app/src/main/kotlin/com/recapflow/ai/MainActivity.kt"
 CONTROLLER="app/src/main/kotlin/com/recapflow/ai/ui/SideMenuController.kt"
 LAYOUT="app/src/main/res/layout/activity_main.xml"
+LAYOUT_SW600="app/src/main/res/layout-sw600dp/activity_main.xml"
 HEADER="app/src/main/res/layout/view_navigation_drawer_header.xml"
 MENU="app/src/main/res/menu/menu_side_drawer.xml"
 EN="app/src/main/res/values/strings_phase6ux2.xml"
@@ -14,7 +15,7 @@ MY="app/src/main/res/values-my/strings_phase6ux2.xml"
 CATALOG="gradle/libs.versions.toml"
 APP_GRADLE="app/build.gradle.kts"
 
-for path in "$MAIN" "$CONTROLLER" "$LAYOUT" "$HEADER" "$MENU" "$EN" "$MY" "$CATALOG" "$APP_GRADLE"; do
+for path in "$MAIN" "$CONTROLLER" "$LAYOUT" "$LAYOUT_SW600" "$HEADER" "$MENU" "$EN" "$MY" "$CATALOG" "$APP_GRADLE"; do
   [[ -f "$path" ]] || { echo "FAIL: missing $path" >&2; exit 1; }
 done
 
@@ -28,18 +29,26 @@ grep -q 'binding.mainNavigation.setOnItemSelectedListener' "$MAIN" || {
   echo "FAIL: bottom navigation contract was lost" >&2; exit 1;
 }
 
-grep -q 'androidx.drawerlayout.widget.DrawerLayout' "$LAYOUT" || {
-  echo "FAIL: activity root is not DrawerLayout" >&2; exit 1;
-}
-grep -q 'android:id="@+id/mainNavigation"' "$LAYOUT" || {
-  echo "FAIL: existing bottom navigation missing" >&2; exit 1;
-}
-grep -q 'android:id="@+id/sideNavigation"' "$LAYOUT" || {
-  echo "FAIL: side NavigationView missing" >&2; exit 1;
-}
-grep -q 'view_navigation_drawer_header' "$LAYOUT" || {
-  echo "FAIL: drawer header not connected" >&2; exit 1;
-}
+for layout in "$LAYOUT" "$LAYOUT_SW600"; do
+  grep -q 'androidx.drawerlayout.widget.DrawerLayout' "$layout" || {
+    echo "FAIL: $layout root is not DrawerLayout" >&2; exit 1;
+  }
+  grep -q 'android:id="@+id/drawerLayout"' "$layout" || {
+    echo "FAIL: $layout drawer root ID must be drawerLayout" >&2; exit 1;
+  }
+  grep -q 'android:id="@+id/mainRoot"' "$layout" || {
+    echo "FAIL: $layout inner mainRoot missing" >&2; exit 1;
+  }
+  grep -q 'android:id="@+id/mainNavigation"' "$layout" || {
+    echo "FAIL: $layout existing bottom navigation missing" >&2; exit 1;
+  }
+  grep -q 'android:id="@+id/sideNavigation"' "$layout" || {
+    echo "FAIL: $layout side NavigationView missing" >&2; exit 1;
+  }
+  grep -q 'view_navigation_drawer_header' "$layout" || {
+    echo "FAIL: $layout drawer header not connected" >&2; exit 1;
+  }
+done
 
 grep -q 'drawerContactDeveloper' "$MENU" || { echo "FAIL: contact item missing" >&2; exit 1; }
 grep -q 'drawerTelegram' "$MENU" || { echo "FAIL: Telegram item missing" >&2; exit 1; }
@@ -47,7 +56,7 @@ grep -q 'drawerFacebook' "$MENU" || { echo "FAIL: Facebook item missing" >&2; ex
 grep -q 'drawerPrivacyPolicy' "$MENU" || { echo "FAIL: privacy item missing" >&2; exit 1; }
 grep -q 'drawerAppVersion' "$MENU" || { echo "FAIL: app version item missing" >&2; exit 1; }
 
-grep -q 'PackageInfoCompat::getLongVersionCode' "$CONTROLLER" || {
+grep -q 'PackageInfoCompat.getLongVersionCode' "$CONTROLLER" || {
   echo "FAIL: app version is not resolved from package metadata" >&2; exit 1;
 }
 grep -q 'DrawerArrowDrawable' "$CONTROLLER" || {
