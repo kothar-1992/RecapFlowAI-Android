@@ -308,7 +308,7 @@
     <string name="image_overlay_off_summary">Off — the remembered image is omitted from preview and render.</string>
     <string name="image_overlay_on_summary">On — %1$s is composited after Transform and Source blur.</string>
     <string name="image_overlay_missing_summary">On — choose a PNG, JPEG, or WebP image.</string>
-    <string name="image_overlay_instruction">Add one static logo or image. Position and size use stable sliders/presets; direct screen-touch editing and animation are deferred.</string>
+    <string name="image_overlay_instruction">Add one logo or image. Position, size, opacity, active time, and optional animation are previewed live and exported through the same effect graph.</string>
     <string name="image_overlay_choose">Choose image</string>
     <string name="image_overlay_replace">Replace image</string>
     <string name="image_overlay_remove">Remove</string>
@@ -333,7 +333,7 @@
     <string name="image_overlay_time_label">Active source time</string>
     <string name="image_overlay_time_value">Time: %1$s – %2$s</string>
     <string name="image_overlay_reset">Reset image controls</string>
-    <string name="image_overlay_preview_note">PNG transparency is preserved. Realtime preview and 720p/1080p export share the same position, aspect-preserving size, opacity, and absolute source-time range.</string>
+    <string name="image_overlay_preview_note">PNG transparency is preserved. Realtime preview and 720p/1080p export share the same geometry, opacity, source-time range, and animation timing.</string>
     <string name="image_overlay_asset_error">Choose a valid PNG, JPEG, or WebP image before rendering.</string>
     <string name="image_overlay_geometry_error">Image position, size, or opacity is outside the supported range.</string>
     <string name="image_overlay_time_error">Image time must stay inside the source and last at least 0.25 seconds.</string>

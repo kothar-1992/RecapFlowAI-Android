@@ -268,9 +268,10 @@ data class ImageOverlayAsset(
 )
 
 /**
- * One static image/logo overlay measured against the final video frame.
+ * One image/logo overlay measured against the final video frame.
  * Position uses normalized top-left coordinates for the image center; [widthFraction]
  * is the requested fraction of the final frame width. Height preserves the source image ratio.
+ * Animation timing is semantic source-time metadata; no temporary animated video is created.
  */
 data class ImageOverlaySettings(
     val enabled: Boolean = false,
@@ -281,6 +282,28 @@ data class ImageOverlaySettings(
     val opacity: Float = OverlayCompiler.DEFAULT_IMAGE_OPACITY,
     val startMs: Long = 0L,
     val endMs: Long = 0L,
+    val animation: ImageOverlayAnimationSettings = ImageOverlayAnimationSettings(),
+)
+
+enum class ImageOverlayAnimationPreset {
+    NONE,
+    FADE,
+    FADE_SCALE,
+    POP,
+    SLIDE,
+    PULSE,
+    FLOAT,
+    ROTATE,
+    BOUNCE,
+}
+
+data class ImageOverlayAnimationSettings(
+    val preset: ImageOverlayAnimationPreset = ImageOverlayAnimationPreset.NONE,
+    val loopEnabled: Boolean = false,
+    val durationMs: Long = ImageOverlayAnimationPolicy.DEFAULT_DURATION_MS,
+    val periodMs: Long = ImageOverlayAnimationPolicy.DEFAULT_PERIOD_MS,
+    /** Compiler-owned offset used only after a source overlay is projected into a clipped item. */
+    val phaseOffsetMs: Long = 0L,
 )
 
 enum class ImageOverlayPositionPreset(
