@@ -59,6 +59,9 @@ grep -q 'drawerAppVersion' "$MENU" || { echo "FAIL: app version item missing" >&
 grep -q 'PackageInfoCompat.getLongVersionCode' "$CONTROLLER" || {
   echo "FAIL: app version is not resolved from package metadata" >&2; exit 1;
 }
+grep -q 'versionCode.toString()' "$CONTROLLER" || {
+  echo "FAIL: version code must be converted to an ASCII digit string before localization" >&2; exit 1;
+}
 grep -q 'DrawerArrowDrawable' "$CONTROLLER" || {
   echo "FAIL: toolbar hamburger control missing" >&2; exit 1;
 }
@@ -75,6 +78,12 @@ grep -q 'implementation(libs.androidx.drawerlayout)' "$APP_GRADLE" || {
 
 grep -q 'drawer_user_level' "$EN" || { echo "FAIL: English account copy missing" >&2; exit 1; }
 grep -q 'drawer_user_level' "$MY" || { echo "FAIL: Myanmar account copy missing" >&2; exit 1; }
+grep -q 'drawer_version_format">Version %1$s (%2$s)' "$EN" || {
+  echo "FAIL: English version format must treat version code as a string" >&2; exit 1;
+}
+grep -q 'drawer_version_format">Version %1$s (%2$s)' "$MY" || {
+  echo "FAIL: Myanmar version format must treat version code as a string" >&2; exit 1;
+}
 if grep -q '[၀၁၂၃၄၅၆၇၈၉]' "$MY"; then
   echo "FAIL: Myanmar Phase 6UX.2 strings must keep Arabic digits 0-9" >&2
   exit 1
