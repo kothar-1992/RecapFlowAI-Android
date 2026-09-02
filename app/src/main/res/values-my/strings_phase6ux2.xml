@@ -19,5 +19,11 @@
     <string name="drawer_app_version">App ဗားရှင်း</string>
     <string name="drawer_version_format">Version %1$s (%2$s)</string>
     <string name="drawer_action_not_configured">ဒီနေရာကို မချိတ်ဆက်ရသေးပါ။</string>
+    <string name="drawer_action_unavailable">ဒီနေရာကို ဖွင့်နိုင်သော App မရှိပါ။</string>
     <string name="drawer_future_auth_note">အကောင့်ဝင်စနစ်ကို နောက်ပိုင်း authentication phase မှာ ချိတ်ဆက်ပါမယ်။</string>
+    <string name="drawer_contact_subject">RecapFlowAI အကူအညီ</string>
+    <string name="drawer_app_policy_body">RecapFlowAI သည် စက်အတွင်း မီဒီယာတည်းဖြတ်ရန် ရည်ရွယ်ထားသော App ဖြစ်သည်။ တည်းဖြတ်ရန်နှင့် မျှဝေရန် အခွင့်အရေးရှိသော မီဒီယာများကိုသာ အသုံးပြုပါ။ Export ထုတ်ထားသော အကြောင်းအရာနှင့် သက်ဆိုင်ရာ platform၊ community နှင့် copyright စည်းမျဉ်းများကို လိုက်နာရန် အသုံးပြုသူတွင် တာဝန်ရှိသည်။ ယခု development build တွင် account၊ advertising နှင့် cloud-service လုပ်ဆောင်ချက်များ မပါဝင်သေးပါ။ အများပြည်သူသုံး release အတွက် ထိုလုပ်ဆောင်ချက်များ ထည့်သွင်းမီ သက်ဆိုင်ရာ မူဝါဒများကို ပြန်လည်မွမ်းမံရမည်။</string>
+    <string name="drawer_privacy_policy_body">ယခု development build သည် import လုပ်ထားသော မီဒီယာနှင့် editing state ကို စက်အတွင်းတွင် ကိုင်တွယ်ရန် ရည်ရွယ်ထားသည်။ ယခု phase တွင် account sign-in နှင့် AdMob/UMP မပါဝင်သေးပါ။ အပိုဒေတာကို စုဆောင်းခြင်း သို့မဟုတ် အသုံးပြုခြင်း ပါဝင်သော public-release service တစ်ခုခုကို ဖွင့်မီ privacy policy ကို လိုအပ်သလို ပြန်လည်စစ်ဆေး၊ မွမ်းမံပြီး ထုတ်ပြန်ရမည်။</string>
+    <string name="drawer_terms_body">ယခု build သည် development preview ဖြစ်သည်။ App ကို ဥပဒေနှင့်အညီ အသုံးပြုပါ၊ မူရင်းမီဒီယာများကို backup ထားပါ၊ ထုတ်ဝေမီ export result ကို ပြန်လည်စစ်ဆေးပါ။ Development ကာလအတွင်း feature နှင့် behavior များ ပြောင်းလဲနိုင်သည်။ Store ဖြန့်ချိမည့် public release မတိုင်မီ Terms ကို အပြီးသတ်သတ်မှတ်မည်။</string>
+    <string name="drawer_open_source_body">RecapFlowAI တွင် AndroidX၊ Material Components၊ Media3 နှင့် FFmpeg ဆိုင်ရာ native components အပါအဝင် open-source components များကို အသုံးပြုထားသည်။ Component တစ်ခုစီသည် ၎င်းတို့၏ သက်ဆိုင်ရာ license terms များအောက်တွင် ရှိနေသည်။ Public store release မတိုင်မီ third-party notices များကို အပြည့်အစုံ ပြန်လည်စစ်ဆေးပြီး အပြီးသတ်ရမည်။</string>
 </resources>
