@@ -17,7 +17,7 @@
     <string name="drawer_open_source">Open-source licenses</string>
     <string name="drawer_section_about">About</string>
     <string name="drawer_app_version">App version</string>
-    <string name="drawer_version_format">Version %1$s (%2$d)</string>
+    <string name="drawer_version_format">Version %1$s (%2$s)</string>
     <string name="drawer_action_not_configured">This destination is not configured yet.</string>
     <string name="drawer_future_auth_note">Account sign-in will be connected in a later authentication phase.</string>
 </resources>
