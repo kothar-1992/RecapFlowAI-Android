@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="image_overlay_animation_title">Logo လှုပ်ရှားမှု</string>
+    <string name="image_overlay_animation_preset_label">Animation preset</string>
+    <string name="image_overlay_animation_loop">Animation ကို Loop လုပ်မယ်</string>
+    <string name="image_overlay_animation_duration_default">Animation ကြာချိန်: 0.7 s</string>
+    <string name="image_overlay_animation_duration_value">Animation ကြာချိန်: %1$s s</string>
+    <string name="image_overlay_animation_period_default">Loop အကြိမ်ကြားချိန်: 2.0 s</string>
+    <string name="image_overlay_animation_period_value">Loop အကြိမ်ကြားချိန်: %1$s s</string>
+    <string name="image_overlay_animation_summary_static">Static — လက်ရှိ logo ပုံသေပြသမှုကို မပြောင်းပါ။</string>
+    <string name="image_overlay_animation_summary_once">%1$s • %2$s s • တစ်ကြိမ်</string>
+    <string name="image_overlay_animation_summary_loop">%1$s • %2$s s • %3$s s တိုင်း ပြန်လုပ်မယ်</string>
+    <string name="image_overlay_animation_preview_note">ပြောင်းလဲမှုတွေကို ကြားခံ render မလုပ်ဘဲ live logo effect မှာ ချက်ချင်းမြင်ရပါမယ်။ Preview နဲ့ final export က animation timing တစ်ခုတည်းကို သုံးပါတယ်။</string>
+
+    <string name="image_overlay_animation_preset_static">ပုံသေ</string>
+    <string name="image_overlay_animation_preset_fade">ပျော့ဝင်</string>
+    <string name="image_overlay_animation_preset_fade_scale">ပျော့ဝင် + ချဲ့</string>
+    <string name="image_overlay_animation_preset_pop">Pop</string>
+    <string name="image_overlay_animation_preset_slide">Slide</string>
+    <string name="image_overlay_animation_preset_pulse">Pulse</string>
+    <string name="image_overlay_animation_preset_float">Float</string>
+    <string name="image_overlay_animation_preset_rotate">လှည့်</string>
+    <string name="image_overlay_animation_preset_bounce">Bounce</string>
+</resources>

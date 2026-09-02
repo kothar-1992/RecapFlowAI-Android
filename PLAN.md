@@ -1,393 +1,200 @@
 # Recap Flow AI Android — Active Implementation Plan
 
 - **Project:** RecapFlowAI Android
-- **Last updated:** 2026-08-29
-- **Verified main baseline:** `6b937d32519eb6bc3342e1e17850754dd6732928`
-- **Rollback branch:** `stable/phase-6f2.8.1`
-- **Primary target:** ARM64 Android phones/tablets
+- **Last updated:** 2026-09-01
+- **Verified media rollback:** `stable/phase-6f2.8.1`
+- **Active transition baseline:** `feature/phase-6h1-transitions`
+- **Target-duration Clips merge:** `5cdf300e12e62bd1cdb32dc3cc4e90ec5270fd3f`
+- **Primary development / Git environment:** **Termux**
 - **UI:** Native Kotlin + XML + ViewBinding
-- **Media:** Media3 Composition / CompositionPlayer / Transformer, with FFmpeg/JNI retained for native media support where required
-- **Core invariant:** non-destructive editing; one reviewed `EditPlan`; no intermediate MP4 render per feature; exactly one authoritative final `Transformer.start(...)`
-- **Core processing:** local/on-device; no VPS dependency for normal editing/export
+- **Media:** Media3 Composition / CompositionPlayer / Transformer, with FFmpeg/JNI retained only for bounded native media support.
+- **Core invariant:** one immutable reviewed `EditPlan`; no intermediate MP4 per feature; exactly one authoritative final `Transformer.start(...)`.
 
 ---
 
-## 1. Verified baseline — Phase 6F.2.8.1 DONE
+## Development gate wording
 
-Phase 6F.2.8.1 is the current stable implementation baseline.
+**Termux build/test PASS → owner-device runtime validation PASS.**
 
-### Verified on owner device
-- [x] 720p H.264 CBR export: 720×1280, target/actual 7.50 Mbps, AAC, Gallery publication PASS.
-- [x] 1080p H.264 CBR export: 1080×1920, target 10.00 Mbps, actual 9.11 Mbps, AAC, Gallery publication PASS.
-- [x] Duration reconciliation accepts bounded MediaCodec/container finalization drift with 350 ms floor while drifts above 250 ms remain visible.
-- [x] Reported average bitrate below 80% of requested CBR target fails validation; 80–90% warns.
-- [x] Source-aware 24/25/30/48/50/60 fps policy remains intact; no synthetic promotion of normal-fps sources to 60 fps.
-- [x] CompositionPlayer / ExoPlayer preview fallback architecture remains intact.
-- [x] Source verifier confirms exactly one final `Transformer.start(...)`.
-- [x] Synced unit tests + debug build PASS.
-- [x] Finalized output completed downstream SRT/narrator editing and successful TikTok playback, providing practical A/V sanity evidence.
-
-### Repository state
-- PR #19 merged Phase 6F.2.8.1 to `main`.
-- Issues #17 and #13 are closed completed.
-- Draft PR #18 was administratively replaced by #19 without changing tested source.
-- `stable/phase-6f2.8.1` is the rollback checkpoint.
-
-Do not regress this baseline while adding creative features.
+Canonical Termux/AndroidIDE gate uses Gradle 9.0.0, `$PREFIX/bin/aapt2`, FFmpeg enabled, Crossfade runtime enabled, `--rerun-tasks`, and `--stacktrace`.
 
 ---
 
-## 2. Product objective for the next implementation track
+## Verified baseline — Phase 6F.2.8.1 DONE
 
-The local editor now exports usable final-quality video. The next goal is to remove the remaining creative-workflow round trips and make editing decisions previewable before export.
+- [x] 720p and 1080p H.264/AAC Gallery export accepted on owner device.
+- [x] Duration reconciliation and bitrate validation accepted.
+- [x] Shared preview/export architecture retained.
+- [x] Exactly one final `Transformer.start(...)` remains the render invariant.
+- [x] `stable/phase-6f2.8.1` remains the rollback checkpoint.
 
-Current external round trip:
-
-```text
-RecapFlowAI
-  -> Clips / Transform / Blur / Logo
-  -> Export
-  -> CapCut
-  -> add SRT
-  -> add Narrator voice
-  -> re-align video/audio
-  -> publish
-```
-
-Target workflow:
-
-```text
-Import
-  -> Clips
-  -> realtime transitions
-  -> Transform / Blur / Overlay
-  -> animated logo
-  -> SRT + Narrator tracks
-  -> Hook 0–3s preview
-  -> full composition preview
-  -> one final export
-  -> publish
-```
-
-Recent publishing evidence also shows the strongest audience loss occurs around the opening 0:02 region, so rapid first-seconds preview is a product requirement rather than only an editing convenience.
+Do not regress this baseline while changing timeline semantics.
 
 ---
 
-## 3. Architecture contract for all next phases
+# Phase 6UX.1 — English/Myanmar Language + Human-Readable Copy — Issue #26 / PR #27
 
-All new features must compile through the existing shared project model rather than creating independent render pipelines.
+**Status: COMPLETE AND MERGED INTO THE ACTIVE TRANSITION STACK.**
 
-```text
-User controls
-    ↓
-Immutable reviewed EditPlan
-    ↓
-Timeline/source-time projection
-    ↓
-Shared Media3 composition/effect semantics
-    ├── CompositionPlayer / explicit preview fallback
-    └── Transformer final export
-```
+- [x] English / မြန်မာ switch.
+- [x] AppCompat per-app locale persistence.
+- [x] `en` / `my` locale config.
+- [x] Human-readable Myanmar UI coverage.
+- [x] Arabic digits `0-9` policy; Myanmar digit glyphs prohibited.
+- [x] Localization verifier / XML / placeholder checks PASS.
+- [x] Termux unit + assemble PASS (owner report).
+- [x] Owner-device language switch/persistence/layout review PASS.
+- [x] Issue #26 closed.
+- [x] PR #27 merged into `feature/phase-6h1-transitions`.
 
-Rules:
-
-1. **No feature toggle may start an intermediate MP4 render.**
-2. **Preview and export must interpret the same timing, geometry, easing, opacity and audio semantics.** Preview may reduce quality for performance, but may not change meaning.
-3. **Off means true no-op.** Disabled optional features must not alter output.
-4. **Source media is never overwritten.** Failure/cancel/unsupported preview must preserve source and reviewed `EditPlan`.
-5. **One final encode remains authoritative.** Combined edits must still end in one final `Transformer.start(...)`.
-6. **FFmpeg remains bounded.** Use JNI/FFmpeg for probe/native utilities/specialist media tasks; do not introduce a second independent preview/export semantics path.
-7. **Device capability fallback must be explicit.** Never silently clear an effect because realtime preview is unsupported.
-8. **Every implementation PR updates this PLAN and adds regression coverage.**
+Localization is no longer a separate blocker. New UI work must add both English and Myanmar copy from the start.
 
 ---
 
-# ACTIVE FAST TRACK
+# Phase 6H.1 — Realtime Clip Transitions — Issue #20 / PR #25
 
-## Phase 6H.1 — Realtime Clip Transitions — Issue #20
+**Status: SOURCE + TERMUX GATES PASS; OWNER-DEVICE CROSSFADE RUNTIME STILL NOT ACCEPTED.**
 
-**Status: NEXT IMPLEMENTATION GATE**
+Current PR scope remains **Crossfade only**.
 
-### Goal
-Add clip-boundary transitions that can be tested in realtime before export.
+### Implemented
+- [x] semantic per-boundary Crossfade model
+- [x] 150–1000 ms duration + easing policy
+- [x] immutable `EditPlan.clipTransitions`
+- [x] deterministic two-lane overlap topology
+- [x] shared compositor/audio envelope semantics
+- [x] source↔output preview mapping
+- [x] realtime boundary controls integrated
+- [x] Termux unit + assemble gates reported PASS
+- [x] localization merged into the active branch
+- [x] accepted Random Mirror feature is integrated into this active stack
 
-### Initial transition set
-- None
-- Crossfade
-- Fade through black
-- Slide left/right
-- Zoom
-- Blur dissolve
+### Remaining Crossfade gate
+- [ ] realtime owner-device Crossfade preview on the actual composition path
+- [ ] explicit safe behavior if preview path is unsupported
+- [ ] 720p Crossfade export PASS
+- [ ] 1080p Crossfade export PASS
+- [ ] A/V quality/sync PASS
+- [ ] one-final-Transformer invariant preserved
 
-### Required model
-Introduce a semantic transition definition rather than backend filter strings, conceptually:
-
-```text
-TransitionSettings
-- boundary identity / adjacent clip IDs
-- type
-- durationMs
-- easing
-- enabled
-```
-
-### Required behavior
-- transition is attached to a clip boundary, not baked into either source clip;
-- duration is validated against participating clip lengths;
-- projection remains correct after Trim, reviewed Adaptive Cuts and Speed;
-- realtime boundary preview reuses shared effect/composition semantics;
-- unsupported realtime path falls back cleanly without changing the edit;
-- final export stays one pass.
-
-### Exit gate
-- [ ] unit tests for boundary timing, short clips, speed, disabled state;
-- [ ] `:app:testDebugUnitTest` PASS;
-- [ ] FFmpeg-enabled `:app:assembleDebug` PASS;
-- [ ] owner-device realtime preview PASS;
-- [ ] 720p + 1080p transition export PASS;
-- [ ] combined current features + transition still show exactly one final Transformer start;
-- [ ] merge scoped PR and mark #20 completed.
-
-**Implementation branch should start from `main` / `stable/phase-6f2.8.1`, not from the old Phase 6G.1 draft branch.**
+Do not expand transition families while Phase 6H.2 is landing.
 
 ---
 
-## Phase 6H.2 — Animated Logo Overlay + Loop — Issue #21
+# Phase 6H.1E — Deterministic Per-Clip Random Mirror — Issue #28 / PR #29
 
-Starts after Phase 6H.1 semantics are stable.
+**Status: COMPLETE AND INTEGRATED.**
 
-### Goal
-Upgrade the existing static image/logo overlay into a motion overlay while preserving current geometry and timing behavior.
-
-### Initial presets
-- Static / None
-- Fade
-- Fade + scale
-- Pop
-- Slide
-- Pulse
-- Float
-- Rotate
-- Bounce
-
-### Required model
-Conceptually extend overlay settings with:
-
-```text
-OverlayMotionSettings
-- preset
-- enabled
-- loopEnabled
-- animationDurationMs
-- loopPeriodMs
-- easing
-```
-
-Position, scale, opacity and source-time window remain authoritative existing overlay properties.
-
-### Rules
-- no temporary animated-logo video;
-- animation phase is deterministic from timeline time;
-- loop is bounded by configured overlay start/end;
-- aspect conversion may not move the overlay outside the output frame;
-- preview/export must share animation phase/easing.
-
-### Exit gate
-- [ ] static behavior is unchanged when motion is disabled;
-- [ ] realtime preset preview PASS;
-- [ ] loop ON/OFF behavior PASS;
-- [ ] Trim/Adaptive Cuts/Speed timing tests PASS;
-- [ ] transition + animated logo combined export remains one final render;
-- [ ] owner-device 720p/1080p PASS;
-- [ ] merge scoped PR and close #21.
+- [x] global Mirror retained
+- [x] separate Random mirror each clip mode
+- [x] deterministic clip-identity decision; no runtime `Random`
+- [x] global/random mutual exclusion
+- [x] single-clip no-op
+- [x] Crossfade source-index preservation
+- [x] Intro Freeze matches first moving clip orientation
+- [x] preference/state persistence
+- [x] ViewBinding budget fix via child Mirror-controls layout
+- [x] refreshed `testDebugUnitTest` PASS (owner report)
+- [x] refreshed `assembleDebug` PASS (owner report)
+- [x] `git diff --check` PASS
+- [x] Myanmar localization verifier PASS
+- [x] Arabic digits `0-9` policy PASS
+- [x] owner-device verification PASS (owner report)
+- [x] PR #29 merged into `feature/phase-6h1-transitions`
+- [x] Issue #28 closed completed
 
 ---
 
-## Phase 6G.2 + Phase 6H.3 — SRT and Narrator Timeline Integration — Issues #4 + #22
+# Phase 6H.1F / 6H.1F.2 — Target-Duration Clips — Issue #30 / PR #31
 
-These two issues form one product milestone: remove the mandatory CapCut round trip for subtitles and narration.
+**Status: COMPLETE, VALIDATED, MERGED.**
 
-### Subtitle/SRT — #4
-- import SRT;
-- Unicode Burmese shaping/wrapping;
-- position/alignment/safe margins;
-- outline/shadow;
-- source/EditPlan timing projection;
-- preview/final burn-in parity;
-- source-subtitle Blur remains independent.
+- [x] standalone head/tail Trim removed from the normal user-facing Clips workflow
+- [x] full-source `TrimRange` retained only as an internal timeline boundary
+- [x] Target Duration is the primary Clips authority
+- [x] deterministic whole-source range planning
+- [x] `03:00 → 01:00` and `03:00 → 02:00` planner coverage
+- [x] generated clips remain chronological and reviewable
+- [x] duplicate Gentle/Balanced/Compact + Generate draft + Apply controls removed from normal Target mode
+- [x] Speed + Crossfade + Intro Freeze reconciliation preserves requested target within tolerance
+- [x] canonical `MainActivity.kt`/localization source committed; no local-only patch state required
+- [x] owner-device Target Duration → Review → Export validation PASS
+- [x] owner explicitly confirmed exported video correct
+- [x] canonical Termux `testDebugUnitTest` PASS
+- [x] canonical Termux `assembleDebug` PASS
+- [x] PR #31 merged as `5cdf300e12e62bd1cdb32dc3cc4e90ec5270fd3f`
+- [x] Issue #30 closed completed
 
-### Narrator audio — #22
-- import one narrator audio asset;
-- enable/disable;
-- start offset + trim;
-- gain/mute/fade;
-- waveform/timeline visualization where practical;
-- explicit source-audio policy;
-- deterministic duration/A-V reconciliation.
+Architecture contract now established:
 
-### Shared timing rule
-SRT and narrator must use the same authoritative source/presentation mapping used by the reviewed `EditPlan`. Do not create a second independent "CapCut-style" timeline model inside the app.
-
-### Exit gate
-- [ ] SRT remains aligned through Trim/Adaptive Cuts/Speed;
-- [ ] Burmese text renders correctly;
-- [ ] narrator remains synchronized after video edits;
-- [ ] preview contains the same subtitle/narrator timing as final export;
-- [ ] source audio behavior is explicit and testable;
-- [ ] transition + logo + blur + SRT + narrator maximal combination still uses one final Transformer export;
-- [ ] owner-device A/V sync + 720p/1080p PASS;
-- [ ] complete #4 and #22 only after full combined workflow evidence.
+`Import → Target-duration Clips planning → Review → optional effects → Preview → one final export`
 
 ---
 
-## Phase 6H.4 — Hook 0–3 Second Preview — Issue #23
+# NEXT CORE WORKFLOW — Phase 6H.2 Animated Logo / Loop — Issue #21 / PR #32
 
-### Goal
-Make opening optimization fast enough to repeat many times without full-video seeking or rendering.
+**Status: FOUNDATION PASS; SHARED OPENGL ANIMATION SLICE IN VALIDATION.**
 
-### Required behavior
-- one action enters `Preview Hook 0–3s`;
-- loop the hook window;
-- immediate reflection of first clip, transition, logo, subtitles and narrator changes;
-- quick seek to zero;
-- normal preview position/play intent restores predictably on exit;
-- uses current `EditPlan`, not a separate project state;
-- no intermediate media file.
+The static image/logo overlay is extended with semantic animation metadata rather than temporary rendered logo clips.
 
-### Exit gate
-- [ ] short projects handled safely;
-- [ ] loop/seek restoration tests PASS;
-- [ ] opening effects/audio update immediately;
-- [ ] owner-device interaction PASS;
-- [ ] merge scoped PR and close #23.
+### Product contract
+- keep current PNG/JPEG/WebP logo import, normalized position, size, opacity and source-time start/end window
+- presets: None/static, Fade, Fade + scale, Pop, Slide, Pulse, Float, Rotate, Bounce
+- loop ON/OFF
+- animation duration
+- loop period/interval
+- deterministic bounded looping inside the configured overlay window
+- animation timing survives Target-duration Clips boundaries and Speed without preview/export phase drift
+- same Media3/OpenGL effect path for preview and final Transformer export
+- no temporary animated-logo MP4
+- exactly one final Transformer export
 
----
+### Foundation — PASS
+- [x] first-class `ImageOverlayAnimationPreset` semantics in canonical `EditPlan`
+- [x] loop/duration/period settings with static `NONE` default for backward compatibility
+- [x] deterministic pure `ImageOverlayAnimationPolicy`
+- [x] compiler-owned phase offset so a later reviewed clip resumes source-anchored loop phase instead of restarting
+- [x] CompositionPlayer Speed projection scales window + animation duration + period + phase offset together
+- [x] validation contract for animation duration/period
+- [x] JVM timing/phase tests
+- [x] owner-reported canonical `testDebugUnitTest` BUILD SUCCESSFUL
+- [x] owner-reported canonical `assembleDebug` BUILD SUCCESSFUL
 
-# CONSOLIDATION
+### Shared OpenGL animation slice
+- [x] deterministic visual curves for Fade, Fade+Scale, Pop, Slide, Pulse, Float, Rotate and Bounce
+- [x] shared `StaticImageOverlayEffect` consumes canonical phase/visual semantics for preview/export
+- [x] `NONE` preserves dedicated legacy static shader behavior
+- [x] inverse texture mapping supports translation, scale and rotation
+- [x] transformed logo geometry remains frame-safe after aspect conversion
+- [x] JVM visual-curve / frame-safety / Speed parity tests added
+- [x] first refreshed gate exposed a Float exact-equality-only failure in `identityKeepsResolvedCenterAndScale`
+- [x] test fixed to use epsilon comparisons for normalized Float geometry; production geometry policy unchanged
+- [ ] refreshed Termux `testDebugUnitTest` PASS after float-safe fix
+- [ ] refreshed Termux `assembleDebug` PASS after float-safe fix
 
-## Phase 6G.3 — Unified Multi-Stage Edit Graph — Issue #5
-
-After the fast-track features are individually proven, consolidate them into one deterministic stage order and regression suite.
-
-Target conceptual order:
-
-```text
-Source
- -> Trim / Adaptive Cuts
- -> Clip Boundary Transitions
- -> Aspect / Crop / Mirror / Color
- -> Speed / Freeze
- -> Source Subtitle Blur
- -> Static + Animated Logo / Image Overlay
- -> Subtitle / Text
- -> Narrator + Source Audio Mix
- -> Output Presentation
- -> Final Encode
-```
-
-The exact implementation may fuse GPU stages, but semantic ordering must be documented and tested.
-
-Exit gate:
-- [ ] maximal combined `EditPlan` compiles deterministically;
-- [ ] no tab owns a private conflicting interpretation of settings;
-- [ ] preview/export do not silently diverge;
-- [ ] one final render invariant verified by source test;
-- [ ] regression matrix covers feature combinations.
+### Next after refreshed gate PASS
+1. Add realtime Animation Preset / Loop / Duration / Period controls.
+2. Add English + Myanmar copy from the same slice.
+3. Persist/restore animation settings without changing static defaults.
+4. Validate Target-duration Clips + Speed + Crossfade + animation in CompositionPlayer preview and one final Transformer export.
+5. Owner-device 720p/1080p preview/export phase and geometry validation.
 
 ---
 
-# PHASE 7 — Persistent Render Job Engine — Issue #6
+## Deferred after Phase 6H.2
 
-Only after the creative composition is stable, separate render lifetime from Activity/UI lifetime.
-
-State model:
-
-```text
-QUEUED
- -> PREPARING
- -> RENDERING
- -> FINALIZING
- -> COMPLETED / FAILED / CANCELLED
-```
-
-Required:
-- stable RenderJob ID;
-- monotonic progress via Flow/state;
-- safe cancellation;
-- partial-output cleanup;
-- Activity recreation survival;
-- foreground media-processing service when required;
-- notification progress/result surface;
-- persistent job/error metadata;
-- current CBR/geometry/codec/duration output validation retained.
+- **6G.2 SRT/Text — Issue #4 + 6H.3 Narrator — Issue #22:** implement together against the authoritative Clips/timing model.
+- **6H.4 Hook 0–3s Preview — Issue #23:** wait until opening composition includes stable Clips/SRT/Narrator timing.
+- **Timed Video Overlay — Issue #3:** resume on the established source→presentation projection model.
+- **6G.3 Unified Multi-Stage Edit Graph — Issue #5:** consolidation after animated overlay and text/narrator timing are proven.
+- **Phase 7 Persistent Render Job Engine — Issue #6:** wrap the stable final graph, not a moving architecture.
+- **FFmpegAndroid research — Issue #7:** low priority; no architecture replacement during core workflow work.
 
 ---
 
-# DEFERRED / BACKLOG
+## Immediate next actions
 
-## Timed Video Overlay — Issue #3
-
-The old Phase 6G.1 draft PR #16 was closed without merge. It was based on the pre-6F.2.8.1 hotfix baseline and did not pass the AndroidIDE unit-test gate.
-
-Useful foundation is preserved at:
-
-```text
-6e097fc47d0c1098ea436d08e794765b540eb631
-```
-
-When this work resumes:
-- reconstruct/rebase from current verified main;
-- cherry-pick only isolated model/test pieces after review;
-- do not restore the old stale PLAN state;
-- preserve muted overlay audio for the first gate;
-- preserve one final render architecture.
-
-## FFmpegAndroid Reference Research — Issue #7
-
-Keep as research/backlog. It must not replace the proven Media3 preview/export architecture wholesale.
-
----
-
-## 4. Development / PR discipline
-
-For each implementation gate:
-
-1. branch from current verified `main`;
-2. one scoped issue -> one scoped implementation PR;
-3. update `PLAN.md` in the same PR;
-4. add source verifier/regression tests where the one-render invariant can regress;
-5. run unit tests + debug build before owner-device test;
-6. do not mark device behavior PASS from static/source inspection alone;
-7. owner-device preview/export evidence is required before merge for media-runtime changes;
-8. after a stable media milestone, create/update a rollback branch/tag before beginning the next risky gate.
-
-Recommended branch names:
-
-```text
-feature/phase-6h1-transitions
-feature/phase-6h2-logo-motion
-feature/phase-6g2-srt
-feature/phase-6h3-narrator-audio
-feature/phase-6h4-hook-preview
-feature/phase-6g3-unified-edit-graph
-feature/phase-7-render-jobs
-```
-
----
-
-## 5. Immediate next action
-
-**Start Issue #20 — Phase 6H.1 Realtime Clip Transitions.**
-
-Do not begin by adding many transition presets. First vertical slice:
-
-```text
-Transition model
- -> Crossfade only
- -> shared timeline projection
- -> realtime boundary preview
- -> one-pass final export
- -> tests/build/device PASS
-```
-
-After that single path is stable, add Fade/Slide/Zoom/Blur presets on the same contract.
+1. Pull `feature/phase-6h2-animated-logo` after commit `7bc02bbd24dd911f636928813f669765c63ab784`.
+2. Re-run `scripts/verify_phase6h2_animation_gl.sh` and `git diff --check`.
+3. Re-run canonical Termux `:app:testDebugUnitTest` and `:app:assembleDebug` gates.
+4. Only after both pass, add realtime animation UI/persistence controls.

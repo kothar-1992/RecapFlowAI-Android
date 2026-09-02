@@ -46,6 +46,8 @@ import com.recapflow.ai.media.edit.AudioCompiler
 import com.recapflow.ai.media.edit.AudioPolicy
 import com.recapflow.ai.media.edit.AudioSettings
 import com.recapflow.ai.media.edit.BlurRectangle
+import com.recapflow.ai.media.edit.ClipPlanningMode
+import com.recapflow.ai.media.edit.ClipTransitionSettings
 import com.recapflow.ai.media.edit.ColorSettings
 import com.recapflow.ai.media.edit.CropCompiler
 import com.recapflow.ai.media.edit.CropRectangle
@@ -58,6 +60,9 @@ import com.recapflow.ai.media.edit.EditPlanValidator
 import com.recapflow.ai.media.edit.FreezeCompiler
 import com.recapflow.ai.media.edit.FreezeSettings
 import com.recapflow.ai.media.edit.ImageOverlayAsset
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPolicy
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPreset
+import com.recapflow.ai.media.edit.ImageOverlayAnimationSettings
 import com.recapflow.ai.media.edit.ImageOverlayPositionPreset
 import com.recapflow.ai.media.edit.ImageOverlaySettings
 import com.recapflow.ai.media.edit.OverlayCompiler
@@ -70,6 +75,8 @@ import com.recapflow.ai.media.edit.ScaleMode
 import com.recapflow.ai.media.edit.SpeedCompiler
 import com.recapflow.ai.media.edit.SourceSubtitleBlurSettings
 import com.recapflow.ai.media.edit.TransformCompiler
+import com.recapflow.ai.media.edit.TargetDurationClipIntegration
+import com.recapflow.ai.media.edit.TargetDurationClipPlanner
 import com.recapflow.ai.media.edit.TransformSettings
 import com.recapflow.ai.media.edit.TransitionCompiler
 import com.recapflow.ai.media.edit.TransitionMode
@@ -87,6 +94,7 @@ import com.recapflow.ai.media.importer.MediaImportCoordinator
 import com.recapflow.ai.media.importer.ReplacementAudioImportCoordinator
 import com.recapflow.ai.media.importer.ReplacementAudioImportState
 import com.recapflow.ai.media.render.CompositionPreviewTimelinePolicy
+import com.recapflow.ai.media.render.CompositionPreviewPlayerFactory
 import com.recapflow.ai.media.render.Media3CompositionCompiler
 import com.recapflow.ai.media.render.Media3CompositionPlan
 import com.recapflow.ai.media.render.Media3CompositionPlanCompiler
@@ -110,7 +118,10 @@ import com.recapflow.ai.preferences.EditorPreferencesSnapshot
 import com.recapflow.ai.preferences.EditorPreferencesStore
 import com.recapflow.ai.preferences.EditorSection
 import com.recapflow.ai.preferences.OverlayPreference
+import com.recapflow.ai.ui.ClipTransitionEditorController
+import com.recapflow.ai.ui.ImageOverlayAnimationController
 import com.recapflow.ai.ui.MediaFormatters
+import com.recapflow.ai.ui.TargetDurationClipsController
 import java.io.File
 import java.util.Locale
 import kotlin.math.abs
@@ -127,6 +138,18 @@ class MainActivity : AppCompatActivity() {
         get() = checkNotNull(_binding) { "Activity has been destroyed" }
     private val editor
         get() = binding.editorContent
+    private val mirrorEnabledSwitch
+        get() = binding.root.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(
+            R.id.mirrorEnabledSwitch,
+        )
+    private val mirrorSummaryView
+        get() = binding.root.findViewById<android.widget.TextView>(R.id.mirrorSummary)
+    private val randomMirrorPerClipSwitch
+        get() = binding.root.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(
+            R.id.randomMirrorPerClipSwitch,
+        )
+    private val randomMirrorPerClipSummaryView
+        get() = binding.root.findViewById<android.widget.TextView>(R.id.randomMirrorPerClipSummary)
 
     private lateinit var importCoordinator: MediaImportCoordinator
     private lateinit var replacementAudioImportCoordinator: ReplacementAudioImportCoordinator
@@ -147,6 +170,10 @@ class MainActivity : AppCompatActivity() {
     private val sourceBlurPreviewHandler = Handler(Looper.getMainLooper())
     private val previewRecoveryHandler = Handler(Looper.getMainLooper())
     private val editorPreferencesHandler = Handler(Looper.getMainLooper())
+    private val clipTransitionPreviewHandler = Handler(Looper.getMainLooper())
+    private lateinit var clipTransitionEditorController: ClipTransitionEditorController
+    private lateinit var targetDurationClipsController: TargetDurationClipsController
+    private lateinit var imageOverlayAnimationController: ImageOverlayAnimationController
     private val realtimeSourceBlurState = RealtimeSourceBlurState()
     private val realtimeImageOverlayState = RealtimeImageOverlayState()
     private val realtimePreviewSession = RealtimePreviewSession()
@@ -167,6 +194,7 @@ class MainActivity : AppCompatActivity() {
     private var cropEnabled = false
     private var cropRectangle = CropRectangle()
     private var mirrorEnabled = false
+    private var randomMirrorPerClipEnabled = false
     private var colorEnabled = false
     private var colorBrightness = 0f
     private var colorContrast = 0f
@@ -201,6 +229,8 @@ class MainActivity : AppCompatActivity() {
     private var imageOverlayCenterY = OverlayCompiler.DEFAULT_IMAGE_CENTER_Y
     private var imageOverlayWidthFraction = OverlayCompiler.DEFAULT_IMAGE_WIDTH_FRACTION
     private var imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY
+    // PHASE6H2_ANIMATION_UI: source-time animation semantics feed live preview + final export.
+    private var imageOverlayAnimation = ImageOverlayAnimationSettings()
     private var imageOverlayStartMs = 0L
     private var imageOverlayEndMs = 0L
     private var imageOverlayRangeInitialized = false
@@ -212,6 +242,9 @@ class MainActivity : AppCompatActivity() {
     private var replacementAudioImportName: String? = null
     private var replacementPreviewPath: String? = null
     private var replacementPreviewErrorShown = false
+    // PHASE6H1F_TARGET_DURATION_UI: target output length is the primary Clips authority.
+    private var targetDurationMs: Long? = null
+    private var targetDurationTimingSignature: String? = null
     private var adaptivePreset = AdaptiveCutPreset.BALANCED
     private var adaptiveDraftRanges: List<TrimRange> = emptyList()
     private var adaptiveApplied = false
@@ -606,6 +639,9 @@ class MainActivity : AppCompatActivity() {
             ?: ScaleMode.FIT
         cropEnabled = savedInstanceState?.getBoolean(KEY_CROP_ENABLED) ?: false
         mirrorEnabled = savedInstanceState?.getBoolean(KEY_MIRROR_ENABLED) ?: false
+        randomMirrorPerClipEnabled = savedInstanceState?.getBoolean(
+            KEY_RANDOM_MIRROR_PER_CLIP_ENABLED,
+        ) ?: false
         colorEnabled = savedInstanceState?.getBoolean(KEY_COLOR_ENABLED) ?: false
         colorBrightness = savedInstanceState?.getFloat(KEY_COLOR_BRIGHTNESS) ?: 0f
         colorContrast = savedInstanceState?.getFloat(KEY_COLOR_CONTRAST) ?: 0f
@@ -717,6 +753,37 @@ class MainActivity : AppCompatActivity() {
                 it in OverlayCompiler.MIN_IMAGE_OPACITY..OverlayCompiler.MAX_IMAGE_OPACITY
             }
             ?: OverlayCompiler.DEFAULT_IMAGE_OPACITY
+        val restoredImageAnimationDurationMs = savedInstanceState
+            ?.takeIf { it.containsKey(KEY_IMAGE_OVERLAY_ANIMATION_DURATION_MS) }
+            ?.getLong(KEY_IMAGE_OVERLAY_ANIMATION_DURATION_MS)
+            ?.coerceIn(
+                ImageOverlayAnimationPolicy.MIN_DURATION_MS,
+                ImageOverlayAnimationPolicy.MAX_DURATION_MS,
+            )
+            ?: ImageOverlayAnimationPolicy.DEFAULT_DURATION_MS
+        val restoredImageAnimationPeriodMs = savedInstanceState
+            ?.takeIf { it.containsKey(KEY_IMAGE_OVERLAY_ANIMATION_PERIOD_MS) }
+            ?.getLong(KEY_IMAGE_OVERLAY_ANIMATION_PERIOD_MS)
+            ?.coerceIn(
+                maxOf(ImageOverlayAnimationPolicy.MIN_PERIOD_MS, restoredImageAnimationDurationMs),
+                ImageOverlayAnimationPolicy.MAX_PERIOD_MS,
+            )
+            ?: maxOf(
+                ImageOverlayAnimationPolicy.DEFAULT_PERIOD_MS,
+                restoredImageAnimationDurationMs,
+            )
+        imageOverlayAnimation = ImageOverlayAnimationSettings(
+            preset = savedInstanceState?.getString(KEY_IMAGE_OVERLAY_ANIMATION_PRESET)
+                ?.let { savedName ->
+                    ImageOverlayAnimationPreset.entries.firstOrNull { it.name == savedName }
+                }
+                ?: ImageOverlayAnimationPreset.NONE,
+            loopEnabled = savedInstanceState
+                ?.getBoolean(KEY_IMAGE_OVERLAY_ANIMATION_LOOP_ENABLED)
+                ?: false,
+            durationMs = restoredImageAnimationDurationMs,
+            periodMs = restoredImageAnimationPeriodMs,
+        )
         imageOverlayRangeInitialized = savedInstanceState?.let {
             it.containsKey(KEY_IMAGE_OVERLAY_START_MS) &&
                 it.containsKey(KEY_IMAGE_OVERLAY_END_MS)
@@ -761,6 +828,10 @@ class MainActivity : AppCompatActivity() {
         adaptivePreset = savedInstanceState?.getString(KEY_ADAPTIVE_PRESET)
             ?.let { savedName -> AdaptiveCutPreset.entries.firstOrNull { it.name == savedName } }
             ?: AdaptiveCutPreset.BALANCED
+        targetDurationMs = savedInstanceState
+            ?.takeIf { it.containsKey(KEY_TARGET_DURATION_MS) }
+            ?.getLong(KEY_TARGET_DURATION_MS)
+            ?.takeIf { it >= TargetDurationClipPlanner.MIN_TARGET_DURATION_MS }
         val adaptiveStarts = savedInstanceState?.getLongArray(KEY_ADAPTIVE_RANGE_STARTS)
         val adaptiveEnds = savedInstanceState?.getLongArray(KEY_ADAPTIVE_RANGE_ENDS)
         adaptiveDraftRanges = if (
@@ -894,8 +965,8 @@ class MainActivity : AppCompatActivity() {
         if (compositionPreviewActive && compositionPlayer != null && plan != null && editPlan != null) {
             return CompositionPreviewTimelinePolicy.outputToSourceMs(
                 outputPositionMs = compositionPlayer.currentPosition.coerceAtLeast(0L),
-                ranges = plan.selectedRanges,
-                settings = editPlan.transform,
+                plan = plan,
+                editPlan = editPlan,
             ).coerceIn(0L, info.durationMs)
         }
         return previewPlayer.currentPosition.coerceAtLeast(0L)
@@ -912,8 +983,8 @@ class MainActivity : AppCompatActivity() {
             )
             val outputPositionMs = CompositionPreviewTimelinePolicy.sourceToOutputMs(
                 sourcePositionMs = selectedSourceMs,
-                ranges = plan.selectedRanges,
-                settings = editPlan.transform,
+                plan = plan,
+                editPlan = editPlan,
             )
             compositionPlayer.seekTo(outputPositionMs.coerceAtLeast(0L))
         } else {
@@ -968,8 +1039,8 @@ class MainActivity : AppCompatActivity() {
         )
         val outputPositionMs = CompositionPreviewTimelinePolicy.sourceToOutputMs(
             sourcePositionMs = selectedSourceMs,
-            ranges = plan.selectedRanges,
-            settings = editPlan.transform,
+            plan = plan,
+            editPlan = editPlan,
         )
 
         releaseCompositionPreview(attachExoPlayer = false, reason = "replace composition: $reason")
@@ -978,7 +1049,7 @@ class MainActivity : AppCompatActivity() {
             previewPlayer.stop()
             previewPlayer.clearMediaItems()
         }
-        val player = CompositionPlayer.Builder(this).build()
+        val player = CompositionPreviewPlayerFactory.create(this, compiled)
         compositionPreviewPlayer = player
         compositionPreviewPlan = plan
         compositionPreviewEditPlan = editPlan
@@ -1045,7 +1116,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
         editor.resetTrimButton.setOnClickListener { resetTrimToFullSource() }
+        bindTargetDurationClipsControls()
         bindAdaptiveCutControls()
+        bindClipTransitionControls()
         bindReviewEditorTabs()
         bindTransformControls()
         bindAudioControls()
@@ -1186,6 +1259,163 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun currentAdaptiveCutSettings(): AdaptiveCutSettings = AdaptiveCutSettings(
+        enabled = adaptiveApplied,
+        preset = adaptivePreset,
+        reviewedRanges = adaptiveDraftRanges,
+        mode = if (targetDurationMs != null) {
+            ClipPlanningMode.TARGET_DURATION
+        } else {
+            ClipPlanningMode.PRESET_PACING
+        },
+        targetDurationMs = targetDurationMs,
+    )
+
+    private fun bindTargetDurationClipsControls() {
+        val parent = editor.editCard.getChildAt(0) as? ViewGroup
+            ?: error("Clips editor card must expose a ViewGroup content root")
+
+        // User-facing head/tail Trim is intentionally retired for the normal Clips workflow.
+        // Keep its bound slider as an internal full-source boundary so older IR/compiler code stays
+        // stable while the authoritative user input moves to final target duration.
+        editor.trimRangeSlider.isVisible = false
+        ((editor.trimStartValue.parent as? View)?.parent as? View)?.isVisible = false
+        editor.trimDurationValue.isVisible = false
+        editor.trimValidationMessage.isVisible = false
+        editor.resetTrimButton.isVisible = false
+
+        // PHASE6H1F2_CLIPS_UX_UNIFICATION: Target Duration is the single normal planning authority.
+        // Keep only the shared downstream review controls visible. Preset pacing stays implemented
+        // internally until an explicit Advanced planning mode is introduced.
+        editor.adaptivePresetGroup.isVisible = false
+        editor.generateAdaptiveDraftButton.isVisible = false
+        editor.adaptiveApplySwitch.isVisible = false
+        editor.adaptiveApplyNote.isVisible = false
+
+        targetDurationClipsController = TargetDurationClipsController(
+            context = this,
+            parent = parent,
+            insertionIndex = 3,
+            onGenerate = ::generateTargetDurationPlan,
+        )
+        targetDurationClipsController.setTargetDurationMs(targetDurationMs)
+        renderTargetDurationClipsControls()
+    }
+
+    private fun renderTargetDurationClipsControls() {
+        if (!::targetDurationClipsController.isInitialized) return
+        val info = activeMediaInfo
+        val target = targetDurationMs
+        val hasTargetDraft = target != null && adaptiveDraftRanges.isNotEmpty()
+        val sourceKeepRatio = if (info != null && hasTargetDraft && info.durationMs > 0L) {
+            adaptiveDraftRanges.sumOf { it.durationMs }.toDouble() / info.durationMs.toDouble()
+        } else {
+            null
+        }
+        val estimatedFinalDurationMs = when {
+            info == null || !hasTargetDraft -> null
+            adaptiveApplied -> currentEditPlan(RenderPreset.HD_720P).plannedDurationMs
+            else -> target
+        }
+        val renderActive = ::renderCoordinator.isInitialized &&
+            renderCoordinator.currentState.isActiveRender()
+        targetDurationClipsController.render(
+            sourceDurationMs = info?.durationMs,
+            targetDurationMs = target,
+            estimatedFinalDurationMs = estimatedFinalDurationMs,
+            sourceKeepRatio = sourceKeepRatio,
+            renderActive = renderActive,
+            targetApplied = target != null && adaptiveApplied,
+            hasDraft = hasTargetDraft,
+        )
+    }
+
+    private fun generateTargetDurationPlan(targetMs: Long): Boolean {
+        cancelAdaptivePreview()
+        val generated = applyTargetDurationPlan(targetMs, resetCandidate = true)
+        if (!generated) return false
+        onUserChangedAdaptiveCuts()
+        seekToAdaptiveCandidate()
+        return true
+    }
+
+    private fun applyTargetDurationPlan(
+        targetMs: Long,
+        resetCandidate: Boolean,
+    ): Boolean {
+        val info = activeMediaInfo ?: return false
+        if (renderCoordinator.currentState.isActiveRender()) return false
+        val sourceRange = TrimRange(0L, info.durationMs)
+        val currentRanges = currentSelectedClipRanges(info)
+        val currentTransitions = if (::clipTransitionEditorController.isInitialized) {
+            clipTransitionEditorController.currentSettings()
+        } else {
+            ClipTransitionSettings()
+        }
+        val result = TargetDurationClipIntegration.generate(
+            sourceRange = sourceRange,
+            targetDurationMs = targetMs,
+            currentAdaptiveCuts = currentAdaptiveCutSettings(),
+            currentSelectedRanges = currentRanges,
+            transform = currentTransformSettings(),
+            clipTransitions = currentTransitions,
+        ) ?: return false
+
+        targetDurationMs = targetMs
+        adaptiveDraftRanges = result.adaptiveCuts.reviewedRanges
+        adaptiveApplied = true
+        adaptiveCandidateIndex = if (resetCandidate) {
+            0
+        } else {
+            adaptiveCandidateIndex.coerceIn(0, adaptiveDraftRanges.lastIndex.coerceAtLeast(0))
+        }
+        targetDurationTimingSignature = currentTargetDurationTimingSignature()
+        if (::clipTransitionEditorController.isInitialized) {
+            clipTransitionEditorController.replaceSettings(result.clipTransitions)
+        }
+        if (editor.adaptiveApplySwitch.isChecked != true) {
+            editor.adaptiveApplySwitch.isChecked = true
+        }
+        renderAdaptiveCutControls()
+        renderTargetDurationClipsControls()
+        return true
+    }
+
+    private fun currentTargetDurationTimingSignature(): String {
+        val transform = currentTransformSettings()
+        val speed = SpeedCompiler.compile(transform)?.multiplier ?: 1f
+        val freezeMs = FreezeCompiler.compile(transform)?.durationMs ?: 0L
+        return "${speed.toRawBits()}:$freezeMs"
+    }
+
+    private fun reconcileTargetDurationForTimingChange() {
+        val target = targetDurationMs ?: return
+        if (!adaptiveApplied || adaptiveDraftRanges.isEmpty()) return
+        val signature = currentTargetDurationTimingSignature()
+        if (signature == targetDurationTimingSignature) return
+        if (!applyTargetDurationPlan(target, resetCandidate = false)) {
+            adaptiveApplied = false
+            targetDurationTimingSignature = null
+            if (editor.adaptiveApplySwitch.isChecked) {
+                editor.adaptiveApplySwitch.isChecked = false
+            }
+            if (::targetDurationClipsController.isInitialized) {
+                targetDurationClipsController.showImpossibleTarget()
+            }
+            renderAdaptiveCutControls()
+            renderTargetDurationClipsControls()
+        }
+    }
+
+    private fun clearTargetDurationMode(clearFields: Boolean) {
+        targetDurationMs = null
+        targetDurationTimingSignature = null
+        if (::targetDurationClipsController.isInitialized) {
+            if (clearFields) targetDurationClipsController.setTargetDurationMs(null)
+            renderTargetDurationClipsControls()
+        }
+    }
+
     private fun bindAdaptiveCutControls() {
         editor.adaptivePresetGroup.check(adaptivePresetButtonId(adaptivePreset))
         editor.adaptiveApplySwitch.isChecked = adaptiveApplied
@@ -1199,6 +1429,7 @@ class MainActivity : AppCompatActivity() {
                 else -> AdaptiveCutPreset.BALANCED
             }
             if (adaptivePreset != selected) {
+                clearTargetDurationMode(clearFields = true)
                 val wasApplied = adaptiveApplied
                 adaptivePreset = selected
                 adaptiveDraftRanges = emptyList()
@@ -1214,6 +1445,7 @@ class MainActivity : AppCompatActivity() {
         editor.generateAdaptiveDraftButton.setOnClickListener {
             val info = activeMediaInfo ?: return@setOnClickListener
             cancelAdaptivePreview()
+            clearTargetDurationMode(clearFields = true)
             adaptiveDraftRanges = AdaptiveCutDraftEngine.generate(
                 currentTrimRange(info),
                 adaptivePreset,
@@ -1259,6 +1491,7 @@ class MainActivity : AppCompatActivity() {
         editor.adaptiveClearButton.setOnClickListener {
             val wasApplied = adaptiveApplied
             cancelAdaptivePreview()
+            clearTargetDurationMode(clearFields = true)
             adaptiveDraftRanges = emptyList()
             adaptiveCandidateIndex = 0
             adaptiveApplied = false
@@ -1514,6 +1747,7 @@ class MainActivity : AppCompatActivity() {
         scheduleEditorPreferencesSave()
         val info = activeMediaInfo ?: return
         cancelAdaptivePreview()
+        clipTransitionEditorController.reconcile()
         if (!renderCoordinator.currentState.isActiveRender() &&
             renderCoordinator.currentState !is RenderUiState.Idle
         ) {
@@ -1527,11 +1761,13 @@ class MainActivity : AppCompatActivity() {
         )
         renderAdaptiveCutControls()
         renderTransformControls()
+        renderTargetDurationClipsControls()
         updateTrimSummary()
     }
 
     private fun clearAdaptiveDraft() {
         cancelAdaptivePreview()
+        clearTargetDurationMode(clearFields = true)
         adaptiveDraftRanges = emptyList()
         adaptiveCandidateIndex = 0
         adaptiveApplied = false
@@ -1541,7 +1777,109 @@ class MainActivity : AppCompatActivity() {
             }
             renderAdaptiveCutControls()
             renderTransformControls()
+            if (::clipTransitionEditorController.isInitialized) {
+                clipTransitionEditorController.reconcile()
+            }
         }
+    }
+
+    private fun bindClipTransitionControls() {
+        val parent = editor.editCard.getChildAt(0) as? ViewGroup
+            ?: error("Clips editor card must expose a ViewGroup content root")
+        clipTransitionEditorController = ClipTransitionEditorController(
+            context = this,
+            parent = parent,
+            selectedRangesProvider = {
+                activeMediaInfo?.let(::currentSelectedClipRanges).orEmpty()
+            },
+            onSettingsChanged = ::onUserChangedClipTransitions,
+            onPreviewBoundary = ::previewClipTransitionBoundary,
+        )
+    }
+
+    private fun currentSelectedClipRanges(info: MediaInfo): List<TrimRange> {
+        val trim = currentTrimRange(info)
+        return AdaptiveCutCompiler.compile(
+            currentAdaptiveCutSettings(),
+            trim,
+        ) ?: listOf(trim)
+    }
+
+    private fun onUserChangedClipTransitions() {
+        val info = activeMediaInfo ?: return
+        clipTransitionPreviewHandler.removeCallbacks(clipTransitionPreviewCompletion)
+        cancelFreezePreview()
+        cancelAdaptivePreview()
+        val target = targetDurationMs
+        if (target != null && adaptiveApplied && adaptiveDraftRanges.isNotEmpty()) {
+            if (!applyTargetDurationPlan(target, resetCandidate = false)) {
+                adaptiveApplied = false
+                targetDurationTimingSignature = null
+                if (editor.adaptiveApplySwitch.isChecked) {
+                    editor.adaptiveApplySwitch.isChecked = false
+                }
+                targetDurationClipsController.showImpossibleTarget()
+            }
+        }
+        clipTransitionEditorController.reconcile()
+        if (!renderCoordinator.currentState.isActiveRender() &&
+            renderCoordinator.currentState !is RenderUiState.Idle
+        ) {
+            renderCoordinator.reset(mediaHasAudio = renderNeedsAudioCapability(info))
+            restoreSourcePreviewAfterStoppedRender()
+        }
+        requestSourceBlurPreviewUpdate(
+            reason = "clip crossfade boundary",
+            immediate = true,
+            force = true,
+        )
+        renderTargetDurationClipsControls()
+        updateTrimSummary()
+    }
+
+    private fun previewClipTransitionBoundary(
+        left: TrimRange,
+        right: TrimRange,
+        enabled: Boolean,
+    ) {
+        val info = activeMediaInfo ?: return
+        if (renderCoordinator.currentState.isActiveRender()) return
+        clipTransitionPreviewHandler.removeCallbacks(clipTransitionPreviewCompletion)
+        cancelFreezePreview()
+        cancelAdaptivePreview()
+        if (enabled && !compositionPreviewActive) {
+            requestSourceBlurPreviewUpdate(
+                reason = "prepare Crossfade boundary preview",
+                immediate = true,
+                force = true,
+            )
+            if (!compositionPreviewActive) {
+                Snackbar.make(
+                    binding.mainRoot,
+                    R.string.clip_transition_preview_unavailable,
+                    Snackbar.LENGTH_LONG,
+                ).show()
+                return
+            }
+        }
+        val sourceLeadMs = (CLIP_TRANSITION_PREVIEW_LEAD_MS * currentPreviewSpeed())
+            .roundToLong()
+        val startSourceMs = (left.endMs - sourceLeadMs).coerceIn(left.startMs, left.endMs)
+        activePreviewPause()
+        activePreviewSeekToSourcePosition(info, startSourceMs)
+        activePreviewPlay()
+        clipTransitionPreviewHandler.postDelayed(
+            clipTransitionPreviewCompletion,
+            CLIP_TRANSITION_PREVIEW_WINDOW_MS,
+        )
+        Log.d(
+            TAG_PREVIEW,
+            "Boundary preview ${left.endMs}->${right.startMs} enabled=$enabled start=$startSourceMs",
+        )
+    }
+
+    private val clipTransitionPreviewCompletion = Runnable {
+        if (_binding != null) activePreviewPause()
     }
 
     private fun bindReviewEditorTabs() {
@@ -1649,7 +1987,7 @@ class MainActivity : AppCompatActivity() {
                 editor.exportDurationAdvisorDetail.text = getString(
                     R.string.export_duration_aligned,
                     exactDurationText(assessment.plannedDurationMs),
-                    toleranceMs,
+                    humanDurationDeltaText(toleranceMs),
                 )
                 editor.exportApplyDurationButton.isVisible = false
             }
@@ -1659,8 +1997,8 @@ class MainActivity : AppCompatActivity() {
                     exactDurationText(assessment.plannedDurationMs),
                     MediaFormatters.duration(assessment.suggestedDurationMs),
                     if (assessment.adjustmentMs >= 0L) "+" else "−",
-                    abs(assessment.adjustmentMs),
-                    toleranceMs,
+                    humanDurationDeltaText(abs(assessment.adjustmentMs)),
+                    humanDurationDeltaText(toleranceMs),
                 )
                 editor.exportApplyDurationButton.isVisible = true
                 editor.exportApplyDurationButton.text = getString(
@@ -1678,7 +2016,7 @@ class MainActivity : AppCompatActivity() {
                     exactDurationText(assessment.plannedDurationMs),
                     MediaFormatters.duration(assessment.suggestedDurationMs),
                     if (assessment.adjustmentMs >= 0L) "+" else "−",
-                    abs(assessment.adjustmentMs),
+                    humanDurationDeltaText(abs(assessment.adjustmentMs)),
                 )
                 editor.exportApplyDurationButton.isVisible = false
             }
@@ -1710,11 +2048,13 @@ class MainActivity : AppCompatActivity() {
             )
             onUserChangedAdaptiveCuts()
         } else {
-            editor.trimRangeSlider.values = listOf(
-                update.trimRange.startMs / 1_000f,
-                update.trimRange.endMs / 1_000f,
-            )
-            onUserChangedTrim()
+            Snackbar.make(
+                binding.mainRoot,
+                R.string.export_duration_update_unavailable,
+                Snackbar.LENGTH_SHORT,
+            ).show()
+            renderDurationFitAdvisor()
+            return
         }
 
         Snackbar.make(
@@ -1954,6 +2294,20 @@ class MainActivity : AppCompatActivity() {
         editor.imageOverlayYSlider.value = imageOverlayCenterY * 100f
         editor.imageOverlaySizeSlider.value = imageOverlayWidthFraction * 100f
         editor.imageOverlayOpacitySlider.value = imageOverlayOpacity * 100f
+        if (!::imageOverlayAnimationController.isInitialized) {
+            imageOverlayAnimationController = ImageOverlayAnimationController(
+                container = editor.imageOverlayControlsGroup,
+            ) { settings ->
+                if (imageOverlayAnimation != settings) {
+                    imageOverlayAnimation = settings.copy(phaseOffsetMs = 0L)
+                    renderImageOverlayControls()
+                    onUserChangedOverlay(
+                        throttleSourceBlurPreview = true,
+                        reason = "image animation controls",
+                    )
+                }
+            }
+        }
         renderOverlayControls()
 
         editor.overlayEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -2158,6 +2512,7 @@ class MainActivity : AppCompatActivity() {
             imageOverlayCenterY = OverlayCompiler.DEFAULT_IMAGE_CENTER_Y
             imageOverlayWidthFraction = OverlayCompiler.DEFAULT_IMAGE_WIDTH_FRACTION
             imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY
+            imageOverlayAnimation = ImageOverlayAnimationSettings()
             imageOverlayRangeInitialized = false
             imageOverlayRangeFollowsTrim = true
             ensureImageOverlayRange()
@@ -2619,6 +2974,16 @@ class MainActivity : AppCompatActivity() {
         editor.imageOverlayYSlider.value = imageOverlayCenterY * 100f
         editor.imageOverlaySizeSlider.value = imageOverlayWidthFraction * 100f
         editor.imageOverlayOpacitySlider.value = imageOverlayOpacity * 100f
+        if (::imageOverlayAnimationController.isInitialized) {
+            val renderActive = ::renderCoordinator.isInitialized &&
+                renderCoordinator.currentState.isActiveRender()
+            val animationVisible = overlayEnabled && imageOverlayEnabled
+            imageOverlayAnimationController.render(
+                settings = imageOverlayAnimation,
+                visible = animationVisible,
+                enabled = animationVisible && !renderActive && !imageOverlayImporting,
+            )
+        }
         val preset = ImageOverlayPositionPreset.entries.firstOrNull {
             abs(it.centerX - imageOverlayCenterX) < 0.001f &&
                 abs(it.centerY - imageOverlayCenterY) < 0.001f
@@ -2892,7 +3257,8 @@ class MainActivity : AppCompatActivity() {
         editor.aspectRatioGroup.check(aspectRatioButtonId(transformAspectRatio))
         editor.scaleModeGroup.check(scaleModeButtonId(transformScaleMode))
         editor.cropEnabledSwitch.isChecked = cropEnabled
-        editor.mirrorEnabledSwitch.isChecked = mirrorEnabled
+        mirrorEnabledSwitch.isChecked = mirrorEnabled
+        randomMirrorPerClipSwitch.isChecked = randomMirrorPerClipEnabled
         editor.colorEnabledSwitch.isChecked = colorEnabled
         editor.colorBrightnessSlider.value = colorBrightness
         editor.colorContrastSlider.value = colorContrast
@@ -2960,9 +3326,24 @@ class MainActivity : AppCompatActivity() {
                 onUserChangedTransform()
             }
         }
-        editor.mirrorEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
+        mirrorEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (mirrorEnabled != isChecked) {
                 mirrorEnabled = isChecked
+                if (isChecked && randomMirrorPerClipEnabled) {
+                    randomMirrorPerClipEnabled = false
+                    randomMirrorPerClipSwitch.isChecked = false
+                }
+                renderTransformControls()
+                onUserChangedTransform()
+            }
+        }
+        randomMirrorPerClipSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (randomMirrorPerClipEnabled != isChecked) {
+                randomMirrorPerClipEnabled = isChecked
+                if (isChecked && mirrorEnabled) {
+                    mirrorEnabled = false
+                    mirrorEnabledSwitch.isChecked = false
+                }
                 renderTransformControls()
                 onUserChangedTransform()
             }
@@ -3369,6 +3750,9 @@ class MainActivity : AppCompatActivity() {
                 imageOverlayImportCoordinator.clear(previousImage)
             }
             activeMediaInfo = info
+            if (::clipTransitionEditorController.isInitialized && replacingSource) {
+                clipTransitionEditorController.reset()
+            }
             publicExportCoordinator.reset()
             configureTrim(info)
             if (replacingSource) {
@@ -3380,6 +3764,7 @@ class MainActivity : AppCompatActivity() {
                 imageOverlayCenterY = OverlayCompiler.DEFAULT_IMAGE_CENTER_Y
                 imageOverlayWidthFraction = OverlayCompiler.DEFAULT_IMAGE_WIDTH_FRACTION
                 imageOverlayOpacity = OverlayCompiler.DEFAULT_IMAGE_OPACITY
+                imageOverlayAnimation = ImageOverlayAnimationSettings()
                 imageOverlayRangeInitialized = false
                 imageOverlayRangeFollowsTrim = true
             }
@@ -3416,6 +3801,21 @@ class MainActivity : AppCompatActivity() {
         editor.fileSizeValue.text = MediaFormatters.fileSize(this, info.fileSizeBytes)
         configureSourcePreviewLayout(info)
         renderOverlayControls()
+        if (::clipTransitionEditorController.isInitialized) {
+            clipTransitionEditorController.reconcile()
+        }
+        val restoredTarget = targetDurationMs
+        if (restoredTarget != null && adaptiveApplied && adaptiveDraftRanges.isNotEmpty()) {
+            if (!applyTargetDurationPlan(restoredTarget, resetCandidate = false)) {
+                adaptiveApplied = false
+                targetDurationTimingSignature = null
+                if (editor.adaptiveApplySwitch.isChecked) {
+                    editor.adaptiveApplySwitch.isChecked = false
+                }
+                targetDurationClipsController.showImpossibleTarget()
+            }
+        }
+        renderTargetDurationClipsControls()
 
         if (previewPath != info.workingFilePath) {
             technicalDetailsExpanded = false
@@ -3993,6 +4393,10 @@ class MainActivity : AppCompatActivity() {
                     imageCenterY = imageOverlayCenterY,
                     imageWidthFraction = imageOverlayWidthFraction,
                     imageOpacity = imageOverlayOpacity,
+                    imageAnimationPreset = imageOverlayAnimation.preset,
+                    imageAnimationLoopEnabled = imageOverlayAnimation.loopEnabled,
+                    imageAnimationDurationMs = imageOverlayAnimation.durationMs,
+                    imageAnimationPeriodMs = imageOverlayAnimation.periodMs,
                 ),
                 adaptivePreset = adaptivePreset,
                 renderPreset = selectedRenderPreset,
@@ -4018,6 +4422,7 @@ class MainActivity : AppCompatActivity() {
         cropEnabled = transform.crop.enabled
         cropRectangle = transform.crop.rectangle
         mirrorEnabled = transform.mirrorEnabled
+        randomMirrorPerClipEnabled = transform.randomMirrorPerClipEnabled
         colorEnabled = transform.color.enabled
         colorBrightness = transform.color.brightness
         colorContrast = transform.color.contrast
@@ -4052,6 +4457,12 @@ class MainActivity : AppCompatActivity() {
         imageOverlayCenterY = snapshot.overlay.imageCenterY
         imageOverlayWidthFraction = snapshot.overlay.imageWidthFraction
         imageOverlayOpacity = snapshot.overlay.imageOpacity
+        imageOverlayAnimation = ImageOverlayAnimationSettings(
+            preset = snapshot.overlay.imageAnimationPreset,
+            loopEnabled = snapshot.overlay.imageAnimationLoopEnabled,
+            durationMs = snapshot.overlay.imageAnimationDurationMs,
+            periodMs = snapshot.overlay.imageAnimationPeriodMs,
+        )
         imageOverlayEnabled = snapshot.overlay.imageEnabled &&
             assetDependentSettings && imageOverlayAsset != null
 
@@ -4085,7 +4496,8 @@ class MainActivity : AppCompatActivity() {
         editor.cropTopSlider.value = cropRectangle.top * 100f
         editor.cropRightSlider.value = (1f - cropRectangle.right) * 100f
         editor.cropBottomSlider.value = (1f - cropRectangle.bottom) * 100f
-        editor.mirrorEnabledSwitch.isChecked = mirrorEnabled
+        mirrorEnabledSwitch.isChecked = mirrorEnabled
+        randomMirrorPerClipSwitch.isChecked = randomMirrorPerClipEnabled
         editor.colorEnabledSwitch.isChecked = colorEnabled
         editor.colorBrightnessSlider.value = colorBrightness
         editor.colorContrastSlider.value = colorContrast
@@ -4129,6 +4541,7 @@ class MainActivity : AppCompatActivity() {
         renderAudioControls()
         renderOverlayControls()
         renderAdaptiveCutControls()
+        renderTargetDurationClipsControls()
         renderExportQualityControls()
         renderReviewEditorTab()
         applyPreviewOverlayLayout()
@@ -4305,6 +4718,9 @@ class MainActivity : AppCompatActivity() {
         binding.homeContent.homeChooseAnotherButton.isEnabled = !active
         editor.trimRangeSlider.isEnabled = !active
         editor.resetTrimButton.isEnabled = !active
+        if (::clipTransitionEditorController.isInitialized) {
+            clipTransitionEditorController.setBusy(active)
+        }
         renderTransformControls()
         renderAdaptiveCutControls()
         renderAudioControls()
@@ -4572,17 +4988,11 @@ class MainActivity : AppCompatActivity() {
         val maxSeconds = (info.durationMs / 1_000f).coerceAtLeast(1f)
         editor.trimRangeSlider.valueFrom = 0f
         editor.trimRangeSlider.valueTo = maxSeconds
-
-        val startMs = restoredTrimStartMs
-            ?.coerceIn(0L, info.durationMs)
-            ?: 0L
-        val endMs = restoredTrimEndMs
-            ?.coerceIn(startMs, info.durationMs)
-            ?: info.durationMs
-        editor.trimRangeSlider.values = listOf(startMs / 1_000f, endMs / 1_000f)
+        editor.trimRangeSlider.values = listOf(0f, maxSeconds)
         restoredTrimStartMs = null
         restoredTrimEndMs = null
         updateTrimSummary()
+        renderTargetDurationClipsControls()
     }
 
     private fun resetTrimToFullSource() {
@@ -4597,6 +5007,9 @@ class MainActivity : AppCompatActivity() {
         val info = activeMediaInfo ?: return
         cancelFreezePreview()
         clearAdaptiveDraft()
+        if (::clipTransitionEditorController.isInitialized) {
+            clipTransitionEditorController.reconcile()
+        }
         // Untouched overlay time windows are linked to the current Trim. This prevents a blur/logo
         // initialized on an earlier shorter Trim from silently ending halfway after Clips is
         // expanded again. Explicitly edited overlay time windows remain absolute and unchanged.
@@ -4626,6 +5039,7 @@ class MainActivity : AppCompatActivity() {
         val info = activeMediaInfo ?: return
         cancelFreezePreview()
         cancelAdaptivePreview()
+        reconcileTargetDurationForTimingChange()
         if (!renderCoordinator.currentState.isActiveRender() &&
             renderCoordinator.currentState !is RenderUiState.Idle
         ) {
@@ -4635,6 +5049,7 @@ class MainActivity : AppCompatActivity() {
         requestSourceBlurPreviewUpdate("transform controls", immediate = false)
         refreshAudioPreview()
         renderAdaptiveCutControls()
+        renderTargetDurationClipsControls()
         updateTrimSummary()
     }
 
@@ -5197,7 +5612,8 @@ class MainActivity : AppCompatActivity() {
         }
         editor.scaleModeGroup.setChildrenEnabled(scaleControlsEnabled)
         editor.cropEnabledSwitch.isEnabled = controlsEnabled
-        editor.mirrorEnabledSwitch.isEnabled = controlsEnabled
+        mirrorEnabledSwitch.isEnabled = controlsEnabled
+        randomMirrorPerClipSwitch.isEnabled = controlsEnabled
         editor.colorEnabledSwitch.isEnabled = controlsEnabled
         editor.zoomEnabledSwitch.isEnabled = controlsEnabled
         editor.speedEnabledSwitch.isEnabled = controlsEnabled
@@ -5252,6 +5668,9 @@ class MainActivity : AppCompatActivity() {
             append(baseSummary)
             if (transformEnabled && cropEnabled) append(getString(R.string.transform_crop_suffix))
             if (transformEnabled && mirrorEnabled) append(getString(R.string.transform_mirror_suffix))
+            if (transformEnabled && randomMirrorPerClipEnabled) {
+                append(getString(R.string.transform_random_mirror_suffix))
+            }
             if (transformEnabled && colorEnabled) append(getString(R.string.transform_color_suffix))
             if (transformEnabled && zoomEnabled) append(getString(R.string.transform_zoom_suffix))
             if (transformEnabled && speedEnabled) {
@@ -5270,11 +5689,18 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-        editor.mirrorSummary.setText(
+        mirrorSummaryView.setText(
             when {
                 !mirrorEnabled -> R.string.mirror_off_summary
                 transformEnabled -> R.string.mirror_on_summary
                 else -> R.string.mirror_remembered_summary
+            },
+        )
+        randomMirrorPerClipSummaryView.setText(
+            when {
+                !randomMirrorPerClipEnabled -> R.string.random_mirror_per_clip_off_summary
+                transformEnabled -> R.string.random_mirror_per_clip_on_summary
+                else -> R.string.random_mirror_per_clip_remembered_summary
             },
         )
         editor.colorSummary.text = when {
@@ -5725,24 +6151,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun currentEditPlan(preset: RenderPreset): EditPlan {
         val info = checkNotNull(activeMediaInfo)
+        val clipTransitions = if (::clipTransitionEditorController.isInitialized) {
+            clipTransitionEditorController.currentSettings()
+        } else {
+            ClipTransitionSettings()
+        }
         return EditPlan(
             sourcePath = info.workingFilePath,
             sourceDurationMs = info.durationMs,
             profile = when {
                 adaptiveApplied -> EditProfile.ADAPTIVE
-                transformEnabled || audioEnabled || overlayEnabled -> EditProfile.CUSTOM
+                transformEnabled || audioEnabled || overlayEnabled || clipTransitions.enabled ->
+                    EditProfile.CUSTOM
                 else -> EditProfile.NORMAL
             },
             trimRange = currentTrimRange(info),
-            adaptiveCuts = AdaptiveCutSettings(
-                enabled = adaptiveApplied,
-                preset = adaptivePreset,
-                reviewedRanges = adaptiveDraftRanges,
-            ),
+            adaptiveCuts = currentAdaptiveCutSettings(),
             transform = currentTransformSettings(),
             audio = currentAudioSettings(),
             overlays = currentOverlaySettings(),
             exportPreset = preset,
+            clipTransitions = clipTransitions,
         )
     }
 
@@ -5770,6 +6199,7 @@ class MainActivity : AppCompatActivity() {
             centerY = imageOverlayCenterY,
             widthFraction = imageOverlayWidthFraction,
             opacity = imageOverlayOpacity,
+            animation = imageOverlayAnimation,
             startMs = imageOverlayStartMs,
             endMs = imageOverlayEndMs,
         ),
@@ -5792,6 +6222,7 @@ class MainActivity : AppCompatActivity() {
             rectangle = cropRectangle,
         ),
         mirrorEnabled = mirrorEnabled,
+        randomMirrorPerClipEnabled = randomMirrorPerClipEnabled,
         color = ColorSettings(
             enabled = colorEnabled,
             brightness = colorBrightness,
@@ -5883,6 +6314,12 @@ class MainActivity : AppCompatActivity() {
         durationMs.coerceAtLeast(0L) % 1_000L,
     )
 
+    private fun humanDurationDeltaText(durationMs: Long): String = String.format(
+        Locale.US,
+        "%.3f",
+        durationMs.coerceAtLeast(0L) / 1_000.0,
+    ).trimEnd('0').trimEnd('.')
+
     private fun RenderUiState.isActiveRender(): Boolean =
         this is RenderUiState.Preparing ||
             this is RenderUiState.Rendering ||
@@ -5943,6 +6380,7 @@ class MainActivity : AppCompatActivity() {
         outState.putFloat(KEY_CROP_RIGHT, cropRectangle.right)
         outState.putFloat(KEY_CROP_BOTTOM, cropRectangle.bottom)
         outState.putBoolean(KEY_MIRROR_ENABLED, mirrorEnabled)
+        outState.putBoolean(KEY_RANDOM_MIRROR_PER_CLIP_ENABLED, randomMirrorPerClipEnabled)
         outState.putBoolean(KEY_COLOR_ENABLED, colorEnabled)
         outState.putFloat(KEY_COLOR_BRIGHTNESS, colorBrightness)
         outState.putFloat(KEY_COLOR_CONTRAST, colorContrast)
@@ -5983,6 +6421,19 @@ class MainActivity : AppCompatActivity() {
         outState.putFloat(KEY_IMAGE_OVERLAY_CENTER_Y, imageOverlayCenterY)
         outState.putFloat(KEY_IMAGE_OVERLAY_WIDTH_FRACTION, imageOverlayWidthFraction)
         outState.putFloat(KEY_IMAGE_OVERLAY_OPACITY, imageOverlayOpacity)
+        outState.putString(KEY_IMAGE_OVERLAY_ANIMATION_PRESET, imageOverlayAnimation.preset.name)
+        outState.putBoolean(
+            KEY_IMAGE_OVERLAY_ANIMATION_LOOP_ENABLED,
+            imageOverlayAnimation.loopEnabled,
+        )
+        outState.putLong(
+            KEY_IMAGE_OVERLAY_ANIMATION_DURATION_MS,
+            imageOverlayAnimation.durationMs,
+        )
+        outState.putLong(
+            KEY_IMAGE_OVERLAY_ANIMATION_PERIOD_MS,
+            imageOverlayAnimation.periodMs,
+        )
         if (imageOverlayRangeInitialized) {
             outState.putLong(KEY_IMAGE_OVERLAY_START_MS, imageOverlayStartMs)
             outState.putLong(KEY_IMAGE_OVERLAY_END_MS, imageOverlayEndMs)
@@ -6006,6 +6457,7 @@ class MainActivity : AppCompatActivity() {
             outState.putLong(KEY_REPLACEMENT_AUDIO_SIZE_BYTES, asset.fileSizeBytes)
         }
         outState.putString(KEY_ADAPTIVE_PRESET, adaptivePreset.name)
+        targetDurationMs?.let { outState.putLong(KEY_TARGET_DURATION_MS, it) }
         outState.putLongArray(
             KEY_ADAPTIVE_RANGE_STARTS,
             adaptiveDraftRanges.map { it.startMs }.toLongArray(),
@@ -6075,6 +6527,7 @@ class MainActivity : AppCompatActivity() {
         cancelPreviewReadyTimeout()
         cancelFreezePreview()
         cancelAdaptivePreview()
+        clipTransitionPreviewHandler.removeCallbacks(clipTransitionPreviewCompletion)
         activePreviewPause()
         pauseReplacementAudioPreview()
         super.onStop()
@@ -6090,6 +6543,7 @@ class MainActivity : AppCompatActivity() {
         pausedPreviewRefreshAnchorMs = null
         previewRecoveryHandler.removeCallbacksAndMessages(null)
         editorPreferencesHandler.removeCallbacksAndMessages(null)
+        clipTransitionPreviewHandler.removeCallbacksAndMessages(null)
         sourceBlurPreviewUpdatePosted = false
         cancelSourceBlurGestureCommit(resetGuide = true)
         releaseCompositionPreview(attachExoPlayer = false, reason = "activity destroy")
@@ -6144,6 +6598,8 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_CROP_RIGHT = "recapflow.transform.crop.right"
         private const val KEY_CROP_BOTTOM = "recapflow.transform.crop.bottom"
         private const val KEY_MIRROR_ENABLED = "recapflow.transform.mirror.enabled"
+        private const val KEY_RANDOM_MIRROR_PER_CLIP_ENABLED =
+            "recapflow.transform.mirror.randomPerClip.enabled"
         private const val KEY_COLOR_ENABLED = "recapflow.transform.color.enabled"
         private const val KEY_COLOR_BRIGHTNESS = "recapflow.transform.color.brightness"
         private const val KEY_COLOR_CONTRAST = "recapflow.transform.color.contrast"
@@ -6179,6 +6635,10 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_IMAGE_OVERLAY_CENTER_Y = "recapflow.overlay.image.centerY"
         private const val KEY_IMAGE_OVERLAY_WIDTH_FRACTION = "recapflow.overlay.image.width"
         private const val KEY_IMAGE_OVERLAY_OPACITY = "recapflow.overlay.image.opacity"
+        private const val KEY_IMAGE_OVERLAY_ANIMATION_PRESET = "recapflow.overlay.image.animation.preset"
+        private const val KEY_IMAGE_OVERLAY_ANIMATION_LOOP_ENABLED = "recapflow.overlay.image.animation.loop"
+        private const val KEY_IMAGE_OVERLAY_ANIMATION_DURATION_MS = "recapflow.overlay.image.animation.durationMs"
+        private const val KEY_IMAGE_OVERLAY_ANIMATION_PERIOD_MS = "recapflow.overlay.image.animation.periodMs"
         private const val KEY_IMAGE_OVERLAY_START_MS = "recapflow.overlay.image.startMs"
         private const val KEY_IMAGE_OVERLAY_END_MS = "recapflow.overlay.image.endMs"
         private const val KEY_IMAGE_OVERLAY_RANGE_FOLLOWS_TRIM = "recapflow.overlay.image.rangeFollowsTrim"
@@ -6195,6 +6655,7 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_REPLACEMENT_AUDIO_SIZE_BYTES =
             "recapflow.audio.replacement.sizeBytes"
         private const val KEY_ADAPTIVE_PRESET = "recapflow.adaptive.preset"
+        private const val KEY_TARGET_DURATION_MS = "recapflow.adaptive.targetDurationMs"
         private const val KEY_ADAPTIVE_RANGE_STARTS = "recapflow.adaptive.rangeStarts"
         private const val KEY_ADAPTIVE_RANGE_ENDS = "recapflow.adaptive.rangeEnds"
         private const val KEY_ADAPTIVE_APPLIED = "recapflow.adaptive.applied"
@@ -6212,6 +6673,8 @@ class MainActivity : AppCompatActivity() {
         private const val MIN_PREVIEW_OVERLAY_SCALE = 0.55f
         private const val PREVIEW_POSITION_UNSET = -1f
         private const val ADAPTIVE_PREVIEW_POLL_MS = 100L
+        private const val CLIP_TRANSITION_PREVIEW_LEAD_MS = 800L
+        private const val CLIP_TRANSITION_PREVIEW_WINDOW_MS = 2_500L
         private const val REPLACEMENT_SYNC_POLL_MS = 250L
         private const val REPLACEMENT_SYNC_TOLERANCE_MS = 120L
         private const val SOURCE_BLUR_PREVIEW_UPDATE_MS = 140L

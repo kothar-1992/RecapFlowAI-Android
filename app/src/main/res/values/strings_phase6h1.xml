@@ -1,0 +1,21 @@
+<resources>
+    <string name="clip_transition_badge">SMOOTH CLIP TRANSITION</string>
+    <string name="clip_transition_title">Transition between clips</string>
+    <string name="clip_transition_description">Choose where two reviewed clips meet, then add a smooth blend between them. Leave it off to switch directly from one clip to the next.</string>
+    <string name="clip_transition_unavailable">Apply at least two reviewed clips before adding a transition between them.</string>
+    <string name="clip_transition_boundary_value">Clip change %1$d of %2$d • %3$s → %4$s</string>
+    <string name="clip_transition_previous">Previous clip change</string>
+    <string name="clip_transition_next">Next clip change</string>
+    <string name="clip_transition_enable">Blend these two clips smoothly</string>
+    <string name="clip_transition_off_summary">Direct change — the next clip starts immediately.</string>
+    <string name="clip_transition_on_summary">Smooth blend • %1$s • %2$s</string>
+    <string name="clip_transition_duration">How long the blend lasts</string>
+    <string name="clip_transition_duration_value">Transition time: %1$s</string>
+    <string name="clip_transition_easing">How the blend feels</string>
+    <string name="clip_transition_linear">Even from start to finish</string>
+    <string name="clip_transition_ease_in_out">Gentle start and finish</string>
+    <string name="clip_transition_preview">Preview this clip change</string>
+    <string name="clip_transition_reset">Remove transition</string>
+    <string name="clip_transition_preview_unavailable">Smooth transition preview is not available in the current fallback preview. Tap Retry live preview first.</string>
+    <string name="clip_transition_seconds_value">%1$s seconds</string>
+</resources>

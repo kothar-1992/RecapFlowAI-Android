@@ -1,5 +1,6 @@
 package com.recapflow.ai.media.render
 
+import com.recapflow.ai.media.edit.EditPlan
 import com.recapflow.ai.media.edit.OverlaySettings
 import com.recapflow.ai.media.edit.SpeedCompiler
 import com.recapflow.ai.media.edit.TransformSettings
@@ -11,8 +12,8 @@ import kotlin.math.roundToLong
  * Pure timeline mapping used by CompositionPlayer preview.
  *
  * The editor stores semantic positions on the original source timeline, while CompositionPlayer
- * reports positions on the concatenated output timeline after Trim/Adaptive Cuts and Speed. This
- * policy is the single conversion boundary between those two coordinate systems.
+ * reports positions on the output timeline after Trim/Adaptive Cuts, Speed and optional clip
+ * overlap. This policy is the single conversion boundary between those coordinate systems.
  */
 object CompositionPreviewTimelinePolicy {
 
@@ -67,11 +68,128 @@ object CompositionPreviewTimelinePolicy {
         return ranges.last().endMs
     }
 
+    /** Shared mapping entry point for the reviewed Media3 plan. */
+    fun sourceToOutputMs(
+        sourcePositionMs: Long,
+        plan: Media3CompositionPlan,
+        editPlan: EditPlan,
+    ): Long {
+        if (plan.clipTransitions.isEmpty()) {
+            return sourceToOutputMs(
+                sourcePositionMs = sourcePositionMs,
+                ranges = plan.selectedRanges,
+                settings = editPlan.transform,
+                introFreezeMs = plan.freeze?.durationMs ?: 0L,
+            )
+        }
+        return sourceToOutputMs(
+            sourcePositionMs = sourcePositionMs,
+            topology = Media3CrossfadeTopologyCompiler.compile(plan, editPlan),
+        )
+    }
+
+    /** Shared reverse mapping entry point for the reviewed Media3 plan. */
+    fun outputToSourceMs(
+        outputPositionMs: Long,
+        plan: Media3CompositionPlan,
+        editPlan: EditPlan,
+    ): Long {
+        if (plan.clipTransitions.isEmpty()) {
+            return outputToSourceMs(
+                outputPositionMs = outputPositionMs,
+                ranges = plan.selectedRanges,
+                settings = editPlan.transform,
+                introFreezeMs = plan.freeze?.durationMs ?: 0L,
+            )
+        }
+        return outputToSourceMs(
+            outputPositionMs = outputPositionMs,
+            topology = Media3CrossfadeTopologyCompiler.compile(plan, editPlan),
+        )
+    }
+
+    /**
+     * Maps one source position into its overlapping Crossfade slot. The mapping uses the slot's
+     * reviewed presentation duration, so it remains consistent with Speed rounding in the topology.
+     */
+    fun sourceToOutputMs(
+        sourcePositionMs: Long,
+        topology: Media3CrossfadeTopology,
+    ): Long {
+        if (topology.slots.isEmpty()) return 0L
+        val ranges = topology.slots.map(Media3CrossfadeClipSlot::sourceRange)
+        val selectedSourceMs = nearestSelectedSourcePosition(sourcePositionMs, ranges)
+        val slot = topology.slots.firstOrNull {
+            selectedSourceMs in it.sourceRange.startMs..it.sourceRange.endMs
+        } ?: return 0L
+        val range = slot.sourceRange
+        val localSourceMs = (selectedSourceMs - range.startMs).coerceIn(0L, range.durationMs)
+        val localPresentationUs = if (range.durationMs <= 0L) {
+            0L
+        } else {
+            (localSourceMs.toDouble() / range.durationMs.toDouble() * slot.presentationDurationUs)
+                .roundToLong()
+        }
+        return usToMs(slot.presentationStartUs + localPresentationUs)
+    }
+
+    /**
+     * Maps one Crossfade presentation position back to the visually dominant source clip. During
+     * the overlap window lane 1's compositor alpha decides which simultaneously active clip owns the
+     * editor's single source-time cursor; this avoids a discontinuity at the hard-cut boundary.
+     */
+    fun outputToSourceMs(
+        outputPositionMs: Long,
+        topology: Media3CrossfadeTopology,
+    ): Long {
+        if (topology.slots.isEmpty()) return 0L
+        val presentationUs = (outputPositionMs.coerceAtLeast(0L) * 1_000L)
+            .coerceAtMost(topology.totalDurationUs)
+        if (presentationUs <= topology.freezeDurationUs) {
+            return topology.slots.first().sourceRange.startMs
+        }
+        if (presentationUs >= topology.totalDurationUs) {
+            return topology.slots.maxBy(Media3CrossfadeClipSlot::presentationEndUs)
+                .sourceRange.endMs
+        }
+
+        val active = topology.slots.filter { slot ->
+            presentationUs >= slot.presentationStartUs && presentationUs < slot.presentationEndUs
+        }
+        val slot = when (active.size) {
+            0 -> topology.slots.minBy { candidate ->
+                when {
+                    presentationUs < candidate.presentationStartUs ->
+                        candidate.presentationStartUs - presentationUs
+                    presentationUs >= candidate.presentationEndUs ->
+                        presentationUs - candidate.presentationEndUs
+                    else -> 0L
+                }
+            }
+            1 -> active.single()
+            else -> {
+                val lane1Alpha = topology.overlayLaneAlpha(presentationUs)
+                val dominantLane = if (lane1Alpha >= 0.5f) 1 else 0
+                active.firstOrNull { it.lane == dominantLane } ?: active.first()
+            }
+        }
+        val localPresentationUs = (presentationUs - slot.presentationStartUs)
+            .coerceIn(0L, slot.presentationDurationUs)
+        val localSourceMs = if (slot.presentationDurationUs <= 0L) {
+            0L
+        } else {
+            (localPresentationUs.toDouble() / slot.presentationDurationUs.toDouble() *
+                slot.sourceRange.durationMs.toDouble()).roundToLong()
+        }
+        return slot.sourceRange.startMs +
+            localSourceMs.coerceIn(0L, slot.sourceRange.durationMs)
+    }
+
     /**
      * CompositionPlayer requires the experimental speed effect to be the first video effect. The
      * effects that follow it therefore observe presentation time after speed is applied. Convert a
-     * range-local source-time overlay window to that presentation-time domain before constructing
-     * preview-only blur/logo effects.
+     * range-local source-time overlay window and all source-anchored logo animation timing into that
+     * presentation-time domain before constructing preview-only blur/logo effects.
      */
     fun projectOverlayWindowsToPresentationTime(
         overlays: OverlaySettings,
@@ -87,6 +205,11 @@ object CompositionPreviewTimelinePolicy {
             image = overlays.image.copy(
                 startMs = scaled(overlays.image.startMs),
                 endMs = scaled(overlays.image.endMs),
+                animation = overlays.image.animation.copy(
+                    durationMs = scaled(overlays.image.animation.durationMs).coerceAtLeast(1L),
+                    periodMs = scaled(overlays.image.animation.periodMs).coerceAtLeast(1L),
+                    phaseOffsetMs = scaled(overlays.image.animation.phaseOffsetMs),
+                ),
             ),
         )
     }
@@ -102,4 +225,6 @@ object CompositionPreviewTimelinePolicy {
             .minByOrNull { abs(it - sourcePositionMs) }
             ?: ranges.first().startMs
     }
+
+    private fun usToMs(timeUs: Long): Long = (timeUs / 1_000.0).roundToLong()
 }

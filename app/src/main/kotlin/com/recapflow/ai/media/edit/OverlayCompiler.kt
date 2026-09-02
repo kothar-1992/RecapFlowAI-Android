@@ -20,10 +20,17 @@ data class CompiledImageOverlay(
     val opacity: Float,
     val startMs: Long,
     val endMs: Long,
+    val animation: ImageOverlayAnimationSettings = ImageOverlayAnimationSettings(),
 ) {
     fun isActiveAt(sourceTimeMs: Long): Boolean = sourceTimeMs in startMs until endMs
 
     fun intersects(range: TrimRange): Boolean = startMs < range.endMs && endMs > range.startMs
+
+    fun animationPhaseAt(sourceTimeMs: Long): ImageOverlayAnimationPhase =
+        ImageOverlayAnimationPolicy.resolve(
+            settings = animation,
+            windowLocalTimeMs = (sourceTimeMs - startMs).coerceAtLeast(0L),
+        )
 }
 
 /** Compiles only the manual Overlay operations whose master and item switches are enabled. */
@@ -65,9 +72,9 @@ object OverlayCompiler {
             opacity = image.opacity,
             startMs = image.startMs,
             endMs = image.endMs,
+            animation = image.animation,
         )
     }
-
 
     /**
      * Projects absolute source-timeline overlay windows into one clipped Media3 item's local
@@ -75,9 +82,13 @@ object OverlayCompiler {
      * must compare its local presentation timestamp against local overlay bounds rather than add
      * source and composition offsets inside the shader.
      *
-     * Geometry, strength, opacity and assets remain unchanged. An item with no time intersection
-     * receives that overlay disabled, which keeps the final graph deterministic across long and
-     * multi-range edits.
+     * Geometry, strength, opacity and assets remain unchanged. Image animation also retains its
+     * original source-time phase by advancing [ImageOverlayAnimationSettings.phaseOffsetMs] when a
+     * reviewed clip begins after the overlay's absolute start. This prevents animation restart at
+     * every Target-duration Clips boundary.
+     *
+     * An item with no time intersection receives that overlay disabled, which keeps the final graph
+     * deterministic across long and multi-range edits.
      */
     fun projectToRange(settings: OverlaySettings, sourceRange: TrimRange): OverlaySettings {
         if (!settings.enabled) return settings
@@ -98,11 +109,20 @@ object OverlayCompiler {
         val projectedImage = if (!image.enabled) {
             image
         } else {
+            val absoluteImageStartMs = image.startMs
+            val intersectionStartMs = maxOf(image.startMs, sourceRange.startMs)
             val local = projectWindow(image.startMs, image.endMs, sourceRange)
             if (local == null) {
                 image.copy(enabled = false)
             } else {
-                image.copy(startMs = local.first, endMs = local.second)
+                val phaseAdvanceMs = (intersectionStartMs - absoluteImageStartMs).coerceAtLeast(0L)
+                image.copy(
+                    startMs = local.first,
+                    endMs = local.second,
+                    animation = image.animation.copy(
+                        phaseOffsetMs = image.animation.phaseOffsetMs + phaseAdvanceMs,
+                    ),
+                )
             }
         }
 
