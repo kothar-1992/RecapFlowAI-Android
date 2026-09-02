@@ -2,10 +2,10 @@ package com.recapflow.ai.ui
 
 import android.content.pm.PackageManager
 import android.os.Build
-import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
+import androidx.core.content.ContextCompat
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -24,6 +24,7 @@ class SideMenuController(
 ) {
     private val menuDrawable = DrawerArrowDrawable(activity).apply {
         progress = 0f
+        color = ContextCompat.getColor(activity, R.color.rf_on_surface)
     }
 
     fun bind() {
@@ -111,9 +112,9 @@ class SideMenuController(
             }
         }.getOrNull()
         val versionName = info?.versionName
-            ?.takeIf(String::isNotBlank)
+            ?.takeIf { it.isNotBlank() }
             ?: BuildConfig.VERSION_NAME
-        val versionCode = info?.let(PackageInfoCompat::getLongVersionCode)
+        val versionCode = info?.let { PackageInfoCompat.getLongVersionCode(it) }
             ?: BuildConfig.VERSION_CODE.toLong()
         return activity.getString(
             R.string.drawer_version_format,
