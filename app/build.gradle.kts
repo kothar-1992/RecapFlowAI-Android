@@ -84,6 +84,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.drawerlayout)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.effect)
