@@ -12,10 +12,11 @@ HEADER="app/src/main/res/layout/view_navigation_drawer_header.xml"
 MENU="app/src/main/res/menu/menu_side_drawer.xml"
 EN="app/src/main/res/values/strings_phase6ux2.xml"
 MY="app/src/main/res/values-my/strings_phase6ux2.xml"
+DESTINATIONS="app/src/main/res/values/side_menu_destinations.xml"
 CATALOG="gradle/libs.versions.toml"
 APP_GRADLE="app/build.gradle.kts"
 
-for path in "$MAIN" "$CONTROLLER" "$LAYOUT" "$LAYOUT_SW600" "$HEADER" "$MENU" "$EN" "$MY" "$CATALOG" "$APP_GRADLE"; do
+for path in "$MAIN" "$CONTROLLER" "$LAYOUT" "$LAYOUT_SW600" "$HEADER" "$MENU" "$EN" "$MY" "$DESTINATIONS" "$CATALOG" "$APP_GRADLE"; do
   [[ -f "$path" ]] || { echo "FAIL: missing $path" >&2; exit 1; }
 done
 
@@ -60,14 +61,42 @@ grep -q 'PackageInfoCompat.getLongVersionCode' "$CONTROLLER" || {
   echo "FAIL: app version is not resolved from package metadata" >&2; exit 1;
 }
 grep -q 'versionCode.toString()' "$CONTROLLER" || {
-  echo "FAIL: version code must be converted to an ASCII digit string before localization" >&2; exit 1;
+  echo "FAIL: runtime version code must stay ASCII in localized UI" >&2; exit 1;
 }
 grep -q 'DrawerArrowDrawable' "$CONTROLLER" || {
   echo "FAIL: toolbar hamburger control missing" >&2; exit 1;
 }
-grep -q 'drawer_action_not_configured' "$CONTROLLER" || {
-  echo "FAIL: unconfigured actions do not fail gracefully" >&2; exit 1;
+grep -q 'Intent.ACTION_SENDTO' "$CONTROLLER" || {
+  echo "FAIL: developer contact is not using safe mailto intent" >&2; exit 1;
 }
+grep -q 'Intent.ACTION_VIEW' "$CONTROLLER" || {
+  echo "FAIL: community links are not using external view intents" >&2; exit 1;
+}
+grep -q 'scheme.equals("https"' "$CONTROLLER" || {
+  echo "FAIL: external community destinations are not HTTPS-gated" >&2; exit 1;
+}
+grep -q 'ActivityNotFoundException' "$CONTROLLER" || {
+  echo "FAIL: missing external-handler fallback" >&2; exit 1;
+}
+grep -q 'showLegalDialog' "$CONTROLLER" || {
+  echo "FAIL: native legal surfaces are not connected" >&2; exit 1;
+}
+
+for key in side_menu_developer_email side_menu_telegram_url side_menu_facebook_url; do
+  grep -q "name=\"$key\"" "$DESTINATIONS" || {
+    echo "FAIL: destination resource $key missing" >&2; exit 1;
+  }
+done
+grep -q 'https://t.me/' "$DESTINATIONS" || {
+  echo "FAIL: Telegram destination is not HTTPS" >&2; exit 1;
+}
+grep -q 'https://www.facebook.com/' "$DESTINATIONS" || {
+  echo "FAIL: Facebook destination is not HTTPS" >&2; exit 1;
+}
+if grep -qE 'side_menu_(developer_email|telegram_url|facebook_url)' "$MY"; then
+  echo "FAIL: external destinations must not be localized" >&2
+  exit 1
+fi
 
 grep -q 'androidx-drawerlayout' "$CATALOG" || {
   echo "FAIL: DrawerLayout version-catalog dependency missing" >&2; exit 1;
@@ -78,20 +107,18 @@ grep -q 'implementation(libs.androidx.drawerlayout)' "$APP_GRADLE" || {
 
 grep -q 'drawer_user_level' "$EN" || { echo "FAIL: English account copy missing" >&2; exit 1; }
 grep -q 'drawer_user_level' "$MY" || { echo "FAIL: Myanmar account copy missing" >&2; exit 1; }
-grep -q 'drawer_version_format">Version %1$s (%2$s)' "$EN" || {
-  echo "FAIL: English version format must treat version code as a string" >&2; exit 1;
-}
-grep -q 'drawer_version_format">Version %1$s (%2$s)' "$MY" || {
-  echo "FAIL: Myanmar version format must treat version code as a string" >&2; exit 1;
-}
+for key in drawer_app_policy_body drawer_privacy_policy_body drawer_terms_body drawer_open_source_body; do
+  grep -q "name=\"$key\"" "$EN" || { echo "FAIL: English legal copy $key missing" >&2; exit 1; }
+  grep -q "name=\"$key\"" "$MY" || { echo "FAIL: Myanmar legal copy $key missing" >&2; exit 1; }
+done
 if grep -q '[၀၁၂၃၄၅၆၇၈၉]' "$MY"; then
   echo "FAIL: Myanmar Phase 6UX.2 strings must keep Arabic digits 0-9" >&2
   exit 1
 fi
 
 if grep -Eqi 'play-services-ads|com\.google\.android\.gms\.ads|user-messaging-platform|firebase-auth' "$APP_GRADLE"; then
-  echo "FAIL: auth/AdMob SDK integration is out of scope for Phase 6UX.2A" >&2
+  echo "FAIL: auth/AdMob SDK integration is out of scope for Phase 6UX.2" >&2
   exit 1
 fi
 
-echo "PASS: Phase 6UX.2A side menu source contract is present."
+echo "PASS: Phase 6UX.2A/B side menu source contract is present."
