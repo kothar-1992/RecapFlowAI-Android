@@ -119,7 +119,7 @@ class SideMenuController(
         return activity.getString(
             R.string.drawer_version_format,
             versionName,
-            versionCode,
+            versionCode.toString(),
         )
     }
 }
