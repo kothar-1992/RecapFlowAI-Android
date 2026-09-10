@@ -31,3 +31,13 @@ Final FFmpeg/Crossfade-enabled debug build: PASS. Full unit suite: 279 tests, ze
 The options contract tests verify content type, whole-video duration and instructions reach the structured analysis request, reject oversized instructions, and ensure instruction text cannot add JSON tool fields. Existing planner, transport and Apply/Undo tests remain part of the full suite. EN/MY resources include the new Manual/Auto workflow labels, and the old local-processing message now distinguishes optional Gemini upload.
 
 These checks establish launch and setup compatibility on the tested rooted and non-rooted LDPlayer configurations. They do not establish compatibility with every rooted ROM, physical-device media codecs, successful live Gemini inference, Burmese semantic/timestamp quality or 720p/1080p A/V export. Those acceptance gates remain open in PR #38 / Issue #36. Voiceover, TTS, SRT and Narrator remain deferred.
+
+## Owner-authorized live connection attempt
+
+Later on 2026-09-10, the owner supplied a test credential and a real MP4. On the existing LDPlayer instance, the Android picker imported the 22,874,084-byte video successfully; the editor reported 02:33, 576 × 1024, H.264. The Myanmar UI opened Auto / AI Clips and estimated two analysis windows.
+
+The actual app's Test connection action was invoked with that credential and the default `gemini-3.5-flash-lite` model. The model-metadata request returned the provider-region failure classification. The app displayed the localized location/account-unavailable message and dismissed loading. This does not establish that the key is invalid, or that quota and model access would work from an eligible environment.
+
+No Analyze request was started and no media was uploaded to Google. Live inference, Review/Apply with real provider candidates, and resulting export quality remain blocked by this connection outcome. The app process was stopped and relaunched afterward to clear the session-only credential. The crash buffer was empty. No credential is included in this report or repository.
+
+The standard UI Automator dump could not reach idle while the editor updated. A temporary external UI Automator helper with idle waiting disabled obtained accessibility-node bounds for navigation; it did not modify the APK. No application code changed during this test, so the preceding build/unit-test results remain the implementation checkpoint rather than a newly rerun suite.
