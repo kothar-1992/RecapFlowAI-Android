@@ -121,6 +121,7 @@ import com.recapflow.ai.preferences.OverlayPreference
 import com.recapflow.ai.ui.ClipTransitionEditorController
 import com.recapflow.ai.ui.ImageOverlayAnimationController
 import com.recapflow.ai.ui.MediaFormatters
+import com.recapflow.ai.ui.SideMenuController
 import com.recapflow.ai.ui.TargetDurationClipsController
 import java.io.File
 import java.util.Locale
@@ -174,6 +175,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clipTransitionEditorController: ClipTransitionEditorController
     private lateinit var targetDurationClipsController: TargetDurationClipsController
     private lateinit var imageOverlayAnimationController: ImageOverlayAnimationController
+    private lateinit var sideMenuController: SideMenuController
     private val realtimeSourceBlurState = RealtimeSourceBlurState()
     private val realtimeImageOverlayState = RealtimeImageOverlayState()
     private val realtimePreviewSession = RealtimePreviewSession()
@@ -3490,6 +3492,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bindNavigation(savedInstanceState: Bundle?) {
+        // PHASE6UX2_SIDE_MENU: drawer complements, never replaces, bottom navigation.
+        if (!::sideMenuController.isInitialized) {
+            sideMenuController = SideMenuController(
+                activity = this,
+                drawerLayout = binding.drawerLayout,
+                toolbar = binding.topAppBar,
+                navigationView = binding.sideNavigation,
+            ).also(SideMenuController::bind)
+        }
         binding.mainNavigation.setOnItemSelectedListener { item ->
             val destination = MainDestination.entries.firstOrNull {
                 it.menuItemId == item.itemId
@@ -3499,6 +3510,9 @@ class MainActivity : AppCompatActivity() {
         }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (::sideMenuController.isInitialized && sideMenuController.closeIfOpen()) {
+                    return
+                }
                 if (selectedDestination != MainDestination.HOME) {
                     navigateTo(MainDestination.HOME)
                 } else {
