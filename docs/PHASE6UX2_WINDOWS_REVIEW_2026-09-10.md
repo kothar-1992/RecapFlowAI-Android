@@ -1,5 +1,16 @@
 # Side-menu branch review — 2026-09-10
 
+## Acceptance addendum
+
+After the source/build audit below, the owner confirmed email/Telegram/Facebook
+actions, all four legal dialogs, EN/MY text and Back behavior work, and explicitly
+requested merging eligible work. PR #34 was merged as
+`45d65e4e9cb374b6e361f6e8807fc64271abbda3` into the transition branch. Issue #33
+is closed for delivered A/B scope; unfinished 6UX.2C is preserved in #35.
+The no-handler behavior remains source-verified, without a separate device test.
+The checklist below records the earlier audit state, superseded by this addendum
+for the actions the owner has now accepted. Gemini BYOK #36 is now next priority.
+
 ## Changes and source findings
 
 PR #34 targets `feature/phase-6h1-transitions`. Its previously published head
@@ -36,7 +47,7 @@ Repeat the Windows gate from the repository root:
 
 This Windows gate supplements the established Termux/device release gates.
 
-## Device acceptance still required for B
+## Device checklist from the earlier audit
 
 1. Open the drawer on Home, Editor and Settings; confirm the scrim blocks editor
    touches and Back closes the drawer without navigating away first.

@@ -7,7 +7,8 @@
 - **Target-duration Clips merge:** `5cdf300e12e62bd1cdb32dc3cc4e90ec5270fd3f`
 - **Primary development / Git environment:** **Termux**
 - **Additional verified environment:** Windows / VS Code; `scripts/build_debug.bat` avoids PowerShell execution-policy and Java socket-directory failures.
-- **Current feature branch:** `feature/phase-6ux2-side-menu` — Issue #33 / PR #34.
+- **Accepted side-menu merge:** `45d65e4e9cb374b6e361f6e8807fc64271abbda3` — PR #34 into the transition stack.
+- **Next priority:** Gemini public-app BYOK foundation and reviewed AI recap planning — Issue #36, before SRT/Narrator.
 - **UI:** Native Kotlin + XML + ViewBinding
 - **Media:** Media3 Composition / CompositionPlayer / Transformer, with FFmpeg/JNI retained only for bounded native media support.
 - **Core invariant:** one immutable reviewed `EditPlan`; no intermediate MP4 per feature; exactly one authoritative final `Transformer.start(...)`.
@@ -187,9 +188,9 @@ The static image/logo overlay is extended with semantic animation metadata rathe
 
 ---
 
-# Current work — Phase 6UX.2 Side Menu — Issue #33 / PR #34
+# Phase 6UX.2A/B Side Menu — Issue #33 / PR #34
 
-**Status: A ACCEPTED; B IMPLEMENTED, CURRENT WINDOWS GATES PASS; B DEVICE CHECKS PENDING.**
+**Status: A/B OWNER-ACCEPTED AND MERGED; #33 CLOSED. ACCOUNT MODEL SPLIT INTO #35.**
 
 - [x] 6UX.2A drawer shell, Guest header, runtime version, EN/MY copy and scrim accepted on owner tablet (PR #34 discussion, 2026-09-02).
 - [x] 6UX.2B configured email/Telegram/Facebook intents and native legal dialogs implemented.
@@ -197,20 +198,37 @@ The static image/logo overlay is extended with semantic animation metadata rathe
 - [x] Windows/VS Code `.bat` and PowerShell build helpers; local Java socket directory and quoted Gradle properties.
 - [x] side-menu source verifier and localization verifier (553 strings) PASS on 2026-09-10.
 - [x] Windows unit tests and FFmpeg/Crossfade-enabled assemble PASS on 2026-09-10.
-- [ ] 6UX.2B owner-device email/Telegram/Facebook and no-handler behavior.
-- [ ] 6UX.2B all four legal dialogs, dismissal, EN/MY readability and Back behavior.
-- [ ] refreshed canonical Termux gate for B if retained as a release gate; Windows results are recorded separately.
-- [ ] 6UX.2C account/user-level model boundary; auth remains deferred.
+- [x] 6UX.2B owner-device email/Telegram/Facebook actions (owner report, 2026-09-10).
+- [x] 6UX.2B all four legal dialogs, EN/MY text and Back behavior (owner report, 2026-09-10).
+- [x] PR #34 merged at the owner's request with current Windows build/tests and device evidence.
+- [ ] 6UX.2C account/user-level model boundary: tracked separately in #35; auth remains deferred.
 
-Keep PR #34 Draft pending the B device gates. Build success does not establish
-external-intent or device runtime acceptance. See
-`docs/PHASE6UX2_WINDOWS_REVIEW_2026-09-10.md` for evidence and the device checklist.
+Missing-handler fallback is source-verified; no separate no-handler device test
+is claimed. Historical Termux and current Windows gates remain distinct evidence.
+Public-store policies/licenses, authentication and Ads are still future release
+work. See `docs/PHASE6UX2_WINDOWS_REVIEW_2026-09-10.md` for the dated audit.
 
 ---
 
-## Deferred after Phase 6H.2
+# Next work — Gemini AI / BYOK — Issue #36
 
-- **6G.2 SRT/Text — Issue #4 + 6H.3 Narrator — Issue #22:** implement together against the authoritative Clips/timing model.
+**Status: DEEP RESEARCH COMPLETE; CONNECTION IMPLEMENTATION NEXT.**
+
+- Product: public app, each user supplies their own Gemini key.
+- Research: `docs/research/GEMINI_BYOK_RECAPFLOWAI.md` (37 cited sources and 9 GitHub references).
+- First useful AI scope: source summary, scene index and editable EN/MY recap script; then reviewable semantic target-duration suggestions.
+- API/eligibility: use current auth-key/API guidance; official region list does not list Myanmar. Resolve eligible distribution before cloud rollout.
+- Transport: decide a BYOK backend relay or separately reviewed direct-client exception; Firebase app-project auth is not arbitrary user-key BYOK.
+- Secrets: session-only default, optional Keystore protection with backup/export exclusions, no keys in APK/logs.
+- Data: explicit media consent, provider disclosure, owned-upload cleanup, cloud policy copy before enabling public AI features.
+- Invariant: AI proposes; local validation and user Apply produce EditPlan; one final Transformer remains authoritative.
+- No live Gemini key/account/quota/media validation is claimed yet.
+
+---
+
+## Deferred after the Gemini connection and recap foundation
+
+- **6G.2 SRT/Text — Issue #4 + 6H.3 Narrator — Issue #22:** postponed behind #36 by owner request; later implement together against the authoritative Clips/timing model.
 - **6H.4 Hook 0–3s Preview — Issue #23:** wait until opening composition includes stable Clips/SRT/Narrator timing.
 - **Timed Video Overlay — Issue #3:** resume on the established source→presentation projection model.
 - **6G.3 Unified Multi-Stage Edit Graph — Issue #5:** consolidation after animated overlay and text/narrator timing are proven.
@@ -221,7 +239,7 @@ external-intent or device runtime acceptance. See
 
 ## Immediate next actions
 
-1. Install the current side-menu APK and finish the 6UX.2B device checklist; preserve Draft status until it passes.
-2. Add the 6UX.2C account/user-level boundary without an auth SDK after the current B acceptance review.
-3. Resolve the remaining PR #25 owner-device Crossfade acceptance before merging the transition stack to `main`.
-4. Next media workflow: coordinate Issue #4 SRT and Issue #22 Narrator on the existing canonical timeline. Do not reimplement the merged animated-logo work.
+1. Implement #36 connection/eligibility/secret handling on the accepted transition stack, followed by controlled scene-summary and script-draft validation.
+2. Keep unsupported-region/offline editing functional; do not describe free quota as unlimited or automatically billable requests as free.
+3. Resolve the remaining PR #25 owner-device Crossfade preview, 720p/1080p export and A/V acceptance before merging the transition stack to `main`.
+4. Resume #4/#22 only after Gemini recap foundation; preserve #35 account-model follow-up without adding fake sign-in.
