@@ -221,12 +221,12 @@ work. See `docs/PHASE6UX2_WINDOWS_REVIEW_2026-09-10.md` for the dated audit.
 - SmartCutPlanner validates evidence-bearing removals into canonical chronological keep ranges; AI Clips now exposes analysis modes, per-cut review, original/draft preview and guarded Apply/Undo.
 - GeminiSmartCutAnalyzer adds streamed Files API upload, sequential 120-second analysis windows, structured Interactions output, request cancellation, typed errors, owned-file cleanup and before/after source fingerprints. Contract tests use synthetic HTTP responses; no live provider proof yet.
 - SmartCutIntegration validates the analyzed EditPlan snapshot, preserves surviving transition endpoints, uses canonical duration calculation and permits undo only before another edit. MainActivity now consumes these plans through the existing render pipeline.
-- Session-only masked key entry, connection test/removal, upload consent, progress/cancel and EN/MY errors are connected. Drawer policies now disclose optional cloud analysis. Optional persistent key storage is deferred.
+- Automatically saved, Keystore-encrypted masked key entry, connection test/removal, upload consent, progress/cancel and EN/MY errors are connected. Drawer policies now disclose optional cloud analysis. Settings and Auto expose Gemini API Key without requiring a video; keys are stored under noBackupFilesDir.
 - Manual contains existing editing tools; Auto contains Gemini setup with content type, output clip duration preference and AI instructions, followed by Analyze and Review/Apply. Both modes expose export.
 - LDPlayer is now available via ADB. Root-enabled and root-disabled launch/setup smoke tests pass; see `docs/AI_CLIPS_LDPLAYER_QA_2026-09-10.md`. Live Gemini and real-video preview/export acceptance remain pending.
 - API/eligibility: use current auth-key/API guidance; official region list does not list Myanmar. Resolve eligible distribution before cloud rollout.
 - Transport: decide a BYOK backend relay or separately reviewed direct-client exception; Firebase app-project auth is not arbitrary user-key BYOK.
-- Secrets: session-only default, optional Keystore protection with backup/export exclusions, no keys in APK/logs.
+- Secrets: automatic Keystore encryption with backup/export exclusions, no keys in APK/logs.
 - Data: explicit media consent, provider disclosure, owned-upload cleanup, cloud policy copy before enabling public AI features.
 - Invariant: AI proposes; local validation and user Apply produce EditPlan; one final Transformer remains authoritative.
 - No live Gemini key/account/quota/media validation is claimed yet.

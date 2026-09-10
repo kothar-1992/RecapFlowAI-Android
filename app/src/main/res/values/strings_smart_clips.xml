@@ -2,12 +2,12 @@
 <resources>
     <string name="smart_clips_no_cuts">No valid cuts are selected. Your edit has not changed.</string>
     <string name="smart_clips_title">AI Clips</string>
-    <string name="smart_clips_key">Your Gemini API key (this session only)</string>
+    <string name="smart_clips_key">Your Gemini API key</string>
     <string name="smart_clips_model">Gemini model</string>
     <string name="smart_clips_pauses">Clean pauses</string>
     <string name="smart_clips_dialogue">Tighten dialogue</string>
     <string name="smart_clips_recap">Short recap</string>
-    <string name="smart_clips_explanation">Analyze existing footage and review suggested cuts. This video needs up to %1$d cloud analysis requests. Your key stays in memory for this session. Billing and quota depend on your Google project; connection success does not prove free usage.</string>
+    <string name="smart_clips_explanation">Analyze existing footage and review suggested cuts. This video needs up to %1$d cloud analysis requests. Your key is encrypted and saved on this device, excluded from backups. Billing and quota depend on your Google project; connection success does not prove free usage.</string>
     <string name="smart_clips_consent">I am eligible to use Gemini and agree to upload this video to Google. Free-service inputs may be used for product improvement. I have permission to share this footage.</string>
     <string name="smart_clips_consent_required">Confirm the upload consent before analysis.</string>
     <string name="smart_clips_test">Test connection</string>

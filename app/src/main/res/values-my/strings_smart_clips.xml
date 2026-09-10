@@ -2,12 +2,12 @@
 <resources>
     <string name="smart_clips_no_cuts">မှန်ကန်သော cut မရွေးထားပါ။ သင့် edit မပြောင်းလဲပါ။</string>
     <string name="smart_clips_title">AI Clips</string>
-    <string name="smart_clips_key">သင့် Gemini API key (ယခု session အတွက်သာ)</string>
+    <string name="smart_clips_key">သင့် Gemini API key</string>
     <string name="smart_clips_model">Gemini model</string>
     <string name="smart_clips_pauses">မလိုသော pause များဖယ်ရန်</string>
     <string name="smart_clips_dialogue">စကားပြောအပိုများ လျှော့ရန်</string>
     <string name="smart_clips_recap">Recap အတိုပြုလုပ်ရန်</string>
-    <string name="smart_clips_explanation">မူရင်း video ကို စစ်ဆေးပြီး အကြံပြုထားသော cuts များကို review လုပ်ပါ။ ဤ video အတွက် cloud analysis request %1$d ခုအထိ လိုနိုင်ပါသည်။ Key ကို ယခု session memory တွင်သာ ထားပါမည်။ ကုန်ကျငွေနှင့် quota သည် သင့် Google project ပေါ်မူတည်ပါသည်။ Connection အောင်မြင်ခြင်းက အခမဲ့အသုံးပြုခွင့်ကို မအတည်ပြုပါ။</string>
+    <string name="smart_clips_explanation">မူရင်း video ကို စစ်ဆေးပြီး အကြံပြုထားသော cuts များကို review လုပ်ပါ။ ဤ video အတွက် cloud analysis request %1$d ခုအထိ လိုနိုင်ပါသည်။ Key ကို ကာကွယ်၍ ဤစက်တွင် သိမ်းပေးပြီး backup ထဲ မထည့်ပါ။ ကုန်ကျငွေနှင့် quota သည် သင့် Google project ပေါ်မူတည်ပါသည်။ Connection အောင်မြင်ခြင်းက အခမဲ့အသုံးပြုခွင့်ကို မအတည်ပြုပါ။</string>
     <string name="smart_clips_consent">Gemini အသုံးပြုခွင့်ရှိပြီး ဤ video ကို Google သို့ upload တင်ရန် သဘောတူပါသည်။ အခမဲ့ဝန်ဆောင်မှုသို့ ပို့သောအကြောင်းအရာများကို product တိုးတက်ရေးအတွက် အသုံးပြုနိုင်ပါသည်။ ဤ video ကို မျှဝေရန် ခွင့်ပြုချက်ရှိပါသည်။</string>
     <string name="smart_clips_consent_required">Analysis မလုပ်မီ upload သဘောတူညီချက်ကို အမှန်ခြစ်ပါ။</string>
     <string name="smart_clips_test">Connection စမ်းသပ်ရန်</string>

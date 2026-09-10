@@ -41,3 +41,11 @@ The actual app's Test connection action was invoked with that credential and the
 No Analyze request was started and no media was uploaded to Google. Live inference, Review/Apply with real provider candidates, and resulting export quality remain blocked by this connection outcome. The app process was stopped and relaunched afterward to clear the session-only credential. The crash buffer was empty. No credential is included in this report or repository.
 
 The standard UI Automator dump could not reach idle while the editor updated. A temporary external UI Automator helper with idle waiting disabled obtained accessibility-node bounds for navigation; it did not modify the APK. No application code changed during this test, so the preceding build/unit-test results remain the implementation checkpoint rather than a newly rerun suite.
+
+## Discoverable API key and automatic storage update
+
+Settings now places Gemini API Key at the top, accessible before importing media. Auto also exposes the same entry. The masked field automatically encrypts and saves edits using AES-GCM with a fresh IV and an Android Keystore key. Ciphertext is atomically stored in noBackupFilesDir, outside backups and the public export provider. Clearing/removing the key deletes the ciphertext. Storage failures are surfaced; saving is separate from connection validation. EN/MY setup and privacy copy now describe persistence.
+
+LDPlayer runtime checks: Settings entry visible without media; entering a dummy credential showed saved status; force-stop/relaunch restored the saved credential; Remove changed status to empty and the ciphertext file no longer existed. The owner-provided test key was then entered through the UI and saved for subsequent use. No network test was triggered in this storage check, and no credential is included in this report. Crash buffer remained empty. This persistence check used the existing root-enabled emulator; it uses ordinary app access and no root operations.
+
+FFmpeg/Crossfade-enabled debug build and 279 unit tests passed (zero failures/errors). EN/MY localization passed for 616 strings. These checks do not resolve the earlier live Gemini region denial or infer successful video analysis.

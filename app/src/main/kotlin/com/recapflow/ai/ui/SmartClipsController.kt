@@ -17,7 +17,7 @@ import com.recapflow.ai.media.edit.*
 import java.io.File
 import java.util.concurrent.Executors
 
-/** Session-only BYOK workflow. No key is saved in preferences, bundles, backups or logs. */
+/** BYOK workflow with encrypted, backup-excluded credential storage. */
 class SmartClipsController(
     private val activity: Activity,
     parent: ViewGroup,
@@ -28,6 +28,7 @@ class SmartClipsController(
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
     private val analyzer = GeminiSmartCutAnalyzer()
+    private val keyStore = GeminiKeyStore(activity)
     private var key = ""
     private var model = GeminiSmartCutAnalyzer.DEFAULT_MODEL
     private var token: GeminiCancellation? = null
@@ -40,7 +41,64 @@ class SmartClipsController(
         setOnClickListener { open() }
     }
 
-    init { parent.addView(entry, 0) }
+    init {
+        parent.addView(entry, 0)
+        parent.addView(MaterialButton(activity).apply {
+            setText(R.string.gemini_key_settings)
+            setOnClickListener { openKeySettings() }
+        }, 0)
+        try { key = keyStore.read() } catch (_: Exception) {
+            main.post { if (!closed) message(R.string.gemini_key_storage_error) }
+        }
+    }
+
+    private fun persistKey(value: String): Boolean = try {
+        keyStore.save(value.trim()); key = value.trim(); true
+    } catch (_: Exception) { false }
+
+    fun openKeySettings() {
+        if (closed || token != null) return
+        val content = column()
+        content.addView(TextView(activity).apply { setText(R.string.gemini_key_help) })
+        val status = TextView(activity)
+        fun updateStatus(ok: Boolean = true) {
+            status.setText(if (!ok) R.string.gemini_key_storage_error else if (key.isEmpty())
+                R.string.gemini_key_empty else R.string.gemini_key_saved)
+        }
+        val input = EditText(activity).apply {
+            hint = activity.getString(R.string.smart_clips_key)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            isSingleLine = true; isSaveEnabled = false
+            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+            filters = arrayOf(android.text.InputFilter.LengthFilter(512))
+            setText(key)
+        }
+        input.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: android.text.Editable?) { updateStatus(persistKey(s.toString())) }
+        })
+        content.addView(input); content.addView(status); updateStatus()
+        content.addView(MaterialButton(activity).apply {
+            setText(R.string.smart_clips_test)
+            setOnClickListener {
+                if (!persistKey(input.text.toString())) { updateStatus(false); return@setOnClickListener }
+                val credential = key
+                runJob { cancellation, _ -> analyzer.testConnection(credential, model, cancellation);
+                    { message(R.string.smart_clips_connected) } }
+            }
+        })
+        content.addView(MaterialButton(activity).apply {
+            setText(R.string.smart_clips_remove_key)
+            setOnClickListener {
+                if (persistKey("")) { input.text.clear(); updateStatus() } else updateStatus(false)
+            }
+        })
+        val dialog = MaterialAlertDialogBuilder(activity).setTitle(R.string.gemini_key_settings)
+            .setView(content).setPositiveButton(android.R.string.ok, null).create()
+        dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        show(dialog)
+    }
 
     private fun open() {
         if (token != null || closed) return
@@ -66,13 +124,10 @@ class SmartClipsController(
             filters = arrayOf(android.text.InputFilter.LengthFilter(2_000))
             content.addView(this)
         }
-        val keyInput = EditText(activity).apply {
-            hint = activity.getString(R.string.smart_clips_key)
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            isSingleLine = true; isSaveEnabled = false
-            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
-            setText(key)
-        }
+        content.addView(MaterialButton(activity).apply {
+            setText(R.string.gemini_key_settings)
+            setOnClickListener { openKeySettings() }
+        })
         val modelInput = EditText(activity).apply {
             hint = activity.getString(R.string.smart_clips_model); isSingleLine = true; setText(model)
         }
@@ -83,19 +138,17 @@ class SmartClipsController(
         val consent = CheckBox(activity).apply { setText(R.string.smart_clips_consent) }
         val count = GeminiSmartCutAnalyzer.windows(plan.sourceDurationMs.coerceIn(1, GeminiSmartCutAnalyzer.MAX_DURATION_MS)).size
         content.addView(TextView(activity).apply { text = activity.getString(R.string.smart_clips_explanation, count) })
-        content.addView(keyInput); content.addView(modelInput); content.addView(modes); content.addView(consent)
+        content.addView(modelInput); content.addView(modes); content.addView(consent)
         content.addView(MaterialButton(activity).apply {
             setText(R.string.smart_clips_test)
             setOnClickListener {
-                if (keyInput.text.isNotEmpty()) key = keyInput.text.toString().trim()
                 model = modelInput.text.toString().trim()
-                keyInput.text.clear()
                 runJob { cancellation, _ -> analyzer.testConnection(key, model, cancellation); { message(R.string.smart_clips_connected) } }
             }
         })
         content.addView(MaterialButton(activity).apply {
             setText(R.string.smart_clips_remove_key)
-            setOnClickListener { key = ""; keyInput.text.clear(); token?.cancel() }
+            setOnClickListener { if (!persistKey("")) message(R.string.gemini_key_storage_error); token?.cancel() }
         })
         content.addView(MaterialButton(activity).apply {
             setText(R.string.smart_clips_undo)
@@ -125,9 +178,7 @@ class SmartClipsController(
         dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             if (!consent.isChecked) { message(R.string.smart_clips_consent_required); return@setOnClickListener }
-            if (keyInput.text.isNotEmpty()) key = keyInput.text.toString().trim()
             model = modelInput.text.toString().trim()
-            keyInput.text.clear()
             val selectedMode = SmartCutAnalysisMode.entries[modes.selectedItemPosition]
             val options = AutoClipOptions(AutoContentType.entries[contentType.selectedItemPosition],
                 AutoClipDuration.entries[duration.selectedItemPosition], instructions.text.toString())

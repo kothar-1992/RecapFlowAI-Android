@@ -1475,6 +1475,11 @@ class MainActivity : AppCompatActivity() {
             },
             previewPlan = ::previewSmartClipsPlan,
         )
+        (binding.settingsContent.root as ViewGroup).addView(
+            com.google.android.material.button.MaterialButton(this).apply {
+                setText(R.string.gemini_key_settings)
+                setOnClickListener { smartClipsController?.openKeySettings() }
+            }, 0)
     }
 
     private fun previewSmartClipsPlan(plan: EditPlan) {
