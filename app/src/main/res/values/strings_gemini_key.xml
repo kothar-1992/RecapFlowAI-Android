@@ -1,0 +1,8 @@
+<resources>
+    <string name="gemini_key_settings">Gemini API Key</string>
+    <string name="gemini_key_help">Your key is saved automatically on this device with Android Keystore encryption. It is excluded from backups. Clear or remove it to delete it. Saving does not test Google access.</string>
+    <string name="gemini_key_saved">API key saved on this device</string>
+    <string name="gemini_key_empty">No API key saved — enter your key above</string>
+    <string name="gemini_key_storage_error">Could not read or save the API key securely. Enter it again or retry; do not rely on it being saved.</string>
+    <string name="gemini_key_testing">Testing Gemini connection…</string>
+</resources>

@@ -12,6 +12,8 @@
         android:maxSdkVersion="28" />
     <!-- Normal permission used only to report the active connection type/status. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Optional Gemini BYOK analysis runs only after explicit upload consent. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <application

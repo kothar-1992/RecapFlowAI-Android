@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="smart_clips_no_cuts">မှန်ကန်သော cut မရွေးထားပါ။ သင့် edit မပြောင်းလဲပါ။</string>
+    <string name="smart_clips_title">AI Clips</string>
+    <string name="smart_clips_key">သင့် Gemini API key</string>
+    <string name="smart_clips_model">Gemini model</string>
+    <string name="smart_clips_pauses">မလိုသော pause များဖယ်ရန်</string>
+    <string name="smart_clips_dialogue">စကားပြောအပိုများ လျှော့ရန်</string>
+    <string name="smart_clips_recap">Recap အတိုပြုလုပ်ရန်</string>
+    <string name="smart_clips_explanation">မူရင်း video ကို စစ်ဆေးပြီး အကြံပြုထားသော cuts များကို review လုပ်ပါ။ ဤ video အတွက် cloud analysis request %1$d ခုအထိ လိုနိုင်ပါသည်။ Key ကို ကာကွယ်၍ ဤစက်တွင် သိမ်းပေးပြီး backup ထဲ မထည့်ပါ။ ကုန်ကျငွေနှင့် quota သည် သင့် Google project ပေါ်မူတည်ပါသည်။ Connection အောင်မြင်ခြင်းက အခမဲ့အသုံးပြုခွင့်ကို မအတည်ပြုပါ။</string>
+    <string name="smart_clips_consent">Gemini အသုံးပြုခွင့်ရှိပြီး ဤ video ကို Google သို့ upload တင်ရန် သဘောတူပါသည်။ အခမဲ့ဝန်ဆောင်မှုသို့ ပို့သောအကြောင်းအရာများကို product တိုးတက်ရေးအတွက် အသုံးပြုနိုင်ပါသည်။ ဤ video ကို မျှဝေရန် ခွင့်ပြုချက်ရှိပါသည်။</string>
+    <string name="smart_clips_consent_required">Analysis မလုပ်မီ upload သဘောတူညီချက်ကို အမှန်ခြစ်ပါ။</string>
+    <string name="smart_clips_test">Connection စမ်းသပ်ရန်</string>
+    <string name="smart_clips_connected">Model အသုံးပြုခွင့် စစ်ဆေးပြီးပါပြီ။ Video မတင်ရသေးပါ။ ကုန်ကျငွေနှင့် လက်ကျန် quota ကို မစစ်ဆေးရသေးပါ။</string>
+    <string name="smart_clips_remove_key">API key ဖယ်ရန်</string>
+    <string name="smart_clips_undo">နောက်ဆုံး AI edit ကို ပြန်ဖြုတ်ရန်</string>
+    <string name="smart_clips_analyze">Video စစ်ဆေးရန်</string>
+    <string name="smart_clips_unavailable">Video တင်ပြီး လက်ရှိ export ပြီးစီးမှ အသုံးပြုပါ။</string>
+    <string name="smart_clips_preparing">Video ပြင်ဆင်နေသည်…</string>
+    <string name="smart_clips_uploading">Google သို့ video တင်နေသည်…</string>
+    <string name="smart_clips_processing">Video processing ကို စောင့်နေသည်…</string>
+    <string name="smart_clips_analyzing">အပိုင်း %1$d / %2$d ကို စစ်ဆေးနေသည်…</string>
+    <string name="smart_clips_cleaning">ယခု analysis upload ကို ဖယ်ရှားနေသည်…</string>
+    <string name="smart_clips_cancelling">ရပ်ဆိုင်းပြီး upload ရှင်းလင်းနေသည်…</string>
+    <string name="smart_clips_cancelled">Analysis ရပ်ဆိုင်းပြီးပါပြီ။ သင့် edit မပြောင်းလဲပါ။</string>
+    <string name="smart_clips_cleanup_failed">Google upload ကို ဖယ်ရှားပြီးကြောင်း မအတည်ပြုနိုင်ပါ။ သင့် Google project တွင် စစ်ဆေးပါ။ Provider သတ်မှတ်သက်တမ်းကုန်ချိန်အထိ ကျန်ရှိနိုင်ပါသည်။</string>
+    <string name="smart_clips_stale">မူရင်း video သို့မဟုတ် edit ပြောင်းလဲသွားပါသည်။ Draft ကို Apply မလုပ်မီ ပြန်စစ်ဆေးပါ။</string>
+    <string name="smart_clips_summary">မူလ: %1$s · ပြင်ပြီး: %2$s\nလက်ခံထားသော cuts: %3$d · မဖြတ်ဘဲ ထိန်းထားသောအကြံပြုချက်များ: %4$d\nApply မလုပ်မီ မူလနှင့် draft ကို review လုပ်ပါ။ မဖြတ်လိုသောအပိုင်း၏ အမှန်ခြစ်ကို ဖြုတ်ပါ။</string>
+    <string name="smart_clips_preview_original">မူလ edit ကြည့်ရန်</string>
+    <string name="smart_clips_preview_draft">AI draft ကြည့်ရန်</string>
+    <string name="smart_clips_review">အကြံပြု cuts များ စစ်ဆေးရန်</string>
+    <string name="smart_clips_apply">Review လုပ်ပြီးသော cuts ကို Apply လုပ်ရန်</string>
+    <string name="smart_clips_region">ယခုတည်နေရာ သို့မဟုတ် အကောင့်အတွက် Gemini ကို အသုံးပြု၍မရပါ။ Google ၏ ပံ့ပိုးထားသောဒေသများနှင့် အကောင့်အသုံးပြုခွင့်ကို စစ်ဆေးပါ။ Local editing ကို ဆက်အသုံးပြုနိုင်ပါသည်။</string>
+    <string name="smart_clips_key_error">API key မရှိပါ၊ မမှန်ပါ သို့မဟုတ် ရုပ်သိမ်းထားပါသည်။ Key ပြောင်းပြီး ပြန်စမ်းပါ။</string>
+    <string name="smart_clips_quota">သင့် Gemini project quota ကုန်ဆုံးနေပါသည်။ ပြန်မစမ်းမီ Google AI Studio တွင် စစ်ဆေးပါ။</string>
+    <string name="smart_clips_timeout">Request အချိန်ကုန်သွားပါသည်။ သင့် edit မပြောင်းလဲပါ။</string>
+    <string name="smart_clips_network">Google သို့ ဆက်သွယ်၍မရပါ။ Internet connection စစ်ပြီး ပြန်စမ်းပါ။</string>
+    <string name="smart_clips_model_error">ဤ model ကို အသုံးပြု၍မရပါ။ Model အမည်နှင့် အကောင့်အသုံးပြုခွင့်ကို စစ်ဆေးပါ။</string>
+    <string name="smart_clips_media_limit">ဤ video format သို့မဟုတ် အရွယ်အစားကို analysis မပံ့ပိုးပါ။ App ကန့်သတ်ချက်: MP4/MOV/WebM/3GP/AVI၊ 2 GB၊ နှစ်နာရီ။</string>
+    <string name="smart_clips_server">Gemini ကို ယာယီအသုံးပြု၍မရပါ။ နောက်မှ ပြန်စမ်းပါ။</string>
+    <string name="smart_clips_invalid">Analysis မှ မှန်ကန်သော edit မထုတ်နိုင်ပါ။ လက်ရှိ edit မပြောင်းလဲပါ။</string>
+    <string name="smart_clips_preview_unavailable">ယခုစက် သို့မဟုတ် Intro Freeze ဖြင့် ဤ draft preview ကို အသုံးပြု၍မရပါ။ သင့် edit မပြောင်းလဲပါ။</string>
+</resources>

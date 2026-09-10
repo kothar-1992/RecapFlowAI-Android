@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="editor_mode_manual">Manual</string>
+    <string name="editor_mode_auto">Auto</string>
+    <string name="auto_workflow_note">Content type → Clip duration → AI instructions → Analyze → Review/Apply. Gemini is used only in Auto. You can refine the resulting edit in Manual and export from either mode.</string>
+    <string name="auto_content_type">Content type</string>
+    <string name="auto_general">General</string>
+    <string name="auto_movie">Movie / story</string>
+    <string name="auto_podcast">Podcast</string>
+    <string name="auto_interview">Interview / conversation</string>
+    <string name="auto_tutorial">Tutorial / presentation</string>
+    <string name="auto_clip_duration">Output clip duration preference</string>
+    <string name="auto_duration_auto">Auto</string>
+    <string name="auto_duration_30">Up to 30 seconds</string>
+    <string name="auto_duration_60">30–60 seconds</string>
+    <string name="auto_duration_180">1–3 minutes</string>
+    <string name="auto_duration_300">3–5 minutes</string>
+    <string name="auto_duration_long">Over 5 minutes</string>
+    <string name="auto_instructions">AI instructions</string>
+    <string name="auto_instructions_hint">Example: Keep the key explanation, remove repeated dialogue and long pauses. Duration is a preference; review the actual result.</string>
+</resources>

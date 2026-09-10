@@ -1,0 +1,8 @@
+<resources>
+<string name="gemini_key_settings">Gemini API Key</string>
+<string name="gemini_key_help">Key ကို Android Keystore ဖြင့် ကာကွယ်ပြီး ဤစက်တွင် အလိုအလျောက် သိမ်းပေးပါသည်။ Backup ထဲ မပါဝင်ပါ။ ဖျက်လိုပါက Key ကို ရှင်းပါ သို့မဟုတ် ဖယ်ရန်ကို နှိပ်ပါ။ သိမ်းပြီးခြင်းသည် Google အသုံးပြုခွင့် စမ်းသပ်ပြီးခြင်း မဟုတ်ပါ။</string>
+<string name="gemini_key_saved">API key ကို ဤစက်တွင် သိမ်းပြီးပါပြီ</string>
+<string name="gemini_key_empty">API key မရှိသေးပါ — အပေါ်တွင် ထည့်ပါ</string>
+<string name="gemini_key_storage_error">API key ကို လုံခြုံစွာ ဖတ်ရန် သို့မဟုတ် သိမ်းရန် မအောင်မြင်ပါ။ ထပ်ထည့်ပါ သို့မဟုတ် ပြန်စမ်းပါ။</string>
+    <string name="gemini_key_testing">Gemini connection စမ်းသပ်နေသည်…</string>
+</resources>

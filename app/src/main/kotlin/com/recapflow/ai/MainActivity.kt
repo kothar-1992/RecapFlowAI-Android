@@ -246,6 +246,11 @@ class MainActivity : AppCompatActivity() {
     private var replacementPreviewErrorShown = false
     // PHASE6H1F_TARGET_DURATION_UI: target output length is the primary Clips authority.
     private var targetDurationMs: Long? = null
+    private var smartCutsApplied = false
+    private var autoEditingMode = false
+    private var autoEditingPanel: android.widget.LinearLayout? = null
+    private var smartClipsController: com.recapflow.ai.ui.SmartClipsController? = null
+    private var smartClipsPreviewDialog: androidx.appcompat.app.AlertDialog? = null
     private var targetDurationTimingSignature: String? = null
     private var adaptivePreset = AdaptiveCutPreset.BALANCED
     private var adaptiveDraftRanges: List<TrimRange> = emptyList()
@@ -835,6 +840,8 @@ class MainActivity : AppCompatActivity() {
             ?.getLong(KEY_TARGET_DURATION_MS)
             ?.takeIf { it >= TargetDurationClipPlanner.MIN_TARGET_DURATION_MS }
         val adaptiveStarts = savedInstanceState?.getLongArray(KEY_ADAPTIVE_RANGE_STARTS)
+        smartCutsApplied = savedInstanceState?.getBoolean("recapflow.smartCutsApplied") == true
+        autoEditingMode = savedInstanceState?.getBoolean("recapflow.autoEditingMode") == true
         val adaptiveEnds = savedInstanceState?.getLongArray(KEY_ADAPTIVE_RANGE_ENDS)
         adaptiveDraftRanges = if (
             adaptiveStarts != null &&
@@ -1120,6 +1127,7 @@ class MainActivity : AppCompatActivity() {
         editor.resetTrimButton.setOnClickListener { resetTrimToFullSource() }
         bindTargetDurationClipsControls()
         bindAdaptiveCutControls()
+        bindSmartClipsControls()
         bindClipTransitionControls()
         bindReviewEditorTabs()
         bindTransformControls()
@@ -1267,6 +1275,8 @@ class MainActivity : AppCompatActivity() {
         reviewedRanges = adaptiveDraftRanges,
         mode = if (targetDurationMs != null) {
             ClipPlanningMode.TARGET_DURATION
+        } else if (smartCutsApplied) {
+            ClipPlanningMode.AI_SMART_CUTS
         } else {
             ClipPlanningMode.PRESET_PACING
         },
@@ -1363,6 +1373,7 @@ class MainActivity : AppCompatActivity() {
             clipTransitions = currentTransitions,
         ) ?: return false
 
+        smartCutsApplied = false
         targetDurationMs = targetMs
         adaptiveDraftRanges = result.adaptiveCuts.reviewedRanges
         adaptiveApplied = true
@@ -1410,11 +1421,99 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearTargetDurationMode(clearFields: Boolean) {
+        smartCutsApplied = false
         targetDurationMs = null
         targetDurationTimingSignature = null
         if (::targetDurationClipsController.isInitialized) {
             if (clearFields) targetDurationClipsController.setTargetDurationMs(null)
             renderTargetDurationClipsControls()
+        }
+    }
+
+    private fun bindSmartClipsControls() {
+        val host = editor.reviewEditorTabGroup.parent as ViewGroup
+        val group = com.google.android.material.button.MaterialButtonToggleGroup(this).apply {
+            isSingleSelection = true; isSelectionRequired = true
+        }
+        val manualButton = com.google.android.material.button.MaterialButton(this).apply {
+            id = View.generateViewId(); setText(R.string.editor_mode_manual)
+        }
+        val autoButton = com.google.android.material.button.MaterialButton(this).apply {
+            id = View.generateViewId(); setText(R.string.editor_mode_auto)
+        }
+        group.addView(manualButton); group.addView(autoButton)
+        val position = host.indexOfChild(editor.reviewEditorTabGroup)
+        host.addView(group, position)
+        val parent = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            addView(android.widget.TextView(this@MainActivity).apply { setText(R.string.auto_workflow_note) })
+        }
+        host.addView(parent, position + 1)
+        autoEditingPanel = parent
+        group.check(if (autoEditingMode) autoButton.id else manualButton.id)
+        group.addOnButtonCheckedListener { _, id, checked ->
+            if (checked) { autoEditingMode = id == autoButton.id; renderReviewEditorTab() }
+        }
+        smartClipsController = com.recapflow.ai.ui.SmartClipsController(this, parent,
+            currentPlan = {
+                if (activeMediaInfo == null || renderCoordinator.currentState.isActiveRender()) null
+                else currentEditPlan(selectedRenderPreset)
+            },
+            applyPlan = { plan ->
+                cancelAdaptivePreview()
+                clearTargetDurationMode(clearFields = true)
+                targetDurationMs = plan.adaptiveCuts.targetDurationMs
+                smartCutsApplied = plan.adaptiveCuts.mode == ClipPlanningMode.AI_SMART_CUTS
+                adaptiveDraftRanges = plan.adaptiveCuts.reviewedRanges
+                adaptiveApplied = plan.adaptiveCuts.enabled
+                adaptivePreset = plan.adaptiveCuts.preset
+                adaptiveCandidateIndex = 0
+                targetDurationTimingSignature = if (targetDurationMs != null) currentTargetDurationTimingSignature() else null
+                clipTransitionEditorController.replaceSettings(plan.clipTransitions)
+                editor.adaptiveApplySwitch.isChecked = adaptiveApplied
+                onUserChangedAdaptiveCuts()
+            },
+            previewPlan = ::previewSmartClipsPlan,
+        )
+        (binding.settingsContent.root as ViewGroup).addView(
+            com.google.android.material.button.MaterialButton(this).apply {
+                setText(R.string.gemini_key_settings)
+                setOnClickListener { smartClipsController?.openKeySettings() }
+            }, 0)
+    }
+
+    private fun previewSmartClipsPlan(plan: EditPlan) {
+        val info = activeMediaInfo ?: return
+        if (info.workingFilePath != plan.sourcePath || renderCoordinator.currentState.isActiveRender()) return
+        smartClipsPreviewDialog?.dismiss()
+        runCatching {
+            val compiled = Media3CompositionCompiler.compileForPreview(info, plan, File(info.workingFilePath))
+            val player = CompositionPreviewPlayerFactory.create(this, compiled)
+            val view = androidx.media3.ui.PlayerView(this).apply {
+                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (320 * resources.displayMetrics.density).toInt())
+                this.player = player
+            }
+            val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.smart_clips_review).setView(view)
+                .setPositiveButton(android.R.string.ok, null).create()
+            dialog.setOnDismissListener {
+                view.player = null; player.release(); smartClipsPreviewDialog = null
+            }
+            player.addListener(object : androidx.media3.common.Player.Listener {
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    dialog.dismiss()
+                    android.widget.Toast.makeText(this@MainActivity, R.string.smart_clips_preview_unavailable, android.widget.Toast.LENGTH_LONG).show()
+                }
+            })
+            previewPlayer.pause()
+            compositionPreviewPlayer?.pause()
+            smartClipsPreviewDialog = dialog
+            dialog.show()
+            player.setComposition(compiled.composition)
+            player.prepare(); player.play()
+        }.onFailure {
+            smartClipsPreviewDialog?.dismiss()
+            android.widget.Toast.makeText(this, R.string.smart_clips_preview_unavailable, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1910,12 +2009,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderReviewEditorTab() {
-        editor.editCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.CLIPS
-        editor.transformCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.TRANSFORM
-        editor.audioCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.AUDIO
-        editor.overlayCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.OVERLAY
-        editor.exportCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.EXPORT
-        editor.renderCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.EXPORT
+        autoEditingPanel?.isVisible = autoEditingMode
+        editor.reviewEditorTabGroup.isVisible = !autoEditingMode
+        editor.editCard.isVisible = !autoEditingMode && selectedReviewEditorTab == ReviewEditorTab.CLIPS
+        editor.transformCard.isVisible = !autoEditingMode && selectedReviewEditorTab == ReviewEditorTab.TRANSFORM
+        editor.audioCard.isVisible = !autoEditingMode && selectedReviewEditorTab == ReviewEditorTab.AUDIO
+        editor.overlayCard.isVisible = !autoEditingMode && selectedReviewEditorTab == ReviewEditorTab.OVERLAY
+        editor.exportCard.isVisible = autoEditingMode || selectedReviewEditorTab == ReviewEditorTab.EXPORT
+        editor.renderCard.isVisible = autoEditingMode || selectedReviewEditorTab == ReviewEditorTab.EXPORT
         renderSourceBlurGuide()
     }
 
@@ -6471,6 +6572,8 @@ class MainActivity : AppCompatActivity() {
             outState.putLong(KEY_REPLACEMENT_AUDIO_SIZE_BYTES, asset.fileSizeBytes)
         }
         outState.putString(KEY_ADAPTIVE_PRESET, adaptivePreset.name)
+        outState.putBoolean("recapflow.smartCutsApplied", smartCutsApplied)
+        outState.putBoolean("recapflow.autoEditingMode", autoEditingMode)
         targetDurationMs?.let { outState.putLong(KEY_TARGET_DURATION_MS, it) }
         outState.putLongArray(
             KEY_ADAPTIVE_RANGE_STARTS,
@@ -6531,6 +6634,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        smartClipsPreviewDialog?.dismiss()
         editorPreferencesHandler.removeCallbacks(persistEditorPreferences)
         if (::editorPreferencesStore.isInitialized && _binding != null) {
             editorPreferencesStore.saveLastSession(currentEditorPreferencesSnapshot())
@@ -6548,6 +6652,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        smartClipsController?.close()
+        smartClipsPreviewDialog?.dismiss()
         realtimeSourceBlurState.update(null)
         realtimeImageOverlayState.update(null)
         freezePreviewHandler.removeCallbacksAndMessages(null)

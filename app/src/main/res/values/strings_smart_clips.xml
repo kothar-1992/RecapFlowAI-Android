@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="smart_clips_no_cuts">No valid cuts are selected. Your edit has not changed.</string>
+    <string name="smart_clips_title">AI Clips</string>
+    <string name="smart_clips_key">Your Gemini API key</string>
+    <string name="smart_clips_model">Gemini model</string>
+    <string name="smart_clips_pauses">Clean pauses</string>
+    <string name="smart_clips_dialogue">Tighten dialogue</string>
+    <string name="smart_clips_recap">Short recap</string>
+    <string name="smart_clips_explanation">Analyze existing footage and review suggested cuts. This video needs up to %1$d cloud analysis requests. Your key is encrypted and saved on this device, excluded from backups. Billing and quota depend on your Google project; connection success does not prove free usage.</string>
+    <string name="smart_clips_consent">I am eligible to use Gemini and agree to upload this video to Google. Free-service inputs may be used for product improvement. I have permission to share this footage.</string>
+    <string name="smart_clips_consent_required">Confirm the upload consent before analysis.</string>
+    <string name="smart_clips_test">Test connection</string>
+    <string name="smart_clips_connected">Model access confirmed. No video was uploaded. Billing and available quota have not been verified.</string>
+    <string name="smart_clips_remove_key">Remove API key</string>
+    <string name="smart_clips_undo">Undo last AI edit</string>
+    <string name="smart_clips_analyze">Analyze video</string>
+    <string name="smart_clips_unavailable">Import a video and finish any active export first.</string>
+    <string name="smart_clips_preparing">Preparing video…</string>
+    <string name="smart_clips_uploading">Uploading video to Google…</string>
+    <string name="smart_clips_processing">Waiting for video processing…</string>
+    <string name="smart_clips_analyzing">Analyzing section %1$d of %2$d…</string>
+    <string name="smart_clips_cleaning">Removing this analysis upload…</string>
+    <string name="smart_clips_cancelling">Cancelling and cleaning up…</string>
+    <string name="smart_clips_cancelled">Analysis cancelled. Your edit was not changed.</string>
+    <string name="smart_clips_cleanup_failed">Google upload cleanup could not be confirmed. Check the uploaded file in your Google project; it may remain until provider expiry.</string>
+    <string name="smart_clips_stale">The source or edit changed. Analyze again before applying this draft.</string>
+    <string name="smart_clips_summary">Before: %1$s · After: %2$s\nAccepted cuts: %3$d · Suggestions retained for safety: %4$d\nReview the original and draft before applying. Uncheck a suggestion to retain that footage.</string>
+    <string name="smart_clips_preview_original">Preview original edit</string>
+    <string name="smart_clips_preview_draft">Preview AI draft</string>
+    <string name="smart_clips_review">Review suggested cuts</string>
+    <string name="smart_clips_apply">Apply reviewed cuts</string>
+    <string name="smart_clips_region">Gemini is unavailable for this location or account. Check Google’s supported regions and your account access. Local editing remains available.</string>
+    <string name="smart_clips_key_error">The API key is missing, invalid or revoked. Replace it and test again.</string>
+    <string name="smart_clips_quota">Your Gemini project quota is exhausted. Check Google AI Studio before retrying.</string>
+    <string name="smart_clips_timeout">The request timed out. Your edit was not changed.</string>
+    <string name="smart_clips_network">Could not reach Google. Check your internet connection and try again.</string>
+    <string name="smart_clips_model_error">This model is unavailable. Check the model name and account access.</string>
+    <string name="smart_clips_media_limit">This video format or size is unsupported for analysis. Supported app limits: MP4/MOV/WebM/3GP/AVI, 2 GB, two hours.</string>
+    <string name="smart_clips_server">Gemini is temporarily unavailable. Try again later.</string>
+    <string name="smart_clips_invalid">Analysis could not produce a valid edit. Your current edit remains unchanged.</string>
+    <string name="smart_clips_preview_unavailable">This draft preview is unavailable on the current device or with Intro Freeze. Your edit has not changed.</string>
+</resources>
