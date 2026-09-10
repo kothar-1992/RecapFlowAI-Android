@@ -33,6 +33,7 @@ class SmartClipsController(
     private var token: GeminiCancellation? = null
     private var closed = false
     private var undo: AppliedSmartCut? = null
+    private var undoFingerprint: String? = null
     private val dialogs = mutableListOf<AlertDialog>()
     private val entry = MaterialButton(activity).apply {
         setText(R.string.smart_clips_title)
@@ -81,9 +82,20 @@ class SmartClipsController(
             setText(R.string.smart_clips_undo)
             isEnabled = undo?.undo(plan) != null
             setOnClickListener {
-                val restored = currentPlan()?.let { current -> undo?.undo(current) }
-                if (restored == null) message(R.string.smart_clips_stale) else {
-                    applyPlan(restored); undo = null; dialogs.toList().forEach { it.dismiss() }
+                val current = currentPlan()
+                val restored = current?.let { undo?.undo(it) }
+                val fingerprint = undoFingerprint
+                if (restored == null || fingerprint == null) message(R.string.smart_clips_stale) else {
+                    runJob { cancellation, _ ->
+                        analyzer.verifySource(File(restored.sourcePath), fingerprint, cancellation)
+                        val next: () -> Unit = {
+                            if (currentPlan() != current) message(R.string.smart_clips_stale) else {
+                                applyPlan(restored); undo = null; undoFingerprint = null
+                                dialogs.toList().forEach { it.dismiss() }
+                            }
+                        }
+                        next
+                    }
                 }
             }
         })
@@ -197,7 +209,8 @@ class SmartClipsController(
                 analyzer.verifySource(File(before.sourcePath), result.sourceFingerprint, cancellation)
                 val next: () -> Unit = {
                     if (currentPlan() != before) message(R.string.smart_clips_stale) else {
-                        applyPlan(transaction.after); undo = transaction; dialog.dismiss()
+                        applyPlan(transaction.after); undo = transaction
+                        undoFingerprint = result.sourceFingerprint; dialog.dismiss()
                     }
                 }
                 next

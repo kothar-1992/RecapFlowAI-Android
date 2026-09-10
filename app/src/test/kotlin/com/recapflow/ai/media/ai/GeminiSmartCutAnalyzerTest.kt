@@ -93,6 +93,21 @@ class GeminiSmartCutAnalyzerTest {
         assertEquals("DELETE", requests.last().method)
     }
 
+    @Test fun sourceVerificationRejectsSameSizeReplacementBeforeUndoWithoutNetwork() = withMedia { file ->
+        val responses = uploadResponses().apply { add(GeminiHttpResponse(200, envelope())); add(GeminiHttpResponse(200, "{}")) }
+        var requests = 0
+        val analyzer = GeminiSmartCutAnalyzer(GeminiTransport { _, _ -> requests++; responses.removeAt(0) })
+        val result = analyzer.analyze(file, "video/mp4", 10_000, key, model, SmartCutAnalysisMode.CLEAN_PAUSES, GeminiCancellation())
+        analyzer.verifySource(file, result.sourceFingerprint, GeminiCancellation())
+        val originalModified = file.lastModified()
+        file.writeBytes(byteArrayOf(9, 8, 7))
+        file.setLastModified(originalModified)
+        assertEquals(GeminiFailure.STALE_SOURCE, assertFailsWith<GeminiException> {
+            analyzer.verifySource(file, result.sourceFingerprint, GeminiCancellation())
+        }.failure)
+        assertEquals(4, requests)
+    }
+
     @Test fun foreignUploadUrlNeverReceivesKeyOrFile() = withMedia { file ->
         var requests = 0
         val analyzer = GeminiSmartCutAnalyzer(GeminiTransport { _, _ ->
