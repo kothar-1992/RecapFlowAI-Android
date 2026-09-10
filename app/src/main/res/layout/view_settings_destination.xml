@@ -23,11 +23,17 @@
         android:text="@string/settings_subtitle"
         android:textAppearance="@style/TextAppearance.RecapFlow.Body" />
 
+    <com.recapflow.ai.ui.LanguageSettingsView
+        style="@style/Widget.RecapFlow.Card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp" />
+
     <com.google.android.material.card.MaterialCardView
         style="@style/Widget.RecapFlow.Card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="22dp">
+        android:layout_marginTop="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"

@@ -9,6 +9,8 @@ import com.recapflow.ai.media.edit.CropRectangle
 import com.recapflow.ai.media.edit.CropSettings
 import com.recapflow.ai.media.edit.FreezeCompiler
 import com.recapflow.ai.media.edit.FreezeSettings
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPolicy
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPreset
 import com.recapflow.ai.media.edit.OverlayCompiler
 import com.recapflow.ai.media.edit.SpeedCompiler
 import com.recapflow.ai.media.edit.TransformSettings
@@ -64,6 +66,10 @@ data class OverlayPreference(
     val imageCenterY: Float = OverlayCompiler.DEFAULT_IMAGE_CENTER_Y,
     val imageWidthFraction: Float = OverlayCompiler.DEFAULT_IMAGE_WIDTH_FRACTION,
     val imageOpacity: Float = OverlayCompiler.DEFAULT_IMAGE_OPACITY,
+    val imageAnimationPreset: ImageOverlayAnimationPreset = ImageOverlayAnimationPreset.NONE,
+    val imageAnimationLoopEnabled: Boolean = false,
+    val imageAnimationDurationMs: Long = ImageOverlayAnimationPolicy.DEFAULT_DURATION_MS,
+    val imageAnimationPeriodMs: Long = ImageOverlayAnimationPolicy.DEFAULT_PERIOD_MS,
 )
 
 enum class EditorSection {
@@ -122,6 +128,14 @@ object EditorPreferencesPolicy {
         )
         val safeBlur = input.overlay.blurRectangle.takeIf(BlurRectangle::isValid)
             ?: BlurRectangle()
+        val safeAnimationDurationMs = input.overlay.imageAnimationDurationMs.coerceIn(
+            ImageOverlayAnimationPolicy.MIN_DURATION_MS,
+            ImageOverlayAnimationPolicy.MAX_DURATION_MS,
+        )
+        val safeAnimationPeriodMs = input.overlay.imageAnimationPeriodMs.coerceIn(
+            maxOf(ImageOverlayAnimationPolicy.MIN_PERIOD_MS, safeAnimationDurationMs),
+            ImageOverlayAnimationPolicy.MAX_PERIOD_MS,
+        )
         val safeOverlay = input.overlay.copy(
             blurRectangle = safeBlur,
             blurStrength = input.overlay.blurStrength.coerceIn(
@@ -138,6 +152,8 @@ object EditorPreferencesPolicy {
                 OverlayCompiler.MIN_IMAGE_OPACITY,
                 OverlayCompiler.MAX_IMAGE_OPACITY,
             ),
+            imageAnimationDurationMs = safeAnimationDurationMs,
+            imageAnimationPeriodMs = safeAnimationPeriodMs,
         )
         return input.copy(
             transform = safeTransform,

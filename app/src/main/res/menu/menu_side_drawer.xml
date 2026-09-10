@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:title="@string/drawer_section_account">
+        <menu>
+            <item
+                android:id="@+id/drawerAccount"
+                android:title="@string/drawer_account_guest" />
+            <item
+                android:id="@+id/drawerSignIn"
+                android:enabled="false"
+                android:title="@string/drawer_sign_in_later" />
+        </menu>
+    </item>
+
+    <item android:title="@string/drawer_section_community">
+        <menu>
+            <item
+                android:id="@+id/drawerContactDeveloper"
+                android:title="@string/drawer_contact_developer" />
+            <item
+                android:id="@+id/drawerTelegram"
+                android:title="@string/drawer_join_telegram" />
+            <item
+                android:id="@+id/drawerFacebook"
+                android:title="@string/drawer_facebook" />
+        </menu>
+    </item>
+
+    <item android:title="@string/drawer_section_legal">
+        <menu>
+            <item
+                android:id="@+id/drawerAppPolicy"
+                android:title="@string/drawer_app_policy" />
+            <item
+                android:id="@+id/drawerPrivacyPolicy"
+                android:title="@string/drawer_privacy_policy" />
+            <item
+                android:id="@+id/drawerTerms"
+                android:title="@string/drawer_terms" />
+            <item
+                android:id="@+id/drawerOpenSource"
+                android:title="@string/drawer_open_source" />
+        </menu>
+    </item>
+
+    <item android:title="@string/drawer_section_about">
+        <menu>
+            <item
+                android:id="@+id/drawerAppVersion"
+                android:title="@string/drawer_app_version" />
+        </menu>
+    </item>
+</menu>

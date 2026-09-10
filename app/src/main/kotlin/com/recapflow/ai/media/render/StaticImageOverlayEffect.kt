@@ -14,6 +14,10 @@ import androidx.media3.effect.BaseGlShaderProgram
 import androidx.media3.effect.GlEffect
 import androidx.media3.effect.GlShaderProgram
 import com.recapflow.ai.media.edit.CompiledImageOverlay
+import com.recapflow.ai.media.edit.ImageOverlayAnimationGeometryPolicy
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPolicy
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPreset
+import com.recapflow.ai.media.edit.ImageOverlayAnimationVisualPolicy
 import com.recapflow.ai.media.edit.ImageOverlayLayoutPolicy
 import java.io.File
 import java.io.IOException
@@ -21,12 +25,16 @@ import java.lang.ref.WeakReference
 import kotlin.math.max
 
 /**
- * Blends one static PNG/JPEG/WebP over the final visual frame.
+ * Blends one PNG/JPEG/WebP logo over the final visual frame.
+ *
+ * `NONE` deliberately stays on the original axis-aligned shader branch so the verified static logo
+ * path remains behavior-compatible. Animated presets use deterministic source-time phase metadata
+ * from the reviewed EditPlan and an inverse-transformed texture lookup in the same GL effect; no
+ * temporary logo video or intermediate render is created.
  *
  * Position and width are normalized against the frame produced by the preceding Transform and
  * source-blur effects. Final clipped export projects overlay windows into each item's local time,
- * so [sourceTimeOffsetUs] is normally zero there; [fixedSourceTimeUs] keeps intro-freeze behavior
- * deterministic.
+ * while [fixedSourceTimeUs] keeps intro-freeze behavior deterministic.
  */
 @UnstableApi
 class StaticImageOverlayEffect(
@@ -96,7 +104,7 @@ private class StaticImageOverlayShaderProgram(
 
     override fun drawFrame(inputTexId: Int, presentationTimeUs: Long) {
         // PREVIEW_LOGO_LIVE_STATE: an existing shader may survive setVideoEffects(). Resolve the
-        // current immutable snapshot every frame so bar/preset changes cannot remain stale.
+        // current immutable snapshot every frame so position/size/opacity/animation cannot go stale.
         val activeImage = realtimeState
             ?.snapshotFor(image.asset.workingFilePath)
             ?: image.takeIf { realtimeState == null }
@@ -112,16 +120,46 @@ private class StaticImageOverlayShaderProgram(
         )
         val sourceTimeUs = fixedSourceTimeUs
             ?: (presentationTimeUs + sourceTimeOffsetUs).coerceAtLeast(0L)
-        val enabled = activeImage?.isActiveAt(sourceTimeUs / 1_000L) == true
+        val sourceTimeMs = sourceTimeUs / 1_000L
+        val enabled = activeImage?.isActiveAt(sourceTimeMs) == true
+        val animationEnabled = enabled &&
+            activeImage != null &&
+            activeImage.animation.preset != ImageOverlayAnimationPreset.NONE &&
+            ImageOverlayAnimationPolicy.isValid(activeImage.animation)
+        val visual = if (animationEnabled) {
+            ImageOverlayAnimationVisualPolicy.resolve(
+                settings = activeImage.animation,
+                phase = activeImage.animationPhaseAt(sourceTimeMs),
+            )
+        } else {
+            ImageOverlayAnimationVisualPolicy.IDENTITY
+        }
+        val geometry = ImageOverlayAnimationGeometryPolicy.resolve(bounds, visual)
+        val overlayOpacity = (activeImage?.opacity ?: 0f) * visual.opacityMultiplier
+
         try {
             glProgram.use()
             glProgram.setSamplerTexIdUniform("uTexSampler", inputTexId, 0)
             glProgram.setSamplerTexIdUniform("uOverlaySampler", overlayTextureId, 1)
+
+            // Legacy-static uniforms. The NONE branch in the fragment shader intentionally keeps
+            // this exact axis-aligned mapping instead of routing through animation math.
             glProgram.setFloatUniform("uOverlayLeft", bounds.left)
             glProgram.setFloatUniform("uOverlayTop", bounds.top)
             glProgram.setFloatUniform("uOverlayRight", bounds.right)
             glProgram.setFloatUniform("uOverlayBottom", bounds.bottom)
-            glProgram.setFloatUniform("uOverlayOpacity", activeImage?.opacity ?: 0f)
+
+            // Animated branch uniforms. Geometry policy clamps the full rotated/scaled rectangle
+            // inside the normalized output frame after aspect conversion.
+            glProgram.setFloatUniform("uOverlayCenterX", geometry.centerX)
+            glProgram.setFloatUniform("uOverlayCenterY", geometry.centerY)
+            glProgram.setFloatUniform("uOverlayHalfWidth", geometry.halfWidth)
+            glProgram.setFloatUniform("uOverlayHalfHeight", geometry.halfHeight)
+            glProgram.setFloatUniform("uAnimationScale", geometry.scaleMultiplier)
+            glProgram.setFloatUniform("uAnimationRotationRadians", geometry.rotationRadians)
+            glProgram.setFloatUniform("uAnimationEnabled", if (animationEnabled) 1f else 0f)
+
+            glProgram.setFloatUniform("uOverlayOpacity", overlayOpacity)
             glProgram.setFloatUniform("uOverlayEnabled", if (enabled) 1f else 0f)
             glProgram.bindAttributesAndUniforms()
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)

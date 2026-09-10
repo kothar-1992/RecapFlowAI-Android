@@ -10,6 +10,7 @@ import com.recapflow.ai.media.edit.ColorSettings
 import com.recapflow.ai.media.edit.CropRectangle
 import com.recapflow.ai.media.edit.CropSettings
 import com.recapflow.ai.media.edit.FreezeSettings
+import com.recapflow.ai.media.edit.ImageOverlayAnimationPreset
 import com.recapflow.ai.media.edit.ScaleMode
 import com.recapflow.ai.media.edit.TransformSettings
 import com.recapflow.ai.media.edit.TransitionMode
@@ -83,6 +84,10 @@ class EditorPreferencesStore(context: Context) {
             .putFloat(key(prefix, "transform.crop.right"), transform.crop.rectangle.right)
             .putFloat(key(prefix, "transform.crop.bottom"), transform.crop.rectangle.bottom)
             .putBoolean(key(prefix, "transform.mirror"), transform.mirrorEnabled)
+            .putBoolean(
+                key(prefix, "transform.mirror.randomPerClip"),
+                transform.randomMirrorPerClipEnabled,
+            )
             .putBoolean(key(prefix, "transform.color.enabled"), transform.color.enabled)
             .putFloat(key(prefix, "transform.color.brightness"), transform.color.brightness)
             .putFloat(key(prefix, "transform.color.contrast"), transform.color.contrast)
@@ -117,6 +122,22 @@ class EditorPreferencesStore(context: Context) {
             .putFloat(key(prefix, "overlay.image.centerY"), overlay.imageCenterY)
             .putFloat(key(prefix, "overlay.image.width"), overlay.imageWidthFraction)
             .putFloat(key(prefix, "overlay.image.opacity"), overlay.imageOpacity)
+            .putString(
+                key(prefix, "overlay.image.animation.preset"),
+                overlay.imageAnimationPreset.name,
+            )
+            .putBoolean(
+                key(prefix, "overlay.image.animation.loop"),
+                overlay.imageAnimationLoopEnabled,
+            )
+            .putLong(
+                key(prefix, "overlay.image.animation.duration"),
+                overlay.imageAnimationDurationMs,
+            )
+            .putLong(
+                key(prefix, "overlay.image.animation.period"),
+                overlay.imageAnimationPeriodMs,
+            )
             .putString(key(prefix, "adaptive.preset"), snapshot.adaptivePreset.name)
             .putString(key(prefix, "export.preset"), snapshot.renderPreset.name)
             .putString(key(prefix, "ui.section"), snapshot.selectedSection.name)
@@ -161,6 +182,11 @@ class EditorPreferencesStore(context: Context) {
                 enumValue(prefix, "transform.zoom.mode", ZoomMode.IN),
             ),
             mirrorEnabled = bool(prefix, "transform.mirror", false),
+            randomMirrorPerClipEnabled = bool(
+                prefix,
+                "transform.mirror.randomPerClip",
+                false,
+            ),
             color = color,
             freeze = FreezeSettings(
                 bool(prefix, "transform.freeze.enabled", false),
@@ -205,6 +231,26 @@ class EditorPreferencesStore(context: Context) {
                 defaults.overlay.imageWidthFraction,
             ),
             imageOpacity = float(prefix, "overlay.image.opacity", defaults.overlay.imageOpacity),
+            imageAnimationPreset = enumValue(
+                prefix,
+                "overlay.image.animation.preset",
+                ImageOverlayAnimationPreset.NONE,
+            ),
+            imageAnimationLoopEnabled = bool(
+                prefix,
+                "overlay.image.animation.loop",
+                defaults.overlay.imageAnimationLoopEnabled,
+            ),
+            imageAnimationDurationMs = long(
+                prefix,
+                "overlay.image.animation.duration",
+                defaults.overlay.imageAnimationDurationMs,
+            ),
+            imageAnimationPeriodMs = long(
+                prefix,
+                "overlay.image.animation.period",
+                defaults.overlay.imageAnimationPeriodMs,
+            ),
         )
         val centerYKey = key(prefix, "ui.previewCenterY")
         return EditorPreferencesPolicy.sanitize(
@@ -246,7 +292,7 @@ class EditorPreferencesStore(context: Context) {
         ?: default
 
     companion object {
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 4
         private const val MIN_SUPPORTED_SCHEMA_VERSION = 1
         private const val FILE_NAME = "recapflow_editor_preferences"
         private const val KEY_AUTO_RESTORE = "autoRestore"

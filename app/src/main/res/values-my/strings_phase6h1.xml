@@ -1,0 +1,21 @@
+<resources>
+    <string name="clip_transition_badge">ကလစ်ကူးပြောင်းမှု</string>
+    <string name="clip_transition_title">ကလစ် 2 ခုကြား ဘယ်လိုကူးမလဲ</string>
+    <string name="clip_transition_description">ကလစ်တစ်ခုကနေ နောက်ကလစ်ကို ချက်ချင်းမပြောင်းဘဲ ဖြည်းဖြည်းချောချော ကူးသွားအောင် လုပ်နိုင်ပါတယ်။ မသုံးရင် ပုံမှန်အတိုင်း ချက်ချင်းပြောင်းပါမယ်။</string>
+    <string name="clip_transition_unavailable">ဒီကူးပြောင်းမှုသုံးဖို့ စစ်ပြီးသားကလစ် အနည်းဆုံး 2 ခု လိုပါတယ်။</string>
+    <string name="clip_transition_boundary_value">ကူးပြောင်းနေရာ %1$d / %2$d • %3$s → %4$s</string>
+    <string name="clip_transition_previous">အရင်ကူးပြောင်းနေရာ</string>
+    <string name="clip_transition_next">နောက်ကူးပြောင်းနေရာ</string>
+    <string name="clip_transition_enable">ဒီကလစ် 2 ခုကို ဖြည်းဖြည်းကူးမယ်</string>
+    <string name="clip_transition_off_summary">ပိတ်ထားပါတယ် — နောက်ကလစ်ကို ချက်ချင်းပြောင်းမယ်။</string>
+    <string name="clip_transition_on_summary">ဖြည်းဖြည်းကူး • %1$s • %2$s</string>
+    <string name="clip_transition_duration">ကူးပြောင်းချိန်</string>
+    <string name="clip_transition_duration_value">ကြာချိန်: %1$s</string>
+    <string name="clip_transition_easing">ကူးပြောင်းတဲ့ပုံစံ</string>
+    <string name="clip_transition_linear">တသမတ်တည်း ကူးမယ်</string>
+    <string name="clip_transition_ease_in_out">အစနဲ့အဆုံး နူးညံ့အောင် ကူးမယ်</string>
+    <string name="clip_transition_preview">ဒီကူးပြောင်းမှု စမ်းကြည့်မယ်</string>
+    <string name="clip_transition_reset">ကူးပြောင်းမှု ဖယ်မယ်</string>
+    <string name="clip_transition_preview_unavailable">ဒီစက်မှာ အခုချိန် တိုက်ရိုက်ကြိုကြည့်လို့ မရသေးပါ။ တိုက်ရိုက်ကြိုကြည့်တာကို ထပ်စမ်းပြီးမှ ဒီကူးပြောင်းမှုကို စမ်းကြည့်ပါ။</string>
+    <string name="clip_transition_seconds_value">%1$s စက္ကန့်</string>
+</resources>

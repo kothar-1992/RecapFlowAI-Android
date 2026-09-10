@@ -13,16 +13,23 @@ data class EditPlan(
     val overlays: OverlaySettings = OverlaySettings(),
     val subtitles: SubtitleSettings = SubtitleSettings(),
     val exportPreset: RenderPreset,
+    val clipTransitions: ClipTransitionSettings = ClipTransitionSettings(),
 ) {
     val plannedDurationMs: Long
         get() {
-            val selectedDurationMs = AdaptiveCutCompiler.compile(adaptiveCuts, trimRange)
-                ?.sumOf { it.durationMs }
-                ?: trimRange.durationMs
-            return (SpeedCompiler.compile(transform)
+            val selectedRanges = AdaptiveCutCompiler.compile(adaptiveCuts, trimRange)
+                ?: listOf(trimRange)
+            val selectedDurationMs = selectedRanges.sumOf { it.durationMs }
+            val presentationDurationMs = SpeedCompiler.compile(transform)
                 ?.outputDurationMs(selectedDurationMs)
-                ?: selectedDurationMs) +
-            (FreezeCompiler.compile(transform)?.durationMs ?: 0L)
+                ?: selectedDurationMs
+            val transitionOverlapMs = ClipTransitionPolicy.plannedOverlapDurationMs(
+                settings = clipTransitions,
+                selectedRanges = selectedRanges,
+                transform = transform,
+            )
+            return presentationDurationMs - transitionOverlapMs +
+                (FreezeCompiler.compile(transform)?.durationMs ?: 0L)
         }
 }
 
@@ -44,7 +51,14 @@ data class AdaptiveCutSettings(
     val enabled: Boolean = false,
     val preset: AdaptiveCutPreset = AdaptiveCutPreset.BALANCED,
     val reviewedRanges: List<TrimRange> = emptyList(),
+    val mode: ClipPlanningMode = ClipPlanningMode.PRESET_PACING,
+    val targetDurationMs: Long? = null,
 )
+
+enum class ClipPlanningMode {
+    PRESET_PACING,
+    TARGET_DURATION,
+}
 
 enum class AdaptiveCutPreset(
     val keepWindowMs: Long,
@@ -62,6 +76,7 @@ data class TransformSettings(
     val crop: CropSettings = CropSettings(),
     val zoom: ZoomSettings = ZoomSettings(),
     val mirrorEnabled: Boolean = false,
+    val randomMirrorPerClipEnabled: Boolean = false,
     val color: ColorSettings = ColorSettings(),
     val freeze: FreezeSettings = FreezeSettings(),
     val speedEnabled: Boolean = false,
@@ -253,9 +268,10 @@ data class ImageOverlayAsset(
 )
 
 /**
- * One static image/logo overlay measured against the final video frame.
+ * One image/logo overlay measured against the final video frame.
  * Position uses normalized top-left coordinates for the image center; [widthFraction]
  * is the requested fraction of the final frame width. Height preserves the source image ratio.
+ * Animation timing is semantic source-time metadata; no temporary animated video is created.
  */
 data class ImageOverlaySettings(
     val enabled: Boolean = false,
@@ -266,6 +282,28 @@ data class ImageOverlaySettings(
     val opacity: Float = OverlayCompiler.DEFAULT_IMAGE_OPACITY,
     val startMs: Long = 0L,
     val endMs: Long = 0L,
+    val animation: ImageOverlayAnimationSettings = ImageOverlayAnimationSettings(),
+)
+
+enum class ImageOverlayAnimationPreset {
+    NONE,
+    FADE,
+    FADE_SCALE,
+    POP,
+    SLIDE,
+    PULSE,
+    FLOAT,
+    ROTATE,
+    BOUNCE,
+}
+
+data class ImageOverlayAnimationSettings(
+    val preset: ImageOverlayAnimationPreset = ImageOverlayAnimationPreset.NONE,
+    val loopEnabled: Boolean = false,
+    val durationMs: Long = ImageOverlayAnimationPolicy.DEFAULT_DURATION_MS,
+    val periodMs: Long = ImageOverlayAnimationPolicy.DEFAULT_PERIOD_MS,
+    /** Compiler-owned offset used only after a source overlay is projected into a clipped item. */
+    val phaseOffsetMs: Long = 0L,
 )
 
 enum class ImageOverlayPositionPreset(

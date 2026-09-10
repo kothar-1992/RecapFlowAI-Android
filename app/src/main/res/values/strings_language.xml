@@ -1,0 +1,7 @@
+<resources>
+    <string name="settings_language_title">App language</string>
+    <string name="settings_language_description">Choose the language used for buttons, instructions, warnings, and editor controls.</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_myanmar">မြန်မာ</string>
+    <string name="settings_language_note">Changing the language reloads the screen. Your current project and edit settings stay saved.</string>
+</resources>

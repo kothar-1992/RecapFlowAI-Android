@@ -12,6 +12,10 @@ val compositionPreviewEnabled = providers.gradleProperty("recapflow.composition.
     .map(String::toBoolean)
     .orElse(true)
 
+val crossfadeRuntimeSpikeEnabled = providers.gradleProperty("recapflow.crossfade.runtime.enabled")
+    .map(String::toBoolean)
+    .orElse(false)
+
 val nativeBuildStagingDirectory = file(
     "${System.getProperty("user.home")}/.recapflow/cxx/${rootProject.name}/${project.name}",
 )
@@ -36,6 +40,11 @@ android {
             "boolean",
             "ENABLE_COMPOSITION_PLAYER_PREVIEW",
             compositionPreviewEnabled.get().toString(),
+        )
+        buildConfigField(
+            "boolean",
+            "ENABLE_CROSSFADE_RUNTIME_SPIKE",
+            crossfadeRuntimeSpikeEnabled.get().toString(),
         )
 
         externalNativeBuild {
@@ -75,6 +84,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.drawerlayout)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.effect)

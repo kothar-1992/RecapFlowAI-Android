@@ -1,6 +1,7 @@
 package com.recapflow.ai.media.render
 
 import com.recapflow.ai.media.edit.BlurRectangle
+import com.recapflow.ai.media.edit.ClipTransitionEasing
 import com.recapflow.ai.media.edit.ImageOverlaySettings
 import com.recapflow.ai.media.edit.OverlaySettings
 import com.recapflow.ai.media.edit.SourceSubtitleBlurSettings
@@ -47,6 +48,26 @@ class CompositionPreviewTimelinePolicyTest {
     }
 
     @Test
+    fun crossfadeSourceMappingUsesOverlappedPresentationStarts() {
+        val topology = crossfadeTopology()
+
+        assertEquals(2_000L, CompositionPreviewTimelinePolicy.sourceToOutputMs(2_000L, topology))
+        assertEquals(3_700L, CompositionPreviewTimelinePolicy.sourceToOutputMs(5_000L, topology))
+        assertEquals(3_850L, CompositionPreviewTimelinePolicy.sourceToOutputMs(5_150L, topology))
+        assertEquals(7_700L, CompositionPreviewTimelinePolicy.sourceToOutputMs(9_000L, topology))
+    }
+
+    @Test
+    fun crossfadeOutputMappingUsesVisuallyDominantClipInOverlap() {
+        val topology = crossfadeTopology()
+
+        // Linear lane-1 alpha is ~0.33 here, so outgoing lane 0 still owns the source cursor.
+        assertEquals(3_800L, CompositionPreviewTimelinePolicy.outputToSourceMs(3_800L, topology))
+        // Linear lane-1 alpha is ~0.67 here, so incoming lane 1 owns the source cursor.
+        assertEquals(5_200L, CompositionPreviewTimelinePolicy.outputToSourceMs(3_900L, topology))
+    }
+
+    @Test
     fun sourceInsideCutGapClampsToNearestSelectedBoundary() {
         val ranges = listOf(TrimRange(0L, 10_000L), TrimRange(30_000L, 40_000L))
         assertEquals(
@@ -85,4 +106,37 @@ class CompositionPreviewTimelinePolicyTest {
         assertEquals(2_000L, result.image.startMs)
         assertEquals(5_000L, result.image.endMs)
     }
+
+    private fun crossfadeTopology() = Media3CrossfadeTopology(
+        slots = listOf(
+            Media3CrossfadeClipSlot(
+                rangeIndex = 0,
+                lane = 0,
+                sourceRange = TrimRange(0L, 4_000L),
+                presentationStartUs = 0L,
+                presentationDurationUs = 4_000_000L,
+                fadeIn = null,
+                fadeOut = Media3CrossfadeEnvelope(
+                    startUs = 3_700_000L,
+                    durationUs = 300_000L,
+                    easing = ClipTransitionEasing.LINEAR,
+                ),
+            ),
+            Media3CrossfadeClipSlot(
+                rangeIndex = 1,
+                lane = 1,
+                sourceRange = TrimRange(5_000L, 9_000L),
+                presentationStartUs = 3_700_000L,
+                presentationDurationUs = 4_000_000L,
+                fadeIn = Media3CrossfadeEnvelope(
+                    startUs = 3_700_000L,
+                    durationUs = 300_000L,
+                    easing = ClipTransitionEasing.LINEAR,
+                ),
+                fadeOut = null,
+            ),
+        ),
+        freezeDurationUs = 0L,
+        totalDurationUs = 7_700_000L,
+    )
 }

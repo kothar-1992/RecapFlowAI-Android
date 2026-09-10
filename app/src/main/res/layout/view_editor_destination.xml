@@ -957,24 +957,10 @@
                                                 android:stepSize="5" />
                                         </LinearLayout>
 
-                                        <com.google.android.material.materialswitch.MaterialSwitch
-                                            android:id="@+id/mirrorEnabledSwitch"
+                                        <include
+                                            layout="@layout/view_transform_mirror_controls"
                                             android:layout_width="match_parent"
-                                            android:layout_height="wrap_content"
-                                            android:layout_marginTop="18dp"
-                                            android:minHeight="48dp"
-                                            android:text="@string/mirror_enable"
-                                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                                            android:textColor="@color/rf_on_surface" />
-
-                                        <TextView
-                                            android:id="@+id/mirrorSummary"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content"
-                                            android:layout_marginTop="2dp"
-                                            android:text="@string/mirror_off_summary"
-                                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                                            android:textColor="@color/rf_on_surface_variant" />
+                                            android:layout_height="wrap_content" />
 
                                         <com.google.android.material.materialswitch.MaterialSwitch
                                             android:id="@+id/colorEnabledSwitch"

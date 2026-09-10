@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- External destinations are configuration, not localized UI copy. -->
+    <string name="side_menu_developer_email" translatable="false">kothihawailwin@gmail.com</string>
+    <string name="side_menu_telegram_url" translatable="false">https://t.me/kothar1992</string>
+    <string name="side_menu_facebook_url" translatable="false">https://www.facebook.com/share/1DWHZwZKmH/</string>
+</resources>
