@@ -1,11 +1,13 @@
 # Recap Flow AI Android — Active Implementation Plan
 
 - **Project:** RecapFlowAI Android
-- **Last updated:** 2026-09-01
+- **Last updated:** 2026-09-10
 - **Verified media rollback:** `stable/phase-6f2.8.1`
 - **Active transition baseline:** `feature/phase-6h1-transitions`
 - **Target-duration Clips merge:** `5cdf300e12e62bd1cdb32dc3cc4e90ec5270fd3f`
 - **Primary development / Git environment:** **Termux**
+- **Additional verified environment:** Windows / VS Code; `scripts/build_debug.bat` avoids PowerShell execution-policy and Java socket-directory failures.
+- **Current feature branch:** `feature/phase-6ux2-side-menu` — Issue #33 / PR #34.
 - **UI:** Native Kotlin + XML + ViewBinding
 - **Media:** Media3 Composition / CompositionPlayer / Transformer, with FFmpeg/JNI retained only for bounded native media support.
 - **Core invariant:** one immutable reviewed `EditPlan`; no intermediate MP4 per feature; exactly one authoritative final `Transformer.start(...)`.
@@ -131,9 +133,13 @@ Architecture contract now established:
 
 ---
 
-# NEXT CORE WORKFLOW — Phase 6H.2 Animated Logo / Loop — Issue #21 / PR #32
+# Phase 6H.2 Animated Logo / Loop — Issue #21 / PR #32
 
-**Status: FOUNDATION PASS; SHARED OPENGL ANIMATION SLICE IN VALIDATION.**
+**Status: COMPLETE, OWNER-ACCEPTED, MERGED INTO THE ACTIVE TRANSITION STACK.**
+
+GitHub PR #32 is merged as `599eb91b82bdef80888e8d0356653f00d5543930`.
+The PR's 2026-09-02 owner-device evidence records realtime animation and final
+1080p export acceptance. This is historical device evidence, not a new device run.
 
 The static image/logo overlay is extended with semantic animation metadata rather than temporary rendered logo clips.
 
@@ -169,15 +175,36 @@ The static image/logo overlay is extended with semantic animation metadata rathe
 - [x] JVM visual-curve / frame-safety / Speed parity tests added
 - [x] first refreshed gate exposed a Float exact-equality-only failure in `identityKeepsResolvedCenterAndScale`
 - [x] test fixed to use epsilon comparisons for normalized Float geometry; production geometry policy unchanged
-- [ ] refreshed Termux `testDebugUnitTest` PASS after float-safe fix
-- [ ] refreshed Termux `assembleDebug` PASS after float-safe fix
+- [x] refreshed Termux `testDebugUnitTest` PASS after float-safe fix
+- [x] refreshed Termux `assembleDebug` PASS after float-safe fix
 
-### Next after refreshed gate PASS
-1. Add realtime Animation Preset / Loop / Duration / Period controls.
-2. Add English + Myanmar copy from the same slice.
-3. Persist/restore animation settings without changing static defaults.
-4. Validate Target-duration Clips + Speed + Crossfade + animation in CompositionPlayer preview and one final Transformer export.
-5. Owner-device 720p/1080p preview/export phase and geometry validation.
+### Completed UI and runtime acceptance
+- [x] realtime Animation Preset / Loop / Duration / Period controls
+- [x] English + Myanmar copy
+- [x] preferences and Activity state restore with static defaults
+- [x] shared preview/export animation semantics and source/build verifiers
+- [x] owner-device realtime controls and rendered-output acceptance, including documented 1080p validation
+
+---
+
+# Current work — Phase 6UX.2 Side Menu — Issue #33 / PR #34
+
+**Status: A ACCEPTED; B IMPLEMENTED, CURRENT WINDOWS GATES PASS; B DEVICE CHECKS PENDING.**
+
+- [x] 6UX.2A drawer shell, Guest header, runtime version, EN/MY copy and scrim accepted on owner tablet (PR #34 discussion, 2026-09-02).
+- [x] 6UX.2B configured email/Telegram/Facebook intents and native legal dialogs implemented.
+- [x] MainActivity controller binding and Back-before-bottom-navigation integration included in canonical source; no apply-script step required after checkout.
+- [x] Windows/VS Code `.bat` and PowerShell build helpers; local Java socket directory and quoted Gradle properties.
+- [x] side-menu source verifier and localization verifier (553 strings) PASS on 2026-09-10.
+- [x] Windows unit tests and FFmpeg/Crossfade-enabled assemble PASS on 2026-09-10.
+- [ ] 6UX.2B owner-device email/Telegram/Facebook and no-handler behavior.
+- [ ] 6UX.2B all four legal dialogs, dismissal, EN/MY readability and Back behavior.
+- [ ] refreshed canonical Termux gate for B if retained as a release gate; Windows results are recorded separately.
+- [ ] 6UX.2C account/user-level model boundary; auth remains deferred.
+
+Keep PR #34 Draft pending the B device gates. Build success does not establish
+external-intent or device runtime acceptance. See
+`docs/PHASE6UX2_WINDOWS_REVIEW_2026-09-10.md` for evidence and the device checklist.
 
 ---
 
@@ -194,7 +221,7 @@ The static image/logo overlay is extended with semantic animation metadata rathe
 
 ## Immediate next actions
 
-1. Pull `feature/phase-6h2-animated-logo` after commit `7bc02bbd24dd911f636928813f669765c63ab784`.
-2. Re-run `scripts/verify_phase6h2_animation_gl.sh` and `git diff --check`.
-3. Re-run canonical Termux `:app:testDebugUnitTest` and `:app:assembleDebug` gates.
-4. Only after both pass, add realtime animation UI/persistence controls.
+1. Install the current side-menu APK and finish the 6UX.2B device checklist; preserve Draft status until it passes.
+2. Add the 6UX.2C account/user-level boundary without an auth SDK after the current B acceptance review.
+3. Resolve the remaining PR #25 owner-device Crossfade acceptance before merging the transition stack to `main`.
+4. Next media workflow: coordinate Issue #4 SRT and Issue #22 Narrator on the existing canonical timeline. Do not reimplement the merged animated-logo work.
