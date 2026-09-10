@@ -84,7 +84,7 @@ class SmartClipsController(
             setOnClickListener {
                 if (!persistKey(input.text.toString())) { updateStatus(false); return@setOnClickListener }
                 val credential = key
-                runJob { cancellation, _ -> analyzer.testConnection(credential, model, cancellation);
+                runJob(R.string.gemini_key_testing) { cancellation, _ -> analyzer.testConnection(credential, model, cancellation);
                     { message(R.string.smart_clips_connected) } }
             }
         })
@@ -143,7 +143,7 @@ class SmartClipsController(
             setText(R.string.smart_clips_test)
             setOnClickListener {
                 model = modelInput.text.toString().trim()
-                runJob { cancellation, _ -> analyzer.testConnection(key, model, cancellation); { message(R.string.smart_clips_connected) } }
+                runJob(R.string.gemini_key_testing) { cancellation, _ -> analyzer.testConnection(key, model, cancellation); { message(R.string.smart_clips_connected) } }
             }
         })
         content.addView(MaterialButton(activity).apply {
@@ -201,11 +201,11 @@ class SmartClipsController(
         }
     }
 
-    private fun runJob(task: (GeminiCancellation, (GeminiProgress) -> Unit) -> (() -> Unit)) {
+    private fun runJob(initialStatus: Int = R.string.smart_clips_preparing, task: (GeminiCancellation, (GeminiProgress) -> Unit) -> (() -> Unit)) {
         if (token != null || closed) return
         val cancellation = GeminiCancellation()
         token = cancellation; entry.isEnabled = false
-        val status = TextView(activity).apply { setPadding(32, 32, 32, 32); setText(R.string.smart_clips_preparing) }
+        val status = TextView(activity).apply { setPadding(32, 32, 32, 32); setText(initialStatus) }
         val progressDialog = show(MaterialAlertDialogBuilder(activity).setTitle(R.string.smart_clips_title)
             .setView(status).setNegativeButton(android.R.string.cancel, null).create())
         fun cancel() { cancellation.cancel(); status.setText(R.string.smart_clips_cancelling) }

@@ -4,4 +4,5 @@
 <string name="gemini_key_saved">API key ကို ဤစက်တွင် သိမ်းပြီးပါပြီ</string>
 <string name="gemini_key_empty">API key မရှိသေးပါ — အပေါ်တွင် ထည့်ပါ</string>
 <string name="gemini_key_storage_error">API key ကို လုံခြုံစွာ ဖတ်ရန် သို့မဟုတ် သိမ်းရန် မအောင်မြင်ပါ။ ထပ်ထည့်ပါ သို့မဟုတ် ပြန်စမ်းပါ။</string>
+    <string name="gemini_key_testing">Gemini connection စမ်းသပ်နေသည်…</string>
 </resources>

@@ -49,3 +49,9 @@ Settings now places Gemini API Key at the top, accessible before importing media
 LDPlayer runtime checks: Settings entry visible without media; entering a dummy credential showed saved status; force-stop/relaunch restored the saved credential; Remove changed status to empty and the ciphertext file no longer existed. The owner-provided test key was then entered through the UI and saved for subsequent use. No network test was triggered in this storage check, and no credential is included in this report. Crash buffer remained empty. This persistence check used the existing root-enabled emulator; it uses ordinary app access and no root operations.
 
 FFmpeg/Crossfade-enabled debug build and 279 unit tests passed (zero failures/errors). EN/MY localization passed for 616 strings. These checks do not resolve the earlier live Gemini region denial or infer successful video analysis.
+
+## Saved-key connection recheck
+
+The Settings dialog recovered the saved owner credential and the actual Test connection request again ended in the provider REGION classification. Loading dismissed and the Myanmar location/account message was shown. No video upload or analysis was started. This verifies the saved-key path reaches the provider, not successful inference or free quota.
+
+During the recheck, connection testing incorrectly displayed the video-preparation label. Both Settings and AI Clips connection checks now initialize progress with a dedicated EN/MY connection-testing label; video analysis retains its own preparation label. The cloud acceptance blocker remains unchanged.

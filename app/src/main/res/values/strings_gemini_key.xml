@@ -4,4 +4,5 @@
     <string name="gemini_key_saved">API key saved on this device</string>
     <string name="gemini_key_empty">No API key saved — enter your key above</string>
     <string name="gemini_key_storage_error">Could not read or save the API key securely. Enter it again or retry; do not rely on it being saved.</string>
+    <string name="gemini_key_testing">Testing Gemini connection…</string>
 </resources>
