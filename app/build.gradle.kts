@@ -92,4 +92,6 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.transformer)
     testImplementation(kotlin("test"))
+    // JVM implementation for contract-testing Android's org.json API with actual provider envelopes.
+    testImplementation("org.json:json:20240303")
 }

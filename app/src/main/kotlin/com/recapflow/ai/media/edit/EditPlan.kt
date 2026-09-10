@@ -58,6 +58,7 @@ data class AdaptiveCutSettings(
 enum class ClipPlanningMode {
     PRESET_PACING,
     TARGET_DURATION,
+    AI_SMART_CUTS,
 }
 
 enum class AdaptiveCutPreset(
