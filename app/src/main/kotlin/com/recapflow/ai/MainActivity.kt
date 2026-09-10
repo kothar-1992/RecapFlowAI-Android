@@ -247,6 +247,8 @@ class MainActivity : AppCompatActivity() {
     // PHASE6H1F_TARGET_DURATION_UI: target output length is the primary Clips authority.
     private var targetDurationMs: Long? = null
     private var smartCutsApplied = false
+    private var autoEditingMode = false
+    private var autoEditingPanel: android.widget.LinearLayout? = null
     private var smartClipsController: com.recapflow.ai.ui.SmartClipsController? = null
     private var smartClipsPreviewDialog: androidx.appcompat.app.AlertDialog? = null
     private var targetDurationTimingSignature: String? = null
@@ -839,6 +841,7 @@ class MainActivity : AppCompatActivity() {
             ?.takeIf { it >= TargetDurationClipPlanner.MIN_TARGET_DURATION_MS }
         val adaptiveStarts = savedInstanceState?.getLongArray(KEY_ADAPTIVE_RANGE_STARTS)
         smartCutsApplied = savedInstanceState?.getBoolean("recapflow.smartCutsApplied") == true
+        autoEditingMode = savedInstanceState?.getBoolean("recapflow.autoEditingMode") == true
         val adaptiveEnds = savedInstanceState?.getLongArray(KEY_ADAPTIVE_RANGE_ENDS)
         adaptiveDraftRanges = if (
             adaptiveStarts != null &&
@@ -1428,7 +1431,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bindSmartClipsControls() {
-        val parent = editor.editCard.getChildAt(0) as ViewGroup
+        val host = editor.reviewEditorTabGroup.parent as ViewGroup
+        val group = com.google.android.material.button.MaterialButtonToggleGroup(this).apply {
+            isSingleSelection = true; isSelectionRequired = true
+        }
+        val manualButton = com.google.android.material.button.MaterialButton(this).apply {
+            id = View.generateViewId(); setText(R.string.editor_mode_manual)
+        }
+        val autoButton = com.google.android.material.button.MaterialButton(this).apply {
+            id = View.generateViewId(); setText(R.string.editor_mode_auto)
+        }
+        group.addView(manualButton); group.addView(autoButton)
+        val position = host.indexOfChild(editor.reviewEditorTabGroup)
+        host.addView(group, position)
+        val parent = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            addView(android.widget.TextView(this@MainActivity).apply { setText(R.string.auto_workflow_note) })
+        }
+        host.addView(parent, position + 1)
+        autoEditingPanel = parent
+        group.check(if (autoEditingMode) autoButton.id else manualButton.id)
+        group.addOnButtonCheckedListener { _, id, checked ->
+            if (checked) { autoEditingMode = id == autoButton.id; renderReviewEditorTab() }
+        }
         smartClipsController = com.recapflow.ai.ui.SmartClipsController(this, parent,
             currentPlan = {
                 if (activeMediaInfo == null || renderCoordinator.currentState.isActiveRender()) null
@@ -1979,12 +2004,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderReviewEditorTab() {
-        editor.editCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.CLIPS
-        editor.transformCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.TRANSFORM
-        editor.audioCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.AUDIO
-        editor.overlayCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.OVERLAY
-        editor.exportCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.EXPORT
-        editor.renderCard.isVisible = selectedReviewEditorTab == ReviewEditorTab.EXPORT
+        autoEditingPanel?.isVisible = autoEditingMode
+        editor.reviewEditorTabGroup.isVisible = !autoEditingMode
+        editor.editCard.isVisible = !autoEditingMode && selectedReviewEditorTab == ReviewEditorTab.CLIPS
+        editor.transformCard.isVisible = !autoEditingMode && selectedReviewEditorTab == ReviewEditorTab.TRANSFORM
+        editor.audioCard.isVisible = !autoEditingMode && selectedReviewEditorTab == ReviewEditorTab.AUDIO
+        editor.overlayCard.isVisible = !autoEditingMode && selectedReviewEditorTab == ReviewEditorTab.OVERLAY
+        editor.exportCard.isVisible = autoEditingMode || selectedReviewEditorTab == ReviewEditorTab.EXPORT
+        editor.renderCard.isVisible = autoEditingMode || selectedReviewEditorTab == ReviewEditorTab.EXPORT
         renderSourceBlurGuide()
     }
 
@@ -6541,6 +6568,7 @@ class MainActivity : AppCompatActivity() {
         }
         outState.putString(KEY_ADAPTIVE_PRESET, adaptivePreset.name)
         outState.putBoolean("recapflow.smartCutsApplied", smartCutsApplied)
+        outState.putBoolean("recapflow.autoEditingMode", autoEditingMode)
         targetDurationMs?.let { outState.putLong(KEY_TARGET_DURATION_MS, it) }
         outState.putLongArray(
             KEY_ADAPTIVE_RANGE_STARTS,

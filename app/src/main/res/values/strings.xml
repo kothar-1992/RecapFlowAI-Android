@@ -33,7 +33,7 @@
     <string name="engine_checking">Checking media engine</string>
     <string name="engine_ready">Media engine ready</string>
     <string name="engine_unavailable">Media engine unavailable</string>
-    <string name="local_processing_note">Your source video stays on this device during import and analysis.</string>
+    <string name="local_processing_note">Manual editing stays on your device. Auto analysis uploads video to Gemini only with your consent.</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_subtitle">Current media-engine behavior and diagnostics.</string>

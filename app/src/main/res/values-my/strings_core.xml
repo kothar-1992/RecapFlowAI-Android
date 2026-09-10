@@ -35,7 +35,7 @@
     <string name="engine_checking">ဗီဒီယိုစနစ်ကို စစ်နေပါတယ်</string>
     <string name="engine_ready">ဗီဒီယိုစနစ် အဆင်သင့်ဖြစ်ပါပြီ</string>
     <string name="engine_unavailable">ဗီဒီယိုစနစ်ကို အခု သုံးလို့မရသေးပါ</string>
-    <string name="local_processing_note">ရွေးထားတဲ့ မူရင်းဗီဒီယိုကို အပြင်မပို့ဘဲ ဒီဖုန်းထဲမှာပဲ စစ်ပြီး တည်းဖြတ်ပါတယ်။</string>
+    <string name="local_processing_note">Manual editing ကို စက်အတွင်း လုပ်ဆောင်ပါသည်။ Auto analysis သည် သင့်သဘောတူညီချက်ရှိမှ video ကို Gemini သို့ တင်ပါသည်။</string>
 
     <string name="settings_title">ဆက်တင်များ</string>
     <string name="settings_subtitle">အက်ပ်ရဲ့ တည်းဖြတ်ဆက်တင်နဲ့ ဒီစက်အခြေအနေကို ဒီနေရာမှာ စစ်နိုင်ပါတယ်။</string>

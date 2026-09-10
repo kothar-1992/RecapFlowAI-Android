@@ -212,7 +212,7 @@ work. See `docs/PHASE6UX2_WINDOWS_REVIEW_2026-09-10.md` for the dated audit.
 
 # Next work — Gemini AI / BYOK — Issue #36
 
-**Status: AI CLIPS UI AND GEMINI ANALYSIS INTEGRATED; BUILD/UNIT/LOCALIZATION PASS; LIVE AND DEVICE ACCEPTANCE PENDING.**
+**Status: MANUAL/AUTO UI AND GEMINI ANALYSIS INTEGRATED; LDPLAYER ROOT/NON-ROOT SETUP SMOKE TESTS PASS; LIVE VIDEO ACCEPTANCE PENDING.**
 
 - Product: public app, each user supplies their own Gemini key.
 - Research: `docs/research/GEMINI_BYOK_RECAPFLOWAI.md` (37 cited sources and 9 GitHub references).
@@ -222,7 +222,8 @@ work. See `docs/PHASE6UX2_WINDOWS_REVIEW_2026-09-10.md` for the dated audit.
 - GeminiSmartCutAnalyzer adds streamed Files API upload, sequential 120-second analysis windows, structured Interactions output, request cancellation, typed errors, owned-file cleanup and before/after source fingerprints. Contract tests use synthetic HTTP responses; no live provider proof yet.
 - SmartCutIntegration validates the analyzed EditPlan snapshot, preserves surviving transition endpoints, uses canonical duration calculation and permits undo only before another edit. MainActivity now consumes these plans through the existing render pipeline.
 - Session-only masked key entry, connection test/removal, upload consent, progress/cancel and EN/MY errors are connected. Drawer policies now disclose optional cloud analysis. Optional persistent key storage is deferred.
-- Validation: FFmpeg/Crossfade-enabled build and 276 unit tests PASS; localization 593 strings PASS. No ADB device or AVD is present; real UI/video/provider acceptance is not claimed.
+- Manual contains existing editing tools; Auto contains Gemini setup with content type, output clip duration preference and AI instructions, followed by Analyze and Review/Apply. Both modes expose export.
+- LDPlayer is now available via ADB. Root-enabled and root-disabled launch/setup smoke tests pass; see `docs/AI_CLIPS_LDPLAYER_QA_2026-09-10.md`. Live Gemini and real-video preview/export acceptance remain pending.
 - API/eligibility: use current auth-key/API guidance; official region list does not list Myanmar. Resolve eligible distribution before cloud rollout.
 - Transport: decide a BYOK backend relay or separately reviewed direct-client exception; Firebase app-project auth is not arbitrary user-key BYOK.
 - Secrets: session-only default, optional Keystore protection with backup/export exclusions, no keys in APK/logs.

@@ -47,6 +47,25 @@ class SmartClipsController(
         val plan = currentPlan()
         if (plan == null) { message(R.string.smart_clips_unavailable); return }
         val content = column()
+        fun selector(label: Int, items: List<Int>): Spinner {
+            content.addView(TextView(activity).apply { setText(label) })
+            return Spinner(activity).apply {
+                adapter = ArrayAdapter(activity, android.R.layout.simple_spinner_dropdown_item, items.map(activity::getString))
+                content.addView(this)
+            }
+        }
+        val contentType = selector(R.string.auto_content_type, listOf(R.string.auto_general, R.string.auto_movie,
+            R.string.auto_podcast, R.string.auto_interview, R.string.auto_tutorial))
+        val duration = selector(R.string.auto_clip_duration, listOf(R.string.auto_duration_auto, R.string.auto_duration_30,
+            R.string.auto_duration_60, R.string.auto_duration_180, R.string.auto_duration_300, R.string.auto_duration_long))
+        content.addView(TextView(activity).apply { setText(R.string.auto_instructions) })
+        val instructions = EditText(activity).apply {
+            hint = activity.getString(R.string.auto_instructions_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 2; maxLines = 4
+            filters = arrayOf(android.text.InputFilter.LengthFilter(2_000))
+            content.addView(this)
+        }
         val keyInput = EditText(activity).apply {
             hint = activity.getString(R.string.smart_clips_key)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -110,6 +129,8 @@ class SmartClipsController(
             model = modelInput.text.toString().trim()
             keyInput.text.clear()
             val selectedMode = SmartCutAnalysisMode.entries[modes.selectedItemPosition]
+            val options = AutoClipOptions(AutoContentType.entries[contentType.selectedItemPosition],
+                AutoClipDuration.entries[duration.selectedItemPosition], instructions.text.toString())
             dialog.dismiss()
             runJob { cancellation, progress ->
                 val file = File(plan.sourcePath)
@@ -122,7 +143,7 @@ class SmartClipsController(
                     "mkv" -> throw GeminiException(GeminiFailure.MEDIA_LIMIT)
                     else -> throw GeminiException(GeminiFailure.MEDIA_LIMIT)
                 }
-                val result = analyzer.analyze(file, mime, plan.sourceDurationMs, key, model, selectedMode, cancellation, progress)
+                val result = analyzer.analyze(file, mime, plan.sourceDurationMs, key, model, selectedMode, cancellation, progress, options)
                 val next: () -> Unit = { review(plan, result) }
                 next
             }

@@ -37,6 +37,7 @@ class GeminiSmartCutAnalyzer(
         mode: SmartCutAnalysisMode,
         cancellation: GeminiCancellation,
         progress: (GeminiProgress) -> Unit = {},
+        options: AutoClipOptions = AutoClipOptions(),
     ): GeminiAnalysisResult {
         validateCredentials(key, model)
         if (!file.isFile || file.length() !in 1..MAX_FILE_BYTES || durationMs !in 1..MAX_DURATION_MS || mimeType !in MIME_TYPES) {
@@ -81,7 +82,7 @@ class GeminiSmartCutAnalyzer(
                 progress(GeminiProgress(GeminiStage.ANALYZING, index, windows.size))
                 val response = checked(GeminiHttpRequest("POST", "$BASE/v1beta/interactions", key,
                     mapOf("Content-Type" to "application/json"),
-                    analysisRequest(model, uri, mimeType, window, mode).toString()), cancellation)
+                    analysisRequest(model, uri, mimeType, window, mode, options, durationMs).toString()), cancellation)
                 val parsed = parseInteraction(response.body, window)
                 if (parsed.any { (mode == SmartCutAnalysisMode.CLEAN_PAUSES && it.reason != SmartCutReason.PAUSE) ||
                     (mode == SmartCutAnalysisMode.TIGHTEN_DIALOGUE && it.reason == SmartCutReason.IDLE_SCENE) }) {
@@ -162,9 +163,12 @@ class GeminiSmartCutAnalyzer(
             }
         }
 
-        internal fun analysisRequest(model: String, uri: String, mimeType: String, window: TrimRange, mode: SmartCutAnalysisMode): JSONObject {
+        internal fun analysisRequest(model: String, uri: String, mimeType: String, window: TrimRange, mode: SmartCutAnalysisMode,
+            options: AutoClipOptions = AutoClipOptions(), totalDurationMs: Long = window.endMs): JSONObject {
             val instruction = """
                 Analyze this video for an editable shorter draft. Mode: ${mode.name}.
+                Whole original video duration: $totalDurationMs milliseconds. This request covers only one window.
+                ${options.prompt()}
                 Return removal candidates only within absolute ORIGINAL SOURCE milliseconds ${window.startMs}..${window.endMs}.
                 Timestamps must be absolute source times, not offsets from this window. Do not cut a thought spanning a window boundary.
                 CLEAN_PAUSES: only unnecessary pauses of at least 1200ms; retain meaningful quiet action and reactions.
