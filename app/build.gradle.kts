@@ -94,7 +94,10 @@ android {
     signingConfigs {
         if (hasReleaseKeystore) {
             create("release") {
-                storeFile = file(releaseKeystorePath!!)
+                // Resolve against the repo root, not this module. A bare file() here resolves
+                // relative to app/, which turned "keys/app-release.jks" into "app/keys/...".
+                // rootProject.file() also passes an absolute path straight through.
+                storeFile = rootProject.file(releaseKeystorePath!!)
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")

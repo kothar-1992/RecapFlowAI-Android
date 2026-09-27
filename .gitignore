@@ -19,6 +19,9 @@ local.properties
 *.jks
 *.keystore
 keystore.properties
+# The whole key directory: a *.jks rule alone would still expose a .p12, .pem, or a
+# keystore.properties dropped in here, and a private key must never reach the remote.
+keys/
 
 # Ignore Python helper-script cache files
 __pycache__/
