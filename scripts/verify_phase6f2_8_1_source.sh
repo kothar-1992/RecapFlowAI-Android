@@ -11,6 +11,7 @@ quality_test="app/src/test/kotlin/com/recapflow/ai/media/render/RenderQualityPol
 validation_test="app/src/test/kotlin/com/recapflow/ai/media/render/RenderedOutputValidationPolicyTest.kt"
 version_file="app/build.gradle.kts"
 ui="app/src/main/res/values-v28/phase_6f2_8_1_strings.xml"
+current_ui="app/src/main/res/values-v28/phase_6ux2_strings.xml"
 integrity="PROJECT_INTEGRITY.md"
 
 require_text() {
@@ -49,10 +50,44 @@ require_text "277_800L" "$validation_test"
 require_text "2_780_000" "$validation_test"
 require_text "CBR average bitrate" "$validation_test"
 
-require_text 'versionName = "1.0-phase6f2.8.1"' "$version_file"
-require_text "PHASE 6F.2.8.1" "$ui"
+if ! grep -Eq 'versionName = "1\.0-phase' "$version_file"; then
+  echo "FAIL: versionName must stay a phase-tagged 1.0-phase* string" >&2
+  exit 1
+fi
+# The phase-labelled presentation copy moved to Phase 6UX.2. This baseline keeps only the
+# unlabelled CBR telemetry copy, and the current phase owns the exact version label.
+if grep -Fq "PHASE 6F.2.8.1" "$ui"; then
+  echo "FAIL: phase-labelled strings must not be pinned to the superseded 6F.2.8.1 label" >&2
+  exit 1
+fi
 require_text "H.264 CBR target" "$ui"
 require_text "Phase 6F.2.8.1" "$integrity"
+
+# Drift guard: the phase label shown in the toolbar/badges must match the declared versionName.
+# versionName carries a lowercase, dot-free suffix (6ux2) while the UI label is title-cased and
+# dotted (6UX.2), so both sides are normalized before comparison.
+canonical_phase() {
+  printf '%s' "$1" | sed 's/[._-]//g' | tr '[:lower:]' '[:upper:]'
+}
+declared_version="$(sed -nE 's/.*versionName = "1\.0-phase([^"]+)".*/\1/p' "$version_file" | head -n1)"
+[[ -n "$declared_version" ]] || {
+  echo "FAIL: could not read a phase suffix from versionName" >&2
+  exit 1
+}
+declared_canonical="$(canonical_phase "$declared_version")"
+found_label=0
+while read -r line; do
+  found_label=1
+  label_canonical="$(canonical_phase "${line#* }")"
+  if [[ "$label_canonical" != "$declared_canonical" ]]; then
+    echo "FAIL: phase label '$line' in $current_ui does not match versionName phase '$declared_version'" >&2
+    exit 1
+  fi
+done < <(grep -oE '<string name="[a-z_0-9]+">[^<]*' "$current_ui" | grep -oE '(Phase|PHASE) [0-9A-Za-z.]+' | sort -u)
+if [[ "$found_label" -eq 0 ]]; then
+  echo "FAIL: $current_ui declares no phase label" >&2
+  exit 1
+fi
 
 start_count="$(grep -F -c 'transformer?.start(' "$render" || true)"
 if [[ "$start_count" -ne 1 ]]; then

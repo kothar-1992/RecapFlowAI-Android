@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Phase 6UX.2 side-menu presentation copy. minSdk is 28, so these replace the
+         unqualified Phase 6F.2.6 / VBR-era labels on every supported device. The values-my
+         counterparts stay unlabelled on purpose, so Myanmar never shows a raw phase code. -->
+    <string name="home_toolbar_subtitle">Local media workspace • Phase 6UX.2</string>
+    <string name="settings_toolbar_subtitle">On-device profile • Phase 6UX.2</string>
+    <string name="phase_6_ready">PHASE 6UX.2 • READY</string>
+    <string name="phase_6_rendering">PHASE 6UX.2 • RENDERING</string>
+    <string name="phase_6_complete">PHASE 6UX.2 • VALIDATED</string>
+    <string name="phase_6_attention">PHASE 6UX.2 • ATTENTION</string>
+    <string name="export_badge">PHASE 6UX.2 • FINAL EXPORT</string>
+</resources>
