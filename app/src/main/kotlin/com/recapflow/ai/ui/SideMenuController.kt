@@ -35,6 +35,17 @@ class SideMenuController(
         toolbar.navigationIcon = menuDrawable
         toolbar.setNavigationContentDescription(R.string.drawer_open)
         toolbar.setNavigationOnClickListener { open() }
+        drawerLayout.addDrawerListener(
+            object : DrawerLayout.SimpleDrawerListener() {
+                override fun onDrawerOpened(drawerView: android.view.View) {
+                    setDrawerState(open = true)
+                }
+
+                override fun onDrawerClosed(drawerView: android.view.View) {
+                    setDrawerState(open = false)
+                }
+            },
+        )
         renderHeader()
         navigationView.setNavigationItemSelectedListener { item ->
             val handled = when (item.itemId) {
@@ -99,6 +110,17 @@ class SideMenuController(
         return true
     }
 
+    /**
+     * Keeps the toolbar hamburger in sync with the drawer so TalkBack announces the action that
+     * actually happens on the next tap, and rotates the arrow as visual confirmation.
+     */
+    private fun setDrawerState(open: Boolean) {
+        menuDrawable.progress = if (open) 1f else 0f
+        toolbar.setNavigationContentDescription(
+            if (open) R.string.drawer_close else R.string.drawer_open,
+        )
+    }
+
     private fun renderHeader() {
         val header = navigationView.getHeaderView(0)
         header.findViewById<TextView>(R.id.drawerAccountName)
@@ -109,25 +131,25 @@ class SideMenuController(
     }
 
     private fun contactDeveloper() {
-        val email = activity.getString(R.string.side_menu_developer_email).trim()
-        if (email.isBlank()) {
-            showUnavailable()
+        val email = activity.getString(R.string.side_menu_developer_email)
+        if (!SideMenuPolicy.isContactableEmail(email)) {
+            showNotConfigured()
             return
         }
         val subject = activity.getString(R.string.drawer_contact_subject)
         val uri = Uri.parse(
-            "mailto:${Uri.encode(email)}?subject=${Uri.encode(subject)}",
+            "mailto:${Uri.encode(email.trim())}?subject=${Uri.encode(subject)}",
         )
         launchExternal(Intent(Intent.ACTION_SENDTO, uri))
     }
 
     private fun openHttpsDestination(@StringRes destinationRes: Int) {
-        val uri = Uri.parse(activity.getString(destinationRes).trim())
-        if (!uri.scheme.equals("https", ignoreCase = true) || uri.host.isNullOrBlank()) {
-            showUnavailable()
+        val raw = activity.getString(destinationRes)
+        if (!SideMenuPolicy.isHttpsDestination(raw)) {
+            showNotConfigured()
             return
         }
-        launchExternal(Intent(Intent.ACTION_VIEW, uri))
+        launchExternal(Intent(Intent.ACTION_VIEW, Uri.parse(raw.trim())))
     }
 
     private fun launchExternal(intent: Intent) {
@@ -140,6 +162,16 @@ class SideMenuController(
         }
     }
 
+    /** The destination itself is missing or not a usable HTTPS link, so nothing was attempted. */
+    private fun showNotConfigured() {
+        Snackbar.make(
+            drawerLayout,
+            R.string.drawer_action_not_configured,
+            Snackbar.LENGTH_SHORT,
+        ).show()
+    }
+
+    /** The destination is valid, but no installed app can handle it. */
     private fun showUnavailable() {
         Snackbar.make(
             drawerLayout,
@@ -176,15 +208,12 @@ class SideMenuController(
                 activity.packageManager.getPackageInfo(activity.packageName, 0)
             }
         }.getOrNull()
-        val versionName = info?.versionName
-            ?.takeIf { it.isNotBlank() }
-            ?: BuildConfig.VERSION_NAME
-        val versionCode = info?.let { PackageInfoCompat.getLongVersionCode(it) }
-            ?: BuildConfig.VERSION_CODE.toLong()
-        return activity.getString(
-            R.string.drawer_version_format,
-            versionName,
-            versionCode.toString(),
+        val version = SideMenuPolicy.resolveVersion(
+            packageVersionName = info?.versionName,
+            packageVersionCode = info?.let { PackageInfoCompat.getLongVersionCode(it) },
+            fallbackVersionName = BuildConfig.VERSION_NAME,
+            fallbackVersionCode = BuildConfig.VERSION_CODE.toLong(),
         )
+        return activity.getString(R.string.drawer_version_format, version.name, version.code)
     }
 }

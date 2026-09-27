@@ -97,7 +97,7 @@
         android:background="@color/rf_surface"
         android:fitsSystemWindows="true"
         app:headerLayout="@layout/view_navigation_drawer_header"
-        app:itemIconTint="@color/rf_on_surface_variant"
-        app:itemTextColor="@color/rf_on_surface"
+        app:itemIconTint="@color/side_drawer_item_icon"
+        app:itemTextColor="@color/side_drawer_item_text"
         app:menu="@menu/menu_side_drawer" />
 </androidx.drawerlayout.widget.DrawerLayout>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drawer rows must show their state. A plain colour resource here overrides Material's
+     disabled state, which made "Sign in (coming later)" look identical to live actions. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/rf_outline" android:state_enabled="false" />
+    <item android:color="@color/rf_on_surface" />
+</selector>

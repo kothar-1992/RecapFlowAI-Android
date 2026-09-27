@@ -8,7 +8,7 @@
     <string name="zoom_mode_in">ဖြည်းဖြည်း ချဲ့မယ်</string>
     <string name="zoom_mode_out">ဖြည်းဖြည်း ချုံ့မယ်</string>
     <string name="zoom_mode_alternate">ချဲ့/ချုံ့ အလှည့်ကျ</string>
-    <string name="zoom_mode_note">ချဲ့မယ်ဆိုရင် ပုံကို 115% အထိ ဖြည်းဖြည်းချဲ့မယ်။ ချုံ့မယ်ဆိုရင် 90% အထိ ဖြည်းဖြည်းချုံ့မယ်။ အလှည့်ကျကိုရွေးရင် 4 စက္ကန့်ခန့်စီ ချဲ့/ချုံ့ လုပ်ပါမယ်။</string>
+    <string name="zoom_mode_note">ချဲ့မယ်ဆိုရင် ပုံကို 115%% အထိ ဖြည်းဖြည်းချဲ့မယ်။ ချုံ့မယ်ဆိုရင် 90%% အထိ ဖြည်းဖြည်းချုံ့မယ်။ အလှည့်ကျကိုရွေးရင် 4 စက္ကန့်ခန့်စီ ချဲ့/ချုံ့ လုပ်ပါမယ်။</string>
     <string name="speed_enable">ဗီဒီယို အမြန်နှုန်းပြောင်းမယ်</string>
     <string name="speed_off_summary">ပိတ်ထားပါတယ် — မူရင်းဗီဒီယိုအမြန်နှုန်းအတိုင်း ထားပါမယ်။</string>
     <string name="speed_remembered_summary">အရင်ရွေးထားတဲ့ %1$s ကို မှတ်ထားပါတယ် — သုံးချင်ရင် ပုံစံပြင်တာကို ဖွင့်ပါ။</string>
@@ -90,7 +90,7 @@
     <string name="audio_mix_added_volume_default">ထည့်သံ: 30%</string>
     <string name="audio_mix_added_volume_value">ထည့်သံ: %1$d%%</string>
     <string name="audio_mix_reset_balance">အသံနှစ်ခုရဲ့ အတိုးအကျယ်ကို မူလအတိုင်း ပြန်ထားမယ်</string>
-    <string name="audio_preview_note">အသံအတိုးအကျယ်ကို ဗီဒီယိုမထုတ်ခင် ကြားကြည့်နိုင်ပါတယ်။ 0–100% အတွင်း ရွေးနိုင်ပြီး အသံပေါင်းစပ်တဲ့အခါ မူရင်းအသံ 70% + ထည့်သံ 30% ကနေ စတင်ထားပါတယ်။</string>
+    <string name="audio_preview_note">အသံအတိုးအကျယ်ကို ဗီဒီယိုမထုတ်ခင် ကြားကြည့်နိုင်ပါတယ်။ 0–100%% အတွင်း ရွေးနိုင်ပြီး အသံပေါင်းစပ်တဲ့အခါ မူရင်းအသံ 70%% + ထည့်သံ 30%% ကနေ စတင်ထားပါတယ်။</string>
 
     <string name="overlay_badge_off">စာတန်းဖျော့ / ပုံထည့် • ပိတ်</string>
     <string name="overlay_badge_on">စာတန်းဖျော့ / ပုံထည့် • ဖွင့်</string>

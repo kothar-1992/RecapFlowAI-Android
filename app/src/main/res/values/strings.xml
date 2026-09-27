@@ -192,7 +192,7 @@
     <string name="zoom_mode_in">Zoom In</string>
     <string name="zoom_mode_out">Zoom Out</string>
     <string name="zoom_mode_alternate">Alternate</string>
-    <string name="zoom_mode_note">Zoom In scales content to 115%; Zoom Out scales it to 90%; Alternate moves smoothly through a repeatable 4-second cycle.</string>
+    <string name="zoom_mode_note">Zoom In scales content to 115%%; Zoom Out scales it to 90%%; Alternate moves smoothly through a repeatable 4-second cycle.</string>
     <string name="speed_enable">Speed</string>
     <string name="speed_off_summary">Off — source timing is unchanged in preview and render.</string>
     <string name="speed_remembered_summary">Remembered %1$s — turn Transform on to include Speed.</string>
@@ -273,7 +273,7 @@
     <string name="audio_mix_added_volume_default">Added audio volume: 30%</string>
     <string name="audio_mix_added_volume_value">Added audio volume: %1$d%%</string>
     <string name="audio_mix_reset_balance">Reset Mix Balance</string>
-    <string name="audio_preview_note">All gains are audible before render and limited to 0–100% for preview/export parity. Mix defaults to a conservative 70% original + 30% added balance; Mute removes the audio track.</string>
+    <string name="audio_preview_note">All gains are audible before render and limited to 0–100%% for preview/export parity. Mix defaults to a conservative 70%% original + 30%% added balance; Mute removes the audio track.</string>
     <string name="overlay_badge_off">OVERLAY • OFF</string>
     <string name="overlay_badge_on">OVERLAY • ON</string>
     <string name="overlay_enable">Enable overlay tools</string>
