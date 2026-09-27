@@ -401,64 +401,81 @@
                                 </LinearLayout>
                             </com.google.android.material.card.MaterialCardView>
 
-                            <com.google.android.material.button.MaterialButtonToggleGroup
-                                android:id="@+id/reviewEditorTabGroup"
+                            <!-- Five tabs cannot share a compact-width row: at ~360dp each button
+                                 got ~55dp, so every label ellipsized to "...". A scroll view lets
+                                 the buttons keep their natural label width on phones, while
+                                 fillViewport plus the per-button weight still spreads them across
+                                 the full row on a tablet. -->
+                            <HorizontalScrollView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="12dp"
-                                app:selectionRequired="true"
-                                app:singleSelection="true">
+                                android:fillViewport="true"
+                                android:scrollbars="none">
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/reviewClipsTabButton"
-                                    style="@style/Widget.Material3.Button.OutlinedButton"
-                                    android:layout_width="0dp"
+                                <com.google.android.material.button.MaterialButtonToggleGroup
+                                    android:id="@+id/reviewEditorTabGroup"
+                                    android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:checkable="true"
-                                    android:minHeight="48dp"
-                                    android:text="@string/review_editor_tab_clips" />
+                                    app:selectionRequired="true"
+                                    app:singleSelection="true">
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/reviewTransformTabButton"
-                                    style="@style/Widget.Material3.Button.OutlinedButton"
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:checkable="true"
-                                    android:minHeight="48dp"
-                                    android:text="@string/review_editor_tab_transform" />
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/reviewClipsTabButton"
+                                        style="@style/Widget.Material3.Button.OutlinedButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:checkable="true"
+                                        android:minHeight="48dp"
+                                        android:minWidth="96dp"
+                                        android:text="@string/review_editor_tab_clips" />
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/reviewAudioTabButton"
-                                    style="@style/Widget.Material3.Button.OutlinedButton"
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:checkable="true"
-                                    android:minHeight="48dp"
-                                    android:text="@string/review_editor_tab_audio" />
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/reviewTransformTabButton"
+                                        style="@style/Widget.Material3.Button.OutlinedButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:checkable="true"
+                                        android:minHeight="48dp"
+                                        android:minWidth="96dp"
+                                        android:text="@string/review_editor_tab_transform" />
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/reviewOverlayTabButton"
-                                    style="@style/Widget.Material3.Button.OutlinedButton"
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:checkable="true"
-                                    android:minHeight="48dp"
-                                    android:text="@string/review_editor_tab_overlay" />
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/reviewAudioTabButton"
+                                        style="@style/Widget.Material3.Button.OutlinedButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:checkable="true"
+                                        android:minHeight="48dp"
+                                        android:minWidth="96dp"
+                                        android:text="@string/review_editor_tab_audio" />
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/reviewExportTabButton"
-                                    style="@style/Widget.Material3.Button.OutlinedButton"
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:checkable="true"
-                                    android:minHeight="48dp"
-                                    android:text="@string/review_editor_tab_export" />
-                            </com.google.android.material.button.MaterialButtonToggleGroup>
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/reviewOverlayTabButton"
+                                        style="@style/Widget.Material3.Button.OutlinedButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:checkable="true"
+                                        android:minHeight="48dp"
+                                        android:minWidth="96dp"
+                                        android:text="@string/review_editor_tab_overlay" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/reviewExportTabButton"
+                                        style="@style/Widget.Material3.Button.OutlinedButton"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:checkable="true"
+                                        android:minHeight="48dp"
+                                        android:minWidth="96dp"
+                                        android:text="@string/review_editor_tab_export" />
+                                </com.google.android.material.button.MaterialButtonToggleGroup>
+                            </HorizontalScrollView>
 
                             <com.google.android.material.card.MaterialCardView
                                 android:id="@+id/editCard"
