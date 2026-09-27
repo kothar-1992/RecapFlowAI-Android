@@ -3863,7 +3863,7 @@ class MainActivity : AppCompatActivity() {
 
         val sourceInfo = activeMediaInfo
         val sourceSelected = sourceInfo?.workingFilePath == workingFilePath
-        if (sourceSelected && sourceInfo != null && compositionPreviewEligible(sourceInfo)) {
+        if (sourceSelected && compositionPreviewEligible(sourceInfo)) {
             configureSourcePreviewLayout(sourceInfo)
             val prepared = runCatching {
                 prepareCompositionPreview(

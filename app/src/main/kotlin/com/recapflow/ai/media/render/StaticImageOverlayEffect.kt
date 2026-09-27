@@ -123,7 +123,6 @@ private class StaticImageOverlayShaderProgram(
         val sourceTimeMs = sourceTimeUs / 1_000L
         val enabled = activeImage?.isActiveAt(sourceTimeMs) == true
         val animationEnabled = enabled &&
-            activeImage != null &&
             activeImage.animation.preset != ImageOverlayAnimationPreset.NONE &&
             ImageOverlayAnimationPolicy.isValid(activeImage.animation)
         val visual = if (animationEnabled) {
