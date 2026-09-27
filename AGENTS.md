@@ -31,17 +31,95 @@ Version catalog: `gradle/libs.versions.toml`.
 ## Build & test commands
 
 ```bash
-# Run the current phase source verifier first (grep-based invariants)
-bash scripts/verify_phase6ux2a_side_menu.sh
-
-# Unit tests (pure JVM, no emulator needed)
-./gradlew :app:testDebugUnitTest
+# Single authoritative gate: live verifiers + unit tests
+bash scripts/verify_gate.sh --with-tests
 
 # Debug APK
 ./gradlew :app:assembleDebug
+
+# Release APK (R8 + resource shrinking). See "Release build" below.
+./gradlew :app:assembleRelease
 ```
 
 Windows uses `gradlew.bat`; Unix uses `./gradlew`.
+
+### PowerShell: quote every `-P` and `-D` argument
+
+PowerShell mangles an unquoted `-P`-style argument when it is handed to a `.bat`, and Gradle then
+receives a truncated token:
+
+```powershell
+# WRONG -> Gradle sees the task ".ffmpeg.enabled=false" and fails
+.\gradlew.bat :app:assembleDebug -Precapflow.ffmpeg.enabled=true
+
+# RIGHT
+.\gradlew.bat :app:assembleDebug "-Precapflow.ffmpeg.enabled=true"
+```
+
+Other PowerShell differences: line continuation is a backtick, not `\`; environment variables are
+`$env:NAME`; and env-var defaults such as `ANDROID_HOME` must be set per shell because
+`local.properties` is gitignored.
+
+```powershell
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
+.\gradlew.bat :app:assembleRelease `
+  "-Precapflow.ffmpeg.enabled=true" `
+  "-Precapflow.crossfade.runtime.enabled=true" `
+  --console=plain --max-workers=2
+```
+
+Do not pass `--offline` to a release build until the dependencies are cached. `lintVitalRelease`
+resolves `com.android.tools.lint:lint-gradle` on first use and fails without network.
+
+## Release build
+
+`-Precapflow.ffmpeg.enabled=true` is required. `MediaImportCoordinator` calls
+`MediaEngine::Probe` → `ffmpeg::ProbeFile` with no fallback, so a build without FFmpeg cannot
+import a video at all. `app/build.gradle.kts` defaults it to `false` for fast JVM-only iteration,
+so pass the flag explicitly for anything installable.
+
+| | Debug | Release |
+|---|---|---|
+| R8 minify | off | on |
+| Resource shrinking | off | on |
+| `android:debuggable` | on | **absent** |
+| APK size, FFmpeg on | ~46 MB | **~29 MB** |
+
+The remaining ~15.7 MB is the statically linked FFmpeg inside `libflowai.so`. The CMake build type
+makes no measurable difference (debug stripped 15.71 MB, release stripped 15.70 MB) because the
+FFmpeg archives are already optimized, so do not chase it with `ndk.debugSymbolLevel`. Shrinking
+it further would mean rebuilding FFmpeg with a reduced codec set, which risks dropping input
+formats the editor must accept.
+
+Debug builds use `applicationIdSuffix = ".debug"` and `versionNameSuffix = "-debug"`, so a debug and
+a release install can sit on the same device.
+
+**Signing.** Put a `keystore.properties` in the repo root (gitignored) to sign a real release:
+
+```properties
+storeFile=release.jks
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
+
+Without it the release variant is signed with the **debug key** so it is still installable for
+testing, and the build prints a loud warning. A debug-key-signed APK cannot be published.
+
+**Backup is off.** `android:allowBackup="false"`, `android:fullBackupContent="false"`, and both
+backup rule files exclude every domain. The app stores editor preferences and working-file
+metadata for media the user already owns, so none of it should leave the device. The unused
+`FOREGROUND_SERVICE_DATA_SYNC` permission was removed. There is deliberately no `INTERNET`
+permission, which matches the local-first promise and blocks network exfiltration outright.
+
+**R8 and JNI.** `recapflow_jni.cpp` resolves `com/recapflow/ai/media/NativeProbePayload` by name
+and its `<init>` by descriptor, and calls the `native` methods of `NativeMediaBridge`. R8 breaks
+all of that silently at runtime, so `app/proguard-rules.pro` keeps both. Verified on device: a
+minified release build imports a video and reports `RecapFlow Native 0.1.0 / FFmpeg 9.0.1`, which
+is the string C++ returns through JNI. **Treat a change to the JNI signatures as requiring a new
+keep rule and an on-device import test.**
+
 
 ### Termux / AndroidIDE (owner device)
 
