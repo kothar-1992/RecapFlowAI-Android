@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="target_duration_badge">PRIMARY CLIPS MODE</string>
+    <string name="target_duration_out_of_reach_title">Target is longer than this speed allows</string>
+    <string name="target_duration_out_of_reach_body">A %1$s recap needs more source than the %3$s you imported, at the current video speed. The longest recap this source can produce right now is %2$s. Lower the target, or slow the video back down to keep %1$s.</string>
+    <string name="target_duration_out_of_reach_action">Use %1$s</string>
     <string name="target_duration_title">Target duration</string>
     <string name="target_duration_description">Drag the slider to choose the final video length. RecapFlowAI distributes clips across the full source instead of trimming only the beginning or end.</string>
     <string name="target_duration_source_label">Source duration</string>

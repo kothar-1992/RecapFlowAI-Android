@@ -86,6 +86,70 @@ object TargetDurationClipPlanner {
         return presentationDurationMs - presentationOverlapBudgetMs.coerceAtLeast(0L) + freezeDurationMs
     }
 
+    /**
+     * Longest final duration this source can produce at the given transform, or null when even the
+     * minimum target is out of reach.
+     *
+     * plan() fails with no explanation when the requested target needs more source than exists,
+     * which happens whenever the user speeds the video up: a 2x target needs twice as much kept
+     * source to fill the same output duration. The UI uses this to name the real ceiling and offer
+     * to lower the target, instead of reporting a bare "cannot be reconciled".
+     */
+    fun maximumAchievableDurationMs(
+        sourceRange: TrimRange,
+        transform: TransformSettings = TransformSettings(),
+        presentationOverlapBudgetMs: Long = 0L,
+    ): Long? {
+        if (sourceRange.startMs < 0L) return null
+        if (sourceRange.durationMs < AdaptiveCutCompiler.MIN_RANGE_DURATION_MS) return null
+        val speedMultiplier = SpeedCompiler.compile(transform)?.multiplier ?: 1f
+        val freezeDurationMs = FreezeCompiler.compile(transform)?.durationMs ?: 0L
+        val editablePresentationMs =
+            SpeedCompiler.compile(transform)
+                ?.outputDurationMs(sourceRange.durationMs)
+                ?.minus(freezeDurationMs)
+                ?.plus(presentationOverlapBudgetMs.coerceAtLeast(0L))
+            ?: (sourceRange.durationMs - freezeDurationMs + presentationOverlapBudgetMs.coerceAtLeast(0L))
+        if (editablePresentationMs < MIN_TARGET_DURATION_MS) return null
+        return editablePresentationMs
+    }
+
+    /**
+     * Why plan() returned null, in a form the UI can act on. Kept separate from plan() so the
+     * planner stays a pure function with a single success path.
+     */
+    fun unreachableReason(
+        sourceRange: TrimRange,
+        targetDurationMs: Long,
+        transform: TransformSettings = TransformSettings(),
+        presentationOverlapBudgetMs: Long = 0L,
+    ): TargetDurationUnreachableReason? {
+        if (sourceRange.startMs < 0L) return TargetDurationUnreachableReason.INVALID_SOURCE
+        if (sourceRange.durationMs < AdaptiveCutCompiler.MIN_RANGE_DURATION_MS) {
+            return TargetDurationUnreachableReason.SOURCE_TOO_SHORT
+        }
+        if (targetDurationMs < MIN_TARGET_DURATION_MS) {
+            return TargetDurationUnreachableReason.TARGET_TOO_SHORT
+        }
+        val freezeDurationMs = FreezeCompiler.compile(transform)?.durationMs ?: 0L
+        val editablePresentationMs =
+            targetDurationMs - freezeDurationMs + presentationOverlapBudgetMs
+        if (editablePresentationMs <= 0L) return TargetDurationUnreachableReason.TARGET_TOO_SHORT
+        val speedMultiplier = SpeedCompiler.compile(transform)?.multiplier ?: 1f
+        val requiredSourceKeepDurationMs =
+            (editablePresentationMs.toDouble() * speedMultiplier.toDouble()).roundToLong()
+        if (requiredSourceKeepDurationMs > sourceRange.durationMs) {
+            return TargetDurationUnreachableReason.SPEED_NEEDS_MORE_SOURCE
+        }
+        if (
+            requiredSourceKeepDurationMs < sourceRange.durationMs &&
+            requiredSourceKeepDurationMs < AdaptiveCutCompiler.MIN_RANGE_DURATION_MS * 2L
+        ) {
+            return TargetDurationUnreachableReason.TOO_FEW_CLIPS
+        }
+        return null
+    }
+
     private fun distributeRanges(
         sourceRange: TrimRange,
         keepDurationMs: Long,
@@ -142,6 +206,17 @@ object TargetDurationClipPlanner {
             base + if (index < remainder) 1L else 0L
         }
     }
+}
+
+/** Why a requested target duration cannot be reconciled with the current source and transform. */
+enum class TargetDurationUnreachableReason {
+    INVALID_SOURCE,
+    SOURCE_TOO_SHORT,
+    TARGET_TOO_SHORT,
+    /** The target needs more kept source than exists, which is what speeding the video up causes. */
+    SPEED_NEEDS_MORE_SOURCE,
+    /** The target maps to fewer than two minimum-length clips, so no usable cut exists. */
+    TOO_FEW_CLIPS,
 }
 
 data class TargetDurationClipPlan(

@@ -77,6 +77,7 @@ import com.recapflow.ai.media.edit.SourceSubtitleBlurSettings
 import com.recapflow.ai.media.edit.TransformCompiler
 import com.recapflow.ai.media.edit.TargetDurationClipIntegration
 import com.recapflow.ai.media.edit.TargetDurationClipPlanner
+import com.recapflow.ai.media.edit.TargetDurationUnreachableReason
 import com.recapflow.ai.media.edit.TransformSettings
 import com.recapflow.ai.media.edit.TransitionCompiler
 import com.recapflow.ai.media.edit.TransitionMode
@@ -1392,21 +1393,87 @@ class MainActivity : AppCompatActivity() {
 
     private fun reconcileTargetDurationForTimingChange() {
         val target = targetDurationMs ?: return
-        if (!adaptiveApplied || adaptiveDraftRanges.isEmpty()) return
+        if (adaptiveDraftRanges.isEmpty() && !adaptiveApplied) return
         val signature = currentTargetDurationTimingSignature()
         if (signature == targetDurationTimingSignature) return
+        // Record the attempt before running it. A failure must not spin, but it must also not
+        // latch the target closed: the previous version cleared adaptiveApplied and the guard
+        // above then returned forever, so reverting the speed never re-applied the target and the
+        // Export tab could not apply a suggested duration at all.
+        targetDurationTimingSignature = signature
         if (!applyTargetDurationPlan(target, resetCandidate = false)) {
-            adaptiveApplied = false
-            targetDurationTimingSignature = null
-            if (editor.adaptiveApplySwitch.isChecked) {
-                editor.adaptiveApplySwitch.isChecked = false
-            }
-            if (::targetDurationClipsController.isInitialized) {
-                targetDurationClipsController.showImpossibleTarget()
-            }
-            renderAdaptiveCutControls()
-            renderTargetDurationClipsControls()
+            onTargetDurationUnreachable()
         }
+    }
+
+    /**
+     * The requested target stays set so the user keeps their intent and can lower it or change the
+     * timing. The only thing given up is the applied plan, which is reported explicitly.
+     */
+    private fun onTargetDurationUnreachable() {
+        adaptiveApplied = false
+        if (editor.adaptiveApplySwitch.isChecked) {
+            editor.adaptiveApplySwitch.isChecked = false
+        }
+        if (::targetDurationClipsController.isInitialized) {
+            targetDurationClipsController.showImpossibleTarget()
+        }
+        renderAdaptiveCutControls()
+        renderTargetDurationClipsControls()
+        offerReachableTargetDuration()
+    }
+
+    /**
+     * When speeding up makes the requested target unreachable, name the real ceiling and offer to
+     * move the target there, instead of leaving the user with a bare failure. The user chooses;
+     * nothing is changed silently.
+     */
+    private fun offerReachableTargetDuration() {
+        val target = targetDurationMs ?: return
+        val info = activeMediaInfo ?: return
+        val sourceRange = TrimRange(0L, info.durationMs)
+        val transform = currentTransformSettings()
+        if (TargetDurationClipPlanner.unreachableReason(
+                sourceRange = sourceRange,
+                targetDurationMs = target,
+                transform = transform,
+            ) != TargetDurationUnreachableReason.SPEED_NEEDS_MORE_SOURCE
+        ) {
+            return
+        }
+        val reachable = TargetDurationClipPlanner.maximumAchievableDurationMs(
+            sourceRange = sourceRange,
+            transform = transform,
+        ) ?: return
+        if (reachable >= target) return
+        val rounded = (reachable / 1_000L) * 1_000L
+        if (rounded < TargetDurationClipPlanner.MIN_TARGET_DURATION_MS || rounded >= target) return
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.target_duration_out_of_reach_title)
+            .setMessage(
+                getString(
+                    R.string.target_duration_out_of_reach_body,
+                    MediaFormatters.duration(target),
+                    MediaFormatters.duration(rounded),
+                    MediaFormatters.duration(info.durationMs),
+                ),
+            )
+            .setPositiveButton(
+                getString(
+                    R.string.target_duration_out_of_reach_action,
+                    MediaFormatters.duration(rounded),
+                ),
+            ) { _, _ ->
+                targetDurationClipsController.setTargetDurationMs(rounded)
+                if (applyTargetDurationPlan(rounded, resetCandidate = false)) {
+                    onUserChangedAdaptiveCuts()
+                } else {
+                    onTargetDurationUnreachable()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun clearTargetDurationMode(clearFields: Boolean) {
@@ -1815,12 +1882,7 @@ class MainActivity : AppCompatActivity() {
         val target = targetDurationMs
         if (target != null && adaptiveApplied && adaptiveDraftRanges.isNotEmpty()) {
             if (!applyTargetDurationPlan(target, resetCandidate = false)) {
-                adaptiveApplied = false
-                targetDurationTimingSignature = null
-                if (editor.adaptiveApplySwitch.isChecked) {
-                    editor.adaptiveApplySwitch.isChecked = false
-                }
-                targetDurationClipsController.showImpossibleTarget()
+                onTargetDurationUnreachable()
             }
         }
         clipTransitionEditorController.reconcile()
@@ -2050,10 +2112,19 @@ class MainActivity : AppCompatActivity() {
             )
             onUserChangedAdaptiveCuts()
         } else {
+            // Two different situations used to share one message, so the user was told to review
+            // clips when the real problem was a declared-but-unapplied target duration. Name the
+            // actual state so the next action is obvious.
+            val reasonRes = when {
+                targetDurationMs != null && !adaptiveApplied ->
+                    R.string.export_duration_blocked_by_target
+                else ->
+                    R.string.export_duration_update_unavailable
+            }
             Snackbar.make(
                 binding.mainRoot,
-                R.string.export_duration_update_unavailable,
-                Snackbar.LENGTH_SHORT,
+                reasonRes,
+                Snackbar.LENGTH_LONG,
             ).show()
             renderDurationFitAdvisor()
             return

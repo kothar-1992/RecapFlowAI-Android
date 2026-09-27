@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="target_duration_badge">အဓိက CLIPS ပုံစံ</string>
+    <string name="target_duration_out_of_reach_title">ဒီအမြန်နှုန်းနဲ့ ဒီကာလရှည်လို့ မရပါ</string>
+    <string name="target_duration_out_of_reach_body">ယခု ဗီဒီယိုအမြန်နှုန်းနဲ့ %1$s ရှည်တဲ့ နောက်ဆုံးဗီဒီယိုထုတ်ဖို့ ထည့်ထားတဲ့ %3$s ရင်းအမြစ် မလုံလောက်တော့ပါ။ ဒီအချိန်မှာ ဒီဗီဒီယိုကနေ အမြင့်ဆုံး ရနိုင်တဲ့ ကာလက %2$s သာ ရှိပါတယ်။ ကာလကို %2$s သို့ လျှော့ပါ၊ ဒါမိုက် ဗီဒီယိုကို နှေးပြန်ပေးရင် %1$s ကို ဆက်သုံးနိုင်ပါတယ်။</string>
+    <string name="target_duration_out_of_reach_action">%1$s သုံးမယ်</string>
     <string name="target_duration_title">လိုချင်တဲ့ ဗီဒီယိုကြာချိန်</string>
     <string name="target_duration_description">နောက်ဆုံးထွက်မယ့် ဗီဒီယိုကြာချိန်ကို Slider ဆွဲပြီး ရွေးပါ။ RecapFlowAI က အစ ဒါမှမဟုတ် အဆုံးကိုပဲ ဖြတ်မပစ်ဘဲ မူရင်းဗီဒီယိုတစ်လျှောက် ကလစ်တွေကို ဖြန့်ပြီး ရွေးပေးပါမယ်။</string>
     <string name="target_duration_source_label">မူရင်းဗီဒီယိုကြာချိန်</string>

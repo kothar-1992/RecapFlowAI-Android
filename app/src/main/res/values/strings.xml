@@ -425,7 +425,8 @@
     <string name="export_duration_unavailable">Reviewed video: %1$s • closest whole second: %2$s • difference: %3$s%4$s seconds. The final clip cannot be adjusted automatically; change the final clip end time.</string>
     <string name="export_duration_apply">Update clips to %1$s</string>
     <string name="export_duration_updated">Reviewed clips updated to %1$s.</string>
-    <string name="export_duration_update_unavailable">The closest duration is no longer available. Review the latest Trim or Adaptive Cuts.</string>
+    <string name="export_duration_update_unavailable">No closer duration is available right now. Change the clip ranges, then check the suggested duration again.</string>
+    <string name="export_duration_blocked_by_target">Your target length is set but not applied, so the suggested duration cannot be used yet. Open Target duration, lower the target to what your current video speed allows, or set the video speed back to 1×.</string>
     <string name="export_waiting_title">Render a video first</string>
     <string name="export_waiting_detail">Choose 720p, 1080p, or 2K, then render one final video below.</string>
     <string name="export_private_ready">Private render ready</string>

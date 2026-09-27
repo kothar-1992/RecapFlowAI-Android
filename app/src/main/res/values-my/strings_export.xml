@@ -41,7 +41,8 @@
     <string name="export_duration_unavailable">ဗီဒီယိုကြာချိန် %1$s • အနီးဆုံး %2$s • %3$s%4$s စက္ကန့် ကွာနေပါတယ်။ နောက်ဆုံးကလစ်ကို အလိုအလျောက် မပြင်နိုင်ပါ။ ကလစ်အဆုံးချိန်ကို ပြန်ရွေးပါ။</string>
     <string name="export_duration_apply">ကလစ်တွေကို %1$s အထိ ပြင်မယ်</string>
     <string name="export_duration_updated">ကလစ်တွေကို %1$s အထိ ပြင်ပြီးပါပြီ။</string>
-    <string name="export_duration_update_unavailable">အနီးဆုံးကြာချိန်ကို အခု မသုံးနိုင်တော့ပါ။ ရွေးထားတဲ့အပိုင်း ဒါမှမဟုတ် ကလစ်အကြမ်းကို ပြန်စစ်ပါ။</string>
+    <string name="export_duration_update_unavailable">အနီးဆုံးကြာချိန် အခု မရှိသေးပါ။ ကလစ်အကြမ်းကို ပြောင်းပြီး အကြိုက်အရှိကြာချိန်ကို ပြန်စစ်ပါ။</string>
+    <string name="export_duration_blocked_by_target">သင့်လိုချင်တဲ့ကာလကို သတ်မှတ်ထားပေမယ့် အသုံးမပြုရသေးလို့ အကြိုက်အရှိကြာချိန်ကို မသုံးနိုင်သေးပါ။ လိုချင်တဲ့ကာလ ကိုုင်းသွားပါပြီ၊ ဒါမိုက် ဗီဒီယိုအမြန်နှုန်းက ယခုနှုန်းနဲ့ ရနိုင်တဲ့ကာလထက် လျှော့ပါ၊ ဒါမိုက် အမြန်နှုန်းကို 1× ပြန်ထားပါ။</string>
     <string name="export_waiting_title">ဗီဒီယိုကို အရင်ထုတ်ပါ</string>
     <string name="export_waiting_detail">720p၊ 1080p သို့မဟုတ် 2K ကို ရွေးပြီး အောက်တွင် နောက်ဆုံးဗီဒီယို 1 ဖိုင် ထုတ်ပါ။</string>
     <string name="export_private_ready">ထွက်ဗီဒီယို အသင့်ဖြစ်ပါပြီ</string>
