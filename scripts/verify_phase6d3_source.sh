@@ -18,8 +18,11 @@ render_file="app/src/main/kotlin/com/recapflow/ai/media/render/LocalRenderCoordi
 compiler_file="app/src/main/kotlin/com/recapflow/ai/media/edit/AudioCompiler.kt"
 importer_file="app/src/main/kotlin/com/recapflow/ai/media/importer/ReplacementAudioImportCoordinator.kt"
 
-require_marker 'rootProject.name = "RecapFlowAI_Phase6D3"' "settings.gradle.kts"
-require_marker 'versionName = "1.0-phase6d3"' "app/build.gradle.kts"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'android:id="@+id/audioReplaceButton"' "$layout_file"
 require_marker 'android:id="@+id/replacementAudioChooseButton"' "$layout_file"
 require_marker 'private lateinit var replacementAudioPlayer: ExoPlayer' "$main_file"

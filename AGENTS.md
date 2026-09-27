@@ -76,18 +76,48 @@ FFmpeg native libs are **gitignored** (`app/src/main/cpp/ffmpeg/prebuilt/arm64-v
 
 ## Source verifiers
 
-`scripts/verify_phase*.sh` — grep-based invariant checks, **not** Gradle tests. Each phase has its own verifier. Run the current phase verifier before any build/test. Current phase:
+Run the gate before any build or test. It is the single authoritative check:
+
+```bash
+bash scripts/verify_gate.sh --with-tests
+```
+
+That runs the live verifier set (current phase, CBR baseline, and the 6H.2 animation set) plus
+`:app:testDebugUnitTest`. Add `--historical` to also print the state of the old per-phase
+verifiers.
+
+Current phase verifier on its own:
 
 ```bash
 bash scripts/verify_phase6ux2a_side_menu.sh
 ```
 
-These verify structural contracts: required files exist, specific markers/grep patterns are present or absent (e.g., no VBR after the CBR hotfix, no auth/AdMob SDKs), exact version strings, and architecture invariants (e.g., exactly one `Transformer.start` call in final export).
+`scripts/verify_phase*.sh` are grep-based invariant checks, **not** Gradle tests. They verify
+structural contracts: required files exist, specific markers are present or absent (no VBR after
+the CBR hotfix, no auth/AdMob SDKs), version identity, and architecture invariants (exactly one
+`Transformer.start` call in final export).
 
-Only the current phase verifier and the CBR baseline verifier are expected to pass. The older
-per-phase scripts still pin superseded `settings.gradle.kts` project names and old `versionName`
-values, so a full-suite run reports roughly 40 historical failures. That is known drift, not a
-regression — judge a change by the current phase verifier, the CBR baseline, and the unit tests.
+### Historical verifiers do not gate
+
+Of the 45 phase verifier scripts, only the 5 in the live set are expected to pass. The other 40
+are a record of what each past phase required, and they are **not** a regression signal. Two
+independent reasons:
+
+1. Each one pinned the `rootProject.name` and `versionName` of its own phase. Both moved on with
+   every later phase, so the pin became unsatisfiable and the script exited at the identity check
+   before reaching any real assertion. `scripts/apply_verifier_identity_retirement.py` removed
+   those 68 dead pins so the behavioural checks below them run again; the script is idempotent.
+2. With the identity pins gone, the real assertions surface, and they pin **exact source text at a
+   specific file path**. Legitimate extractions retired them without any behaviour change. Spot
+   checks confirmed this: `Presentation.createForWidthAndHeight` now lives in
+   `TransformVideoEffects.kt` rather than `LocalRenderCoordinator.kt`, `CompositionPlayer.Builder`
+   now lives in `CompositionPreviewPlayerFactory.kt`, and `mirrorEnabledSwitch` moved into
+   `view_transform_mirror_controls.xml` which `view_editor_destination.xml` includes. All three
+   capabilities are intact and covered by the passing unit tests.
+
+Do not "fix" a historical verifier by re-pointing it at today's file layout. It would go stale at
+the next extraction and the value is lower than the cost. The live regression gate is the JVM unit
+tests plus the live verifiers.
 
 `.gitattributes` pins `*.sh` to `eol=lf`. A CRLF verifier fails at `set -euo pipefail` with
 `set: pipefail: invalid option name`, which looks like a content failure but is not one. Keep

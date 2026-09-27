@@ -23,11 +23,14 @@ reject_marker() {
 
 bash "$project_dir/scripts/verify_phase6e2_1_source.sh"
 
-require_marker 'rootProject.name = "RecapFlowAI_Phase6E3A"' "settings.gradle.kts"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'minSdk = 28' "app/build.gradle.kts"
 require_marker 'compileSdk = 36' "app/build.gradle.kts"
 require_marker 'targetSdk = 34' "app/build.gradle.kts"
-require_marker 'versionName = "1.0-phase6e3a"' "app/build.gradle.kts"
 require_marker 'agp = "8.13.0"' "gradle/libs.versions.toml"
 require_marker 'kotlin = "2.1.0"' "gradle/libs.versions.toml"
 require_marker 'coreKtx = "1.16.0"' "gradle/libs.versions.toml"

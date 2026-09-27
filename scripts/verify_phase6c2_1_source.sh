@@ -15,8 +15,11 @@ require_marker() {
 main_file="app/src/main/kotlin/com/recapflow/ai/MainActivity.kt"
 layout_file="app/src/main/res/layout/view_editor_destination.xml"
 
-require_marker 'rootProject.name = "RecapFlowAI_Phase6C2_1"' "settings.gradle.kts"
-require_marker 'versionName = "1.0-phase6c2.1"' "app/build.gradle.kts"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'android:id="@+id/previewDragHandle"' "$layout_file"
 require_marker 'android:id="@+id/previewResizeHandle"' "$layout_file"
 require_marker 'android:id="@+id/previewResetButton"' "$layout_file"

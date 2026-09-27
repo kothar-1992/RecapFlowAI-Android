@@ -15,8 +15,11 @@ inspector='app/src/main/kotlin/com/recapflow/ai/media/render/RenderedOutputInspe
 validation='app/src/main/kotlin/com/recapflow/ai/media/render/RenderedOutputValidation.kt'
 plan='PLAN.md'
 
-require_marker 'versionName = "1.0-phase6f2.8"' "$build"
-require_marker 'rootProject.name = "RecapFlowAI_Phase6F2_8"' "$settings"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'CompositionPlayer.Builder(this).build()' "$main"
 require_marker 'compileForPreview' "$compiler"
 require_marker 'PREVIEW_FRAME_RATE = 30' "$compiler"

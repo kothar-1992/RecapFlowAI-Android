@@ -31,8 +31,11 @@ state_file="app/src/main/kotlin/com/recapflow/ai/media/render/PreviewUiState.kt"
 layout_file="app/src/main/res/layout/view_editor_destination.xml"
 strings_file="app/src/main/res/values/strings.xml"
 
-require_marker 'rootProject.name = "RecapFlowAI_Phase6F2_6_2"' settings.gradle.kts
-require_marker 'versionName = "1.0-phase6f2.6.2"' app/build.gradle.kts
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'Local media workspace • Phase 6F.2.6' "$strings_file"
 require_marker 'sealed interface PreviewUiState' "$state_file"
 require_marker 'data class SourceOnly' "$state_file"

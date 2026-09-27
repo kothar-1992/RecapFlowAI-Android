@@ -36,8 +36,11 @@ speed_effects_file="app/src/main/kotlin/com/recapflow/ai/media/render/TransformS
 require_file "app/src/main/kotlin/com/recapflow/ai/media/edit/SpeedCompiler.kt"
 require_file "$speed_effects_file"
 require_file "app/src/test/kotlin/com/recapflow/ai/media/edit/SpeedCompilerTest.kt"
-require_marker 'rootProject.name = "RecapFlowAI_Phase6B6"' "settings.gradle.kts"
-require_marker 'versionName = "1.0-phase6b6"' "app/build.gradle.kts"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'android:id="@+id/speedEnabledSwitch"' "$layout_file"
 require_marker 'android:id="@+id/speedModeGroup"' "$layout_file"
 require_marker 'android:id="@+id/speed05Button"' "$layout_file"

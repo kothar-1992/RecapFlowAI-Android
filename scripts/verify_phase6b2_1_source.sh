@@ -29,8 +29,11 @@ reject_marker() {
 }
 
 require_file "app/src/main/kotlin/com/recapflow/ai/media/render/TransformVideoEffects.kt"
-require_marker 'rootProject.name = "RecapFlowAI_Phase6B2_1"' "settings.gradle.kts"
-require_marker 'versionName = "1.0-phase6b2.1"' "app/build.gradle.kts"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'implementation(libs.androidx.media3.exoplayer)' "app/build.gradle.kts"
 require_marker 'implementation(libs.androidx.media3.ui)' "app/build.gradle.kts"
 require_marker '<androidx.media3.ui.PlayerView' "app/src/main/res/layout/view_editor_destination.xml"

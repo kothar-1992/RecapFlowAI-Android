@@ -25,8 +25,11 @@ validator_file="app/src/main/kotlin/com/recapflow/ai/media/edit/EditPlanValidato
 vertex_file="app/src/main/assets/shaders/vertex_shader_source_subtitle_blur_es2.glsl"
 fragment_file="app/src/main/assets/shaders/fragment_shader_source_subtitle_blur_es2.glsl"
 
-require_marker 'rootProject.name = "RecapFlowAI_Phase6E3A"' "settings.gradle.kts"
-require_marker 'versionName = "1.0-phase6e3a"' "app/build.gradle.kts"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'android:id="@+id/reviewOverlayTabButton"' "$layout_file"
 require_marker 'android:id="@+id/overlayCard"' "$layout_file"
 require_marker 'android:id="@+id/sourceBlurRegionGuide"' "$layout_file"

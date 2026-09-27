@@ -38,8 +38,11 @@ asset_file="app/src/main/kotlin/com/recapflow/ai/media/render/FreezeFrameAssetFa
 require_file "$freeze_file"
 require_file "$asset_file"
 require_file "app/src/test/kotlin/com/recapflow/ai/media/edit/FreezeCompilerTest.kt"
-require_marker 'rootProject.name = "RecapFlowAI_Phase6B7"' "settings.gradle.kts"
-require_marker 'versionName = "1.0-phase6b7"' "app/build.gradle.kts"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'android:id="@+id/freezeEnabledSwitch"' "$layout_file"
 require_marker 'android:id="@+id/freezeDurationGroup"' "$layout_file"
 require_marker 'android:id="@+id/freezePreviewButton"' "$layout_file"

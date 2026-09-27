@@ -17,8 +17,11 @@ layout_file="app/src/main/res/layout/view_editor_destination.xml"
 render_file="app/src/main/kotlin/com/recapflow/ai/media/render/LocalRenderCoordinator.kt"
 edit_file="app/src/main/kotlin/com/recapflow/ai/media/edit/AdaptiveCutCompiler.kt"
 
-require_marker 'rootProject.name = "RecapFlowAI_Phase6C1_1"' "settings.gradle.kts"
-require_marker 'versionName = "1.0-phase6c1.1"' "app/build.gradle.kts"
+# PHASE6UX2_VERIFIER_IDENTITY_RETIRED
+# The project name and versionName this phase used to pin have both moved on, so these
+# two identity checks could only ever fail. They also short-circuited every behavioural
+# check below, which is why they are retired rather than repaired. Version identity is
+# owned by the current phase verifier and the CBR baseline drift guard instead.
 require_marker 'android:id="@+id/adaptivePresetGroup"' "$layout_file"
 require_marker 'android:id="@+id/adaptiveApplySwitch"' "$layout_file"
 require_marker 'AdaptiveCutDraftEngine.generate' "$main_file"
