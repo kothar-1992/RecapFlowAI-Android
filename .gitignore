@@ -27,3 +27,6 @@ __pycache__/
 # Generated ARM64 FFmpeg SDK. Recreate with the checked-in build script.
 app/src/main/cpp/ffmpeg/prebuilt/arm64-v8a/include/
 app/src/main/cpp/ffmpeg/prebuilt/arm64-v8a/lib/*.a
+
+# Agent Manager local state and its worktrees
+.kilo/

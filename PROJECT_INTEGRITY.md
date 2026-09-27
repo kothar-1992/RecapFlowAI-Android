@@ -10,6 +10,12 @@ preview topology, and one-final-render architecture remain intact.
 - Branch: `hotfix/phase-6f2.8.1-render-quality`
 - Application ID: `com.recapflow.ai`
 - Version: `1.0-phase6f2.8.1`
+
+> **Superseded for versioning.** This document records the 6F.2.8.1 hotfix branch as it stood on
+> 2026-08-29. The CBR quality invariants it describes still hold and are still enforced by
+> `scripts/verify_phase6f2_8_1_source.sh`, but `versionName` has since advanced to
+> `1.0-phase6ux2` on `feature/phase-6ux2-side-menu`. For current version and phase-label
+> consistency, see `AGENTS.md` and `docs/PHASE6UX2_LDPLAYER_VERIFICATION.md`.
 - AndroidX Media3: `1.10.0`
 - FFmpeg baseline: `9.0.1` ARM64 static integration
 - Preview flag: `recapflow.composition.preview.enabled` (default `true`)

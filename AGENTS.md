@@ -5,8 +5,11 @@ Android video editor (single-module `:app`, namespace `com.recapflow.ai`). Focus
 ## Current state
 
 - **Branch**: `feature/phase-6ux2-side-menu` (builds on Phase 6F.2.8.1 CBR baseline)
-- **Version**: `1.0-phase6f2.8.1` ( versionName in `app/build.gradle.kts` )
-- `app/src/main/kotlin/com/recapflow/ai/MainActivity.kt` is ~3500 lines, monolithic — phase changes are applied programmatically, not hand-edited.
+- **Version**: `1.0-phase6ux2` ( versionName in `app/build.gradle.kts` )
+- `app/src/main/kotlin/com/recapflow/ai/MainActivity.kt` is ~6400 lines, monolithic — phase changes are applied programmatically, not hand-edited.
+- Phase label copy lives in `app/src/main/res/values-v28/phase_6ux2_strings.xml` and must stay
+  in sync with `versionName`. `verify_phase6f2_8_1_source.sh` enforces this; never change one
+  without the other.
 
 ## Toolchain
 
@@ -81,6 +84,33 @@ bash scripts/verify_phase6ux2a_side_menu.sh
 
 These verify structural contracts: required files exist, specific markers/grep patterns are present or absent (e.g., no VBR after the CBR hotfix, no auth/AdMob SDKs), exact version strings, and architecture invariants (e.g., exactly one `Transformer.start` call in final export).
 
+Only the current phase verifier and the CBR baseline verifier are expected to pass. The older
+per-phase scripts still pin superseded `settings.gradle.kts` project names and old `versionName`
+values, so a full-suite run reports roughly 40 historical failures. That is known drift, not a
+regression — judge a change by the current phase verifier, the CBR baseline, and the unit tests.
+
+`.gitattributes` pins `*.sh` to `eol=lf`. A CRLF verifier fails at `set -euo pipefail` with
+`set: pipefail: invalid option name`, which looks like a content failure but is not one. Keep
+shell verifiers LF even on a Windows checkout with `core.autocrlf=true`.
+
+## Device verification
+
+The phase device target is an **LDPlayer Android 14 (API 34) emulator** reached over adb, not a
+Mi Pad. Its 1280x720 @ 240 dpi screen is 853 dp wide, so it exercises `layout-sw600dp`. The image
+is `x86_64` but advertises `arm64-v8a` in `ro.product.cpu.abilist`, so the `arm64-v8a`-only APK
+installs and runs through the native bridge. Results and open items are recorded in
+`docs/PHASE6UX2_LDPLAYER_VERIFICATION.md`.
+
+```bash
+adb devices -l
+adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s emulator-5554 shell cmd locale set-app-locales com.recapflow.ai --user 0 --locales my
+```
+
+The `--user 0` flag is required; without it the locale command reports success but changes
+nothing. An emulator is not a substitute for a physical arm64 tablet for render quality or
+FFmpeg native behaviour.
+
 ## Apply scripts
 
 `scripts/apply_phase*.py` — Python scripts that programmatically patch source files for a phase. They are idempotent: check for a phase marker and skip if already applied. Current:
@@ -115,7 +145,14 @@ Then build with `-Precapflow.ffmpeg.enabled=true`.
 ## Project conventions
 
 - **Localization**: `values/` (English) + `values-my/` (Myanmar). Myanmar strings must use ASCII digits 0-9, **not** Myanmar numerals (၀-၉). External URLs (Telegram, Facebook, email) must not be localized — they live in `side_menu_destinations.xml` and must be HTTPS.
+- **Static copy with `%`**: escape it as `%%`. aapt2 warns on a bare `%`, and `getString(id, args)` on such a string throws at runtime. Positional `%1$s` is fine.
 - **Version-specific strings** go in `values-v28/phase_*.xml`.
+- **Android resource qualifiers**: locale has the highest precedence and platform version (`-v28`)
+  the lowest, so `values-my` still overrides `values-v28`. A `-v28` override does not suppress
+  localization.
+- **UI decisions belong in a `*Policy` object** with JVM unit tests, not inline in a controller.
+  `SideMenuPolicy` is the reference for the side menu; it uses `java.net.URI` rather than
+  `android.net.Uri` so it stays testable off-device.
 - **EditorPreferencesStore** must remain metadata-only — no source URIs, file paths, or tokens.
 - **Final export** snapshots one immutable EditPlan and calls `Transformer.start` exactly once (verified by source checkers).
 - **MainActivity back-press**: the side drawer must get priority — close it before navigating home.

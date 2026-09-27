@@ -4,6 +4,10 @@
 # Linux start script should use lf
 /gradlew        text eol=lf
 
+# Source verifiers are bash. CRLF breaks `set -euo pipefail`, and core.autocrlf=true on a
+# Windows checkout rewrites them on stash/pop, so pin them to lf explicitly.
+*.sh            text eol=lf
+
 # These are Windows script files and should use crlf
 *.bat           text eol=crlf
 
