@@ -5706,23 +5706,28 @@ class MainActivity : AppCompatActivity() {
         editor.transitionEnabledSwitch.isEnabled = controlsEnabled
         val cropControlsEnabled = controlsEnabled && cropEnabled
         editor.cropControlsGroup.isVisible = transformEnabled && cropEnabled
-        editor.cropControlsGroup.alpha = if (transformEnabled && cropEnabled) 1f else 0.46f
+        // Dim from the enabled state, not the visibility condition. Every sub-group below used the
+        // same expression for both, so the 0.46 branch could never be seen: whenever the condition
+        // was false the group was already gone, and whenever it was true a render in flight left
+        // the buttons disabled at full opacity. That is what made the Speed and Zoom labels look
+        // like dead controls that belonged to each other.
+        editor.cropControlsGroup.alpha = if (cropControlsEnabled) 1f else 0.46f
         editor.cropControlsGroup.setChildrenEnabled(cropControlsEnabled)
         val colorControlsEnabled = controlsEnabled && colorEnabled
         editor.colorControlsGroup.isVisible = transformEnabled && colorEnabled
-        editor.colorControlsGroup.alpha = if (transformEnabled && colorEnabled) 1f else 0.46f
+        editor.colorControlsGroup.alpha = if (colorControlsEnabled) 1f else 0.46f
         editor.colorControlsGroup.setChildrenEnabled(colorControlsEnabled)
         val zoomControlsEnabled = controlsEnabled && zoomEnabled
         editor.zoomControlsGroup.isVisible = transformEnabled && zoomEnabled
-        editor.zoomControlsGroup.alpha = if (transformEnabled && zoomEnabled) 1f else 0.46f
+        editor.zoomControlsGroup.alpha = if (zoomControlsEnabled) 1f else 0.46f
         editor.zoomModeGroup.setChildrenEnabled(zoomControlsEnabled)
         val speedControlsEnabled = controlsEnabled && speedEnabled
         editor.speedControlsGroup.isVisible = transformEnabled && speedEnabled
-        editor.speedControlsGroup.alpha = if (transformEnabled && speedEnabled) 1f else 0.46f
+        editor.speedControlsGroup.alpha = if (speedControlsEnabled) 1f else 0.46f
         editor.speedModeGroup.setChildrenEnabled(speedControlsEnabled)
         val freezeControlsEnabled = controlsEnabled && freezeEnabled && !freezePreviewActive
         editor.freezeControlsGroup.isVisible = transformEnabled && freezeEnabled
-        editor.freezeControlsGroup.alpha = if (transformEnabled && freezeEnabled) 1f else 0.46f
+        editor.freezeControlsGroup.alpha = if (freezeControlsEnabled) 1f else 0.46f
         editor.freezeDurationGroup.setChildrenEnabled(freezeControlsEnabled)
         editor.freezePreviewButton.isEnabled = freezeControlsEnabled && activeMediaInfo != null
         editor.freezePreviewButton.setText(
@@ -5730,7 +5735,7 @@ class MainActivity : AppCompatActivity() {
         )
         val transitionControlsEnabled = controlsEnabled && transitionEnabled
         editor.transitionControlsGroup.isVisible = transformEnabled && transitionEnabled
-        editor.transitionControlsGroup.alpha = if (transformEnabled && transitionEnabled) 1f else 0.46f
+        editor.transitionControlsGroup.alpha = if (transitionControlsEnabled) 1f else 0.46f
         editor.transitionModeGroup.setChildrenEnabled(transitionControlsEnabled)
         editor.transitionDurationGroup.setChildrenEnabled(transitionControlsEnabled)
         editor.transformBadge.setText(
