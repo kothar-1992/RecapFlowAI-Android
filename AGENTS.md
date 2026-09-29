@@ -204,10 +204,10 @@ shell verifiers LF even on a Windows checkout with `core.autocrlf=true`.
 ## Device verification
 
 The phase device target is an **LDPlayer Android 14 (API 34) emulator** reached over adb, not a
-Mi Pad. Its 1280x720 @ 240 dpi screen is 853 dp wide, so it exercises `layout-sw600dp`. The image
-is `x86_64` but advertises `arm64-v8a` in `ro.product.cpu.abilist`, so the `arm64-v8a`-only APK
-installs and runs through the native bridge. Results and open items are recorded in
-`docs/PHASE6UX2_LDPLAYER_VERIFICATION.md`.
+Mi Pad. Its 1280x720 @ 240 dpi screen is 853 dp wide, so by default it only exercises
+`layout-sw600dp`. The image is `x86_64` but advertises `arm64-v8a` in `ro.product.cpu.abilist`, so
+the `arm64-v8a`-only APK installs and runs through the native bridge. Results and open items are
+recorded in `docs/PHASE6UX2_LDPLAYER_VERIFICATION.md`.
 
 ```bash
 adb devices -l
@@ -218,6 +218,24 @@ adb -s emulator-5554 shell cmd locale set-app-locales com.recapflow.ai --user 0 
 The `--user 0` flag is required; without it the locale command reports success but changes
 nothing. An emulator is not a substitute for a physical arm64 tablet for render quality or
 FFmpeg native behaviour.
+
+**Override the geometry to reach the compact layout.** A 853 dp-only device hides every
+compact-width defect, and a phone is the width where Burmese labels actually break. Force one
+with `wm`, then reset afterwards:
+
+```bash
+adb -s emulator-5554 shell wm size 1080x2340   # override size
+adb -s emulator-5554 shell wm density 420      # -> 411 dp wide, exercises layout/
+adb -s emulator-5554 shell wm size reset
+adb -s emulator-5554 shell wm density reset
+```
+
+Changing the geometry recreates the activity and drops the loaded project, so re-import the media
+afterwards. Always `reset` when finished or the next session silently starts in the wrong layout.
+
+Note the debug variant's package is `com.recapflow.ai.debug` (it has `applicationIdSuffix`), so
+the locale command and any `am start` need that name for a debug build. The debug build also needs
+`-Precapflow.ffmpeg.enabled=true` to import media at all — see the build section above.
 
 ## Apply scripts
 
