@@ -1,0 +1,73 @@
+# RecapFlowAI — Codemagic build (DRAFT v2, repo ထဲ မထည့်ရသေးဘူး)
+# ထားရမယ့် နေရာ: repo root မှာ codemagic.yaml
+# စစ်ပြီး အချက်များ (Codemagic docs, 2026-10-26):
+# - Free plan: Personal account မှာ တစ်လ macOS M2 500 minutes, လတိုင်း reset။ Team ဆိုရင် free မရဘူး။
+# - Mac mini M2 machine: 8-core CPU / 12GB RAM, disk 294GB။
+# - SDK Manager: /usr/local/share/android-sdk/cmdline-tools/latest/bin/sdkmanager
+# - Billing လုံးဝ မဖွင့်နဲ့ — free minutes ကုန်ရင် build ရပ်ရုံပဲ၊ ပိုက်ဆံ မဖြတ်ဘူး။
+# Workflow ၂ ခု: test-only က အရင် gate, android-build က full (assembleDebug အပါ)။
+
+workflows:
+  test-only:
+    name: RecapFlowAI Test Only
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      java: 17
+    scripts:
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+      - name: Install SDK platform 36, build-tools, NDK 24, CMake 3.18.1
+        script: |
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKMANAGER" ] || SDKMANAGER="/usr/local/share/android-sdk/cmdline-tools/latest/bin/sdkmanager"
+          echo "== phase sdkmanager start: $(date +%s) =="
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "ndk;24.0.8215888" "cmake;3.18.1"
+          echo "== phase sdkmanager end: $(date +%s) =="
+      - name: Unit tests
+        script: |
+          echo "== phase unit tests start: $(date +%s) =="
+          ./gradlew :app:testDebugUnitTest \
+            -Precapflow.ffmpeg.enabled=true \
+            --no-daemon --max-workers=2 --stacktrace
+          echo "== phase unit tests end: $(date +%s) =="
+    artifacts:
+      - app/build/reports/tests/**/*
+
+  android-build:
+    name: RecapFlowAI Android Build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      java: 17
+    scripts:
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+      - name: Install SDK platform 36, build-tools, NDK 24, CMake 3.18.1
+        script: |
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKMANAGER" ] || SDKMANAGER="/usr/local/share/android-sdk/cmdline-tools/latest/bin/sdkmanager"
+          echo "== phase sdkmanager start: $(date +%s) =="
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "ndk;24.0.8215888" "cmake;3.18.1"
+          echo "== phase sdkmanager end: $(date +%s) =="
+      - name: Unit tests
+        script: |
+          ./gradlew :app:testDebugUnitTest \
+            -Precapflow.ffmpeg.enabled=true \
+            --no-daemon --max-workers=2 --stacktrace
+      - name: Assemble debug APK
+        script: |
+          echo "== phase assemble start: $(date +%s) =="
+          ./gradlew :app:assembleDebug \
+            -Precapflow.ffmpeg.enabled=true \
+            -Precapflow.composition.preview.enabled=true \
+            --no-daemon --max-workers=2 --stacktrace
+          echo "== phase assemble end: $(date +%s) =="
+    artifacts:
+      - app/build/outputs/apk/debug/app-debug.apk
+      - app/build/reports/tests/**/*
